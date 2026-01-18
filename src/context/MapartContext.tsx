@@ -29,6 +29,7 @@ export interface MapartState {
     transparency: TransparencySettings;
     uploadedImage: File | null;
     previewUrl: string | null;
+    selectedPaletteItems: Record<number, string | null>;
 }
 
 interface MapartContextType extends MapartState {
@@ -40,6 +41,7 @@ interface MapartContextType extends MapartState {
     setDithering: (dithering: string) => void;
     setTransparency: (settings: Partial<TransparencySettings>) => void;
     setUploadedImage: (file: File | null) => void;
+    setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
 }
 
 const defaultState: MapartState = {
@@ -52,6 +54,7 @@ const defaultState: MapartState = {
     transparency: { enabled: true, color: '#ffffff' },
     uploadedImage: null,
     previewUrl: null,
+    selectedPaletteItems: {},
 };
 
 const MapartContext = createContext<MapartContextType | undefined>(undefined);
@@ -77,6 +80,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const setTransparency = (settings: Partial<TransparencySettings>) => {
         setTransparencyState(prev => ({ ...prev, ...settings }));
     };
+
+    const [selectedPaletteItems, setSelectedPaletteItems] = useState<Record<number, string | null>>({});
 
     const setUploadedImage = (file: File | null) => {
         setUploadedImageState(file);
@@ -109,6 +114,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setDithering,
         setTransparency,
         setUploadedImage,
+        selectedPaletteItems,
+        setSelectedPaletteItems,
     };
 
     return (

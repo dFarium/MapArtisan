@@ -68,3 +68,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.rendering-pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}

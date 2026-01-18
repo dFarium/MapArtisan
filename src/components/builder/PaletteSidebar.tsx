@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import paletteData from '../../data/palette.json';
 import { useMapart } from '../../context/MapartContext';
 
@@ -15,13 +15,7 @@ interface BlockTextureMap {
 interface PaletteColor {
     colorID: number;
     colorName: string;
-    r: number; // Note: The JSON provided shows brightnessValues structure, but previous code used direct r,g,b. 
-    // Need to check if I need to map "normal" brightness or if the JSON has flattened r,g,b.
-    // Looking at the JSON snippet, it has 'brightnessValues'.
-    // Wait, the previous code assumed `color.r`, `color.g`, `color.b`.
-    // The JSON I saw has `brightnessValues: { lowest:..., low:..., normal:..., high:... }`.
-    // This means my previous code `rgb({color.r}, ...)` was ALSO WRONG if applied to this JSON.
-    // I need to use `color.brightnessValues.normal.r`.
+    r: number;
     brightnessValues: {
         normal: { r: number; g: number; b: number; };
     };
@@ -29,12 +23,13 @@ interface PaletteColor {
 }
 
 export const PaletteSidebar = () => {
-    const { paletteVersion } = useMapart();
+    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
     const [isOpen, setIsOpen] = useState(true);
     const [width, setWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [textureMap, setTextureMap] = useState<BlockTextureMap>({});
+    const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
 
     useEffect(() => {
         const fetchTextures = async () => {
@@ -88,11 +83,48 @@ export const PaletteSidebar = () => {
     const filteredPalette = useMemo(() => {
         const query = searchQuery.toLowerCase();
         // Access .colors array
-        return (paletteData.colors as unknown as PaletteColor[]).filter(color =>
-            color.blocks.some(block => block.toLowerCase().includes(query)) ||
-            color.colorID.toString().includes(query)
-        );
+        return (paletteData.colors as unknown as PaletteColor[]).filter(color => {
+            if (color.colorName === 'clear') return false;
+
+            const matches =
+                color.colorName.toLowerCase().includes(query) ||
+                color.blocks.some(block => block.toLowerCase().includes(query)) ||
+                color.colorID.toString().includes(query);
+            return matches;
+        });
     }, [searchQuery]);
+
+    // Auto-expand groups when searching
+    useEffect(() => {
+        if (searchQuery) {
+            const newExpanded: Record<number, boolean> = {};
+            filteredPalette.forEach(c => newExpanded[c.colorID] = true);
+            setExpandedGroups(prev => ({ ...prev, ...newExpanded }));
+        }
+    }, [searchQuery, filteredPalette]);
+
+    const toggleGroup = (id: number) => {
+        setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const toggleBlockSelection = (colorId: number, block: string) => {
+        setSelectedPaletteItems((prev) => {
+            const current = prev[colorId];
+            if (current === block && block !== '') {
+                const next = { ...prev };
+                delete next[colorId];
+                return next;
+            } else {
+                if (block === '') {
+                    const next = { ...prev };
+                    delete next[colorId];
+                    return next;
+                }
+                return { ...prev, [colorId]: block };
+            }
+        });
+    };
+
 
     const getTextureUrl = (blockName: string) => {
         const cleanName = blockName.replace('minecraft:', '');
@@ -153,50 +185,110 @@ export const PaletteSidebar = () => {
             {isOpen && (
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                     {filteredPalette.map((color) => {
-                        // Correctly access normal brightness values
                         const { r, g, b } = color.brightnessValues.normal;
                         const rgb = `rgb(${r}, ${g}, ${b})`;
-
-                        const mainBlock = color.blocks[0];
-                        const textureUrl = getTextureUrl(mainBlock);
+                        const isExpanded = expandedGroups[color.colorID];
+                        const selectedBlock = selectedPaletteItems[color.colorID];
 
                         return (
-                            <div
-                                key={color.colorID}
-                                className="group flex items-center gap-3 p-2 rounded hover:bg-zinc-800/50 transition-colors border border-transparent hover:border-zinc-800"
-                            >
-                                <div className="relative flex-shrink-0">
-                                    {/* Color Fallback / Background */}
-                                    <div
-                                        className="w-10 h-10 rounded border border-zinc-700 shadow-sm"
-                                        style={{ backgroundColor: rgb }}
-                                        title={`Base Color: ${rgb}`}
-                                    />
-                                    {/* Texture Overlay */}
-                                    {textureUrl && (
-                                        <img
-                                            src={textureUrl}
-                                            alt={mainBlock}
-                                            className="absolute inset-0 w-10 h-10 rounded object-cover rendering-pixelated"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                            loading="lazy"
+                            <div key={color.colorID} className="rounded border border-zinc-800/50 bg-zinc-900/50 overflow-hidden mb-1">
+                                {/* Group Header */}
+                                <div
+                                    className="flex items-center gap-3 p-2 hover:bg-zinc-800 cursor-pointer transition-colors"
+                                    onClick={() => toggleGroup(color.colorID)}
+                                >
+                                    <div className="relative">
+                                        <div
+                                            className="w-6 h-6 rounded border border-zinc-700 shadow-sm"
+                                            style={{ backgroundColor: rgb }}
                                         />
-                                    )}
+                                        {/* Show selected block texture as badge if collapsed and something is selected */}
+                                        {!isExpanded && selectedBlock && (
+                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-sm border border-zinc-900 bg-zinc-800 z-10 flex items-center justify-center">
+                                                <img
+                                                    src={getTextureUrl(selectedBlock) || ''}
+                                                    className="w-full h-full object-cover rendering-pixelated rounded-sm"
+                                                    alt=""
+                                                    onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-zinc-200 capitalize">
+                                                {color.colorName.replace(/_/g, ' ')}
+                                            </span>
+                                            <span className="text-xs text-zinc-500">
+                                                {selectedBlock
+                                                    ? selectedBlock.replace('minecraft:', '').replace(/_/g, ' ')
+                                                    : 'None selected'}
+                                            </span>
+                                        </div>
+                                        <div className="text-zinc-500">
+                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-0.5">
-                                        <span className="font-medium text-zinc-200 text-sm truncate" title={color.blocks.join(', ')}>
-                                            {color.blocks[0].replace('minecraft:', '').replace(/_/g, ' ')}
-                                        </span>
-                                        <span className="text-xs text-zinc-600 font-mono">#{color.colorID}</span>
+                                {/* Expanded Content (Block List) */}
+                                {isExpanded && (
+                                    <div className="bg-zinc-950/50 p-2 grid grid-cols-4 gap-2 border-t border-zinc-800/50">
+                                        {/* Option to select None */}
+                                        <button
+                                            onClick={() => toggleBlockSelection(color.colorID, '')}
+                                            className={`
+                                                flex flex-col items-center justify-center !p-0 !rounded-none !w-10 !h-10
+                                                border transition-all
+                                                ${!selectedBlock
+                                                    ? 'bg-zinc-800 border-blue-500/50 ring-1 ring-blue-500/20'
+                                                    : 'bg-zinc-900/30 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700'}
+                                            `}
+                                            title="Unselect"
+                                        >
+                                            <div className="w-full h-full flex items-center justify-center text-zinc-500 font-mono text-xs">
+                                                /
+                                            </div>
+                                        </button>
+
+                                        {color.blocks.map((block) => {
+                                            const isSelected = selectedBlock === block;
+                                            const textureUrl = getTextureUrl(block);
+
+                                            return (
+                                                <button
+                                                    key={block}
+                                                    type="button"
+                                                    onClick={() => toggleBlockSelection(color.colorID, block)}
+                                                    className={`
+                                                        relative group block !p-0 !rounded-none !w-10 !h-10
+                                                        border transition-all overflow-hidden
+                                                        ${isSelected
+                                                            ? 'bg-zinc-800 border-blue-500 ring-1 ring-blue-500/30'
+                                                            : 'bg-zinc-900/30 border-transparent hover:bg-zinc-800 hover:border-zinc-700'}
+                                                    `}
+                                                    title={block.replace('minecraft:', '')}
+                                                >
+                                                    <div className="w-full h-full relative">
+                                                        {textureUrl ? (
+                                                            <img
+                                                                src={textureUrl}
+                                                                alt={block}
+                                                                className="w-full h-full object-cover object-top rendering-pixelated !rounded-none"
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-zinc-800 !rounded-none flex items-center justify-center text-[10px] text-zinc-600">
+                                                                ?
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="text-xs text-zinc-500 truncate">
-                                        {color.blocks.length > 1 ? `+${color.blocks.length - 1} variants` : 'Single block'}
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         );
                     })}
