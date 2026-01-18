@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import paletteData from '../../data/palette.json';
+import paletteData from '../../data/1_21_11_v2.json';
 import { useMapart } from '../../context/MapartContext';
 
 // Define the shape of a color entry based on palette.json
 interface PaletteColor {
     colorID: number;
     colorName: string;
-    r: number;
+
     brightnessValues: {
         normal: { r: number; g: number; b: number; };
     };
@@ -15,7 +15,7 @@ interface PaletteColor {
 }
 
 export const PaletteSidebar = () => {
-    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems, textureBundle } = useMapart();
+    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
     const [isOpen, setIsOpen] = useState(true);
     const [width, setWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
@@ -66,11 +66,14 @@ export const PaletteSidebar = () => {
     }, [searchQuery]);
 
     // Auto-expand groups when searching
+    // Auto-collapse groups when search bar is empty
     useEffect(() => {
         if (searchQuery) {
             const newExpanded: Record<number, boolean> = {};
             filteredPalette.forEach(c => newExpanded[c.colorID] = true);
             setExpandedGroups(prev => ({ ...prev, ...newExpanded }));
+        } else {
+            setExpandedGroups({});
         }
     }, [searchQuery, filteredPalette]);
 
@@ -99,12 +102,7 @@ export const PaletteSidebar = () => {
 
     const getTextureUrl = (blockName: string) => {
         const cleanName = blockName.replace('minecraft:', '');
-        const base64 = textureBundle[cleanName];
-        if (base64) {
-            return `data:image/png;base64,${base64}`;
-        }
-        // Fallback for async load or missing texture
-        return null;
+        return `/textures/${cleanName}.png`;
     };
 
     return (
@@ -176,9 +174,10 @@ export const PaletteSidebar = () => {
                                         {!isExpanded && selectedBlock && (
                                             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-sm border border-zinc-900 bg-zinc-800 z-10 flex items-center justify-center">
                                                 <img
-                                                    src={getTextureUrl(selectedBlock) || ''}
-                                                    className="w-full h-full object-cover rendering-pixelated rounded-sm"
+                                                    src={getTextureUrl(selectedBlock)}
+                                                    className="w-full h-full object-cover rendering-pixelated rounded-sm relative z-10"
                                                     alt=""
+                                                    style={{ backgroundColor: rgb }}
                                                     onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
                                                 />
                                             </div>
@@ -217,14 +216,19 @@ export const PaletteSidebar = () => {
                                             `}
                                             title="Unselect"
                                         >
-                                            <div className="w-full h-full flex items-center justify-center text-zinc-500 font-mono text-xs">
-                                                /
-                                            </div>
+                                            <img
+                                                src="/textures/barrier.png"
+                                                alt="Unselect"
+                                                className="w-full h-full object-cover rendering-pixelated"
+                                                title="Unselect"
+                                            />
                                         </button>
 
                                         {color.blocks.map((block) => {
                                             const isSelected = selectedBlock === block;
                                             const textureUrl = getTextureUrl(block);
+
+                                            const isSlab = block.includes('slab');
 
                                             // Only render if we have a texture or fallback
 
@@ -242,19 +246,17 @@ export const PaletteSidebar = () => {
                                                     `}
                                                     title={block.replace('minecraft:', '')}
                                                 >
-                                                    <div className="w-full h-full relative">
-                                                        {textureUrl ? (
-                                                            <img
-                                                                src={textureUrl}
-                                                                alt={block}
-                                                                className="w-full h-full object-cover object-top rendering-pixelated !rounded-none"
-                                                                loading="lazy"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-zinc-800 !rounded-none flex items-center justify-center text-[10px] text-zinc-600">
-                                                                ?
-                                                            </div>
-                                                        )}
+                                                    <div className={`w-full h-full relative flex flex-col ${isSlab ? 'justify-end' : ''}`}>
+                                                        <img
+                                                            src={textureUrl}
+                                                            alt={block}
+                                                            className={`w-full object-cover rendering-pixelated !rounded-none relative z-10 ${isSlab ? 'h-1/2 object-contain bg-transparent' : 'h-full object-top'}`}
+                                                            style={{ backgroundColor: rgb, transition: 'background-color 0.2s' }}
+                                                            loading="lazy"
+                                                            onLoad={(e) => {
+                                                                (e.target as HTMLElement).style.backgroundColor = 'transparent';
+                                                            }}
+                                                        />
                                                     </div>
                                                 </button>
                                             );
