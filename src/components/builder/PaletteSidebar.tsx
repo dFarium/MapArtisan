@@ -3,14 +3,6 @@ import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucid
 import paletteData from '../../data/palette.json';
 import { useMapart } from '../../context/MapartContext';
 
-const ASSET_BASE_URL = 'https://raw.githubusercontent.com/PrismarineJS/minecraft-assets/master/data/1.21.1';
-
-interface BlockTextureMap {
-    [key: string]: {
-        texture: string | null;
-    };
-}
-
 // Define the shape of a color entry based on palette.json
 interface PaletteColor {
     colorID: number;
@@ -23,37 +15,16 @@ interface PaletteColor {
 }
 
 export const PaletteSidebar = () => {
-    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
+    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems, textureBundle } = useMapart();
     const [isOpen, setIsOpen] = useState(true);
     const [width, setWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [textureMap, setTextureMap] = useState<BlockTextureMap>({});
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
 
-    useEffect(() => {
-        const fetchTextures = async () => {
-            try {
-                const response = await fetch(`${ASSET_BASE_URL}/blocks_textures.json`);
-                if (!response.ok) throw new Error('Failed to load textures');
-                const data = await response.json();
+    // Texture bundle is now managed globally in MapartContext
 
-                const map: BlockTextureMap = {};
-                if (Array.isArray(data)) {
-                    data.forEach((item: any) => {
-                        if (item.name && item.texture) {
-                            map[item.name] = { texture: item.texture };
-                        }
-                    });
-                }
-                setTextureMap(map);
-            } catch (error) {
-                console.error("Failed to fetch texture mapping:", error);
-            }
-        };
 
-        fetchTextures();
-    }, []);
 
     const startResizing = (e: React.MouseEvent) => {
         setIsResizing(true);
@@ -128,12 +99,11 @@ export const PaletteSidebar = () => {
 
     const getTextureUrl = (blockName: string) => {
         const cleanName = blockName.replace('minecraft:', '');
-        const textureData = textureMap[cleanName];
-
-        if (textureData && textureData.texture) {
-            const cleanPath = textureData.texture.replace('minecraft:', '');
-            return `${ASSET_BASE_URL}/${cleanPath}.png`;
+        const base64 = textureBundle[cleanName];
+        if (base64) {
+            return `data:image/png;base64,${base64}`;
         }
+        // Fallback for async load or missing texture
         return null;
     };
 
@@ -255,6 +225,8 @@ export const PaletteSidebar = () => {
                                         {color.blocks.map((block) => {
                                             const isSelected = selectedBlock === block;
                                             const textureUrl = getTextureUrl(block);
+
+                                            // Only render if we have a texture or fallback
 
                                             return (
                                                 <button

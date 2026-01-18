@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
 export type BlockSupport = 'all' | 'needed' | 'survival';
@@ -30,6 +30,7 @@ export interface MapartState {
     uploadedImage: File | null;
     previewUrl: string | null;
     selectedPaletteItems: Record<number, string | null>;
+    textureBundle: Record<string, string>;
 }
 
 interface MapartContextType extends MapartState {
@@ -55,6 +56,7 @@ const defaultState: MapartState = {
     uploadedImage: null,
     previewUrl: null,
     selectedPaletteItems: {},
+    textureBundle: {},
 };
 
 const MapartContext = createContext<MapartContextType | undefined>(undefined);
@@ -82,6 +84,15 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     const [selectedPaletteItems, setSelectedPaletteItems] = useState<Record<number, string | null>>({});
+    const [textureBundle, setTextureBundle] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        // Preload texture bundle globally
+        fetch('/textures/textures.json')
+            .then(res => res.json())
+            .then(data => setTextureBundle(data))
+            .catch(err => console.error("Failed to load texture bundle:", err));
+    }, []);
 
     const setUploadedImage = (file: File | null) => {
         setUploadedImageState(file);
@@ -94,8 +105,6 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
     };
 
-    // Cleanup URL on unmount could be added via useEffect, but for now simple set is okay.
-
     const value = {
         paletteVersion,
         imageSettings,
@@ -106,6 +115,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         transparency,
         uploadedImage,
         previewUrl,
+        selectedPaletteItems,
+        textureBundle,
         setPaletteVersion,
         setImageSettings,
         setGridDimensions,
@@ -114,7 +125,6 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setDithering,
         setTransparency,
         setUploadedImage,
-        selectedPaletteItems,
         setSelectedPaletteItems,
     };
 
