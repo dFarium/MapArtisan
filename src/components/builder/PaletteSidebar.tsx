@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Save, Trash2, RotateCcw } from 'lucide-react';
 import paletteData from '../../data/palette_1_21_11.json';
 import { useMapart } from '../../context/MapartContext';
@@ -20,8 +20,6 @@ interface PaletteColor {
 export const PaletteSidebar = () => {
     const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
     const [isOpen, setIsOpen] = useState(true);
-    const [width, setWidth] = useState(400);
-    const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
     const [customPresets, setCustomPresets] = useState<{ name: string; selection: Record<number, string | null> }[]>([]);
@@ -94,33 +92,6 @@ export const PaletteSidebar = () => {
 
     // Texture bundle is now managed globally in MapartContext
 
-
-
-    const startResizing = (e: React.MouseEvent) => {
-        setIsResizing(true);
-        e.preventDefault();
-    };
-
-    useEffect(() => {
-        const stopResizing = () => setIsResizing(false);
-        const resize = (e: MouseEvent) => {
-            if (isResizing) {
-                const newWidth = Math.max(250, Math.min(600, e.clientX));
-                setWidth(newWidth);
-            }
-        };
-
-        if (isResizing) {
-            window.addEventListener('mousemove', resize);
-            window.addEventListener('mouseup', stopResizing);
-        }
-
-        return () => {
-            window.removeEventListener('mousemove', resize);
-            window.removeEventListener('mouseup', stopResizing);
-        };
-    }, [isResizing]);
-
     const filteredPalette = useMemo(() => {
         const query = searchQuery.toLowerCase();
         // Access .colors array
@@ -178,7 +149,7 @@ export const PaletteSidebar = () => {
     return (
         <div
             className="h-full bg-zinc-900 border-r border-zinc-700 flex flex-col relative transition-all duration-75 select-none"
-            style={{ width: isOpen ? width : 'auto' }}
+            style={{ width: isOpen ? 350 : 'auto' }}
         >
             {/* Toggle Button (Collapsed) */}
             {!isOpen && (
@@ -436,13 +407,6 @@ export const PaletteSidebar = () => {
                 </div>
             )}
 
-            {/* Resizer Handle */}
-            {isOpen && (
-                <div
-                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500/50 transition-colors z-10"
-                    onMouseDown={startResizing}
-                />
-            )}
         </div>
     );
 };

@@ -1,37 +1,95 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, ZoomIn, ZoomOut, RotateCw, Move } from 'lucide-react';
+import { Upload, ZoomIn, ZoomOut, Move, Grid3X3 } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export const MainCanvas = () => {
-    const { uploadedImage, setUploadedImage, previewUrl } = useMapart();
+    const { uploadedImage, setUploadedImage, previewUrl, gridDimensions, imageFitMode, cropSettings } = useMapart();
     const [scale, setScale] = useState(1);
-    const [rotation, setRotation] = useState(0);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [showPreview, setShowPreview] = useState(true);
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
+
+    // Calculate mapart resolution based on grid dimensions
+    const mapartResolution = useMemo(() => ({
+        width: 128 * gridDimensions.x,
+        height: 128 * gridDimensions.y
+    }), [gridDimensions]);
+
+    // Generate scaled preview when image or grid changes
+    useEffect(() => {
+        if (!previewUrl) {
+            setScaledPreviewUrl(null);
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = mapartResolution.width;
+            canvas.height = mapartResolution.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // Disable smoothing for pixelated effect
+            ctx.imageSmoothingEnabled = false;
+
+            if (imageFitMode === 'adjust') {
+                // Stretch to fit (may distort aspect ratio)
+                ctx.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
+            } else {
+                // Crop mode with custom zoom and offset
+                const { zoom, offsetX, offsetY } = cropSettings;
+
+                // Calculate base crop region (what fits at zoom=1)
+                const imgAspect = img.width / img.height;
+                const canvasAspect = mapartResolution.width / mapartResolution.height;
+
+                let baseWidth, baseHeight;
+                if (imgAspect > canvasAspect) {
+                    baseHeight = img.height;
+                    baseWidth = img.height * canvasAspect;
+                } else {
+                    baseWidth = img.width;
+                    baseHeight = img.width / canvasAspect;
+                }
+
+                // Apply zoom (smaller region = more zoom)
+                const zoomedWidth = baseWidth / zoom;
+                const zoomedHeight = baseHeight / zoom;
+
+                // Calculate offset range and apply offset
+                const maxOffsetX = (img.width - zoomedWidth) / 2;
+                const maxOffsetY = (img.height - zoomedHeight) / 2;
+                const finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
+                const finalOffsetY = (img.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
+
+                ctx.drawImage(
+                    img,
+                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
+                    0, 0, mapartResolution.width, mapartResolution.height
+                );
+            }
+
+            setScaledPreviewUrl(canvas.toDataURL('image/png'));
+        };
+        img.src = previewUrl;
+    }, [previewUrl, mapartResolution, imageFitMode, cropSettings]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
             const file = acceptedFiles[0];
-            // Validate aspect ratio
-            const img = new Image();
-            img.onload = () => {
-                if (Math.abs(img.width - img.height) > 1) { // Allow 1px diff
-                    // Ideally show toast or rejection message
-                    console.warn("Aspect ratio must be 1:1");
-                }
-                setUploadedImage(file);
-                // Reset transforms
-                setScale(1);
-                setRotation(0);
-                setPosition({ x: 0, y: 0 });
-            };
-            img.src = URL.createObjectURL(file);
+            setUploadedImage(file);
+            // Reset transforms
+            setScale(1);
+            setPosition({ x: 0, y: 0 });
         }
     }, [setUploadedImage]);
 
@@ -99,18 +157,31 @@ export const MainCanvas = () => {
                             <ZoomIn size={18} />
                         </button>
                         <div className="w-px h-6 bg-zinc-700 mx-1" />
-                        <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-2 hover:bg-zinc-700 rounded text-zinc-300">
-                            <RotateCw size={18} />
-                        </button>
                         <button
                             className={clsx("p-2 hover:bg-zinc-700 rounded text-zinc-300", isDragging && "text-blue-400 bg-zinc-800")}
                             title="Drag to Pan"
                         >
                             <Move size={18} />
                         </button>
+                        <div className="w-px h-6 bg-zinc-700 mx-1" />
+                        <button
+                            onClick={() => setShowPreview(!showPreview)}
+                            className={clsx("p-2 hover:bg-zinc-700 rounded", showPreview ? "text-green-400 bg-zinc-800" : "text-zinc-300")}
+                            title="Toggle Mapart Preview"
+                        >
+                            <Grid3X3 size={18} />
+                        </button>
                         <button onClick={() => setUploadedImage(null)} className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded text-zinc-300 ml-2">
                             X
                         </button>
+                    </div>
+
+                    {/* Resolution Info */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-zinc-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-zinc-700 text-xs text-zinc-400">
+                        Mapart: <span className="text-zinc-200 font-mono">{mapartResolution.width} × {mapartResolution.height}</span> px
+                        <span className="mx-2 text-zinc-600">|</span>
+                        Grid: <span className="text-zinc-200 font-mono">{gridDimensions.x} × {gridDimensions.y}</span> maps
+                        {imageFitMode === 'crop' && <span className="ml-2 text-green-400 font-medium">Crop</span>}
                     </div>
 
                     {/* Canvas Area */}
@@ -122,20 +193,61 @@ export const MainCanvas = () => {
                     >
                         <div
                             style={{
-                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
+                                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                                 transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                             }}
-                            className="origin-center shadow-2xl"
+                            className="origin-center shadow-2xl flex gap-4"
                         >
-                            <img
-                                ref={imageRef}
-                                src={previewUrl!}
-                                alt="Mapart Preview"
-                                className="max-w-none pointer-events-none select-none"
-                                draggable={false}
-                            />
+                            {/* Original Image */}
+                            <div className="relative">
+                                <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
+                                <img
+                                    ref={imageRef}
+                                    src={previewUrl!}
+                                    alt="Original"
+                                    className="max-w-none pointer-events-none select-none border border-zinc-600"
+                                    draggable={false}
+                                    style={{
+                                        width: mapartResolution.width,
+                                        height: mapartResolution.height,
+                                        objectFit: 'cover'
+                                    }}
+                                />
+                            </div>
+
+                            {/* Mapart Preview */}
+                            {showPreview && scaledPreviewUrl && (
+                                <div className="relative">
+                                    <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-green-500 font-semibold">Mapart Preview</div>
+                                    <img
+                                        src={scaledPreviewUrl}
+                                        alt="Mapart Preview"
+                                        className="max-w-none pointer-events-none select-none border border-green-600/50 rendering-pixelated"
+                                        draggable={false}
+                                        style={{
+                                            width: mapartResolution.width,
+                                            height: mapartResolution.height,
+                                            imageRendering: 'pixelated'
+                                        }}
+                                    />
+                                    {/* Grid Overlay */}
+                                    <div
+                                        className="absolute inset-0 pointer-events-none"
+                                        style={{
+                                            backgroundImage: `
+                                                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+                                                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+                                            `,
+                                            backgroundSize: `${128}px ${128}px`
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Hidden canvas for processing */}
+                    <canvas ref={canvasRef} className="hidden" />
                 </>
             ) : (
                 <div className="flex-1 flex items-center justify-center p-8">
@@ -158,8 +270,12 @@ export const MainCanvas = () => {
                         <p className="text-zinc-400 text-sm max-w-xs text-center">
                             Drag & drop or click to select.
                             <br />
-                            <span className="opacity-70 mt-2 block">Supports PNG, JPG, WEBP (1:1 Ratio Recommended)</span>
+                            <span className="opacity-70 mt-2 block">Supports PNG, JPG, WEBP</span>
                         </p>
+                        <div className="mt-4 text-xs text-zinc-500">
+                            Current grid: <span className="text-zinc-300 font-mono">{gridDimensions.x} × {gridDimensions.y}</span> =
+                            <span className="text-zinc-300 font-mono ml-1">{mapartResolution.width} × {mapartResolution.height}</span> px
+                        </div>
                     </div>
                 </div>
             )}

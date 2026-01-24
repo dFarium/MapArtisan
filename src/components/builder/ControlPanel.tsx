@@ -1,6 +1,110 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMapart, type BuildMode, type BlockSupport } from '../../context/MapartContext';
-import { Settings2, Grid, Layers, Box, Droplets, Palette as PaletteIcon, Info, Bug } from 'lucide-react';
+import {
+    Settings2,
+    Grid,
+    Layers,
+    Box,
+    Droplets,
+    Palette as PaletteIcon,
+    Info,
+    Bug,
+    ChevronDown,
+    ChevronUp,
+    Crop,
+    Maximize,
+    RefreshCw,
+    ImageIcon,
+    Zap,
+    Hammer,
+    Eye
+} from 'lucide-react';
+
+// Precision Slider Component with mouse wheel support
+const PrecisionSlider = ({
+    label,
+    value,
+    min,
+    max,
+    step,
+    unit = "",
+    onChange,
+    accentColor = "accent-blue-500"
+}: {
+    label: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    unit?: string;
+    onChange: (val: number) => void;
+    accentColor?: string;
+}) => {
+    const handleWheel = (e: React.WheelEvent) => {
+        e.preventDefault();
+        const direction = e.deltaY > 0 ? -1 : 1;
+        const range = max - min;
+        const incrementalChange = Math.max(step, range * 0.01);
+        const newValue = Math.min(max, Math.max(min, value + direction * incrementalChange));
+        const roundedValue = Math.round(newValue / step) * step;
+        onChange(Number(roundedValue.toFixed(2)));
+    };
+
+    return (
+        <div className="space-y-1.5 group">
+            <div className="flex justify-between text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors uppercase tracking-wider font-semibold">
+                <span>{label}</span>
+                <span className="font-mono">{value}{unit}</span>
+            </div>
+            <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                value={value}
+                onChange={(e) => onChange(parseFloat(e.target.value))}
+                onWheel={handleWheel}
+                className={`w-full ${accentColor} cursor-pointer`}
+            />
+        </div>
+    );
+};
+
+// Collapsible Section Component
+const Section = ({
+    title,
+    icon,
+    children,
+    defaultOpen = true
+}: {
+    title: string;
+    icon: React.ReactNode;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+}) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border-b border-zinc-800 pb-5 last:border-0 last:pb-0">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between text-zinc-400 font-bold uppercase tracking-widest hover:text-zinc-100 transition-colors py-2"
+            >
+                <span className="flex items-center gap-3 text-xs">
+                    {icon}
+                    {title}
+                </span>
+                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {isOpen && (
+                <div className="mt-3 space-y-5 px-1">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const ControlPanel = () => {
     const context = useMapart();
@@ -11,198 +115,226 @@ export const ControlPanel = () => {
         buildMode, setBuildMode,
         blockSupport, setBlockSupport,
         dithering, setDithering,
-        transparency, setTransparency
+        transparency, setTransparency,
+        imageFitMode, setImageFitMode,
+        cropSettings, setCropSettings, resetCropSettings
     } = context;
 
     return (
-        <div className="h-full flex flex-col space-y-6 text-sm">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <Settings2 size={20} /> Parameters
+        <div className="h-full flex flex-col space-y-3 text-sm">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-2">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-100 italic">
+                    <Settings2 size={22} className="text-blue-500" />
+                    PARAMETERS
                 </h2>
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => console.log('Mapart Configuration Data:', context)}
-                        className="text-zinc-500 hover:text-amber-400 transition-colors"
-                        title="Debug: Log Data"
+                        onClick={() => console.log('Mapart Configuration:', context)}
+                        className="p-2 text-zinc-500 hover:bg-zinc-800 hover:text-amber-400 rounded-md transition-all"
+                        title="Log Profile"
                     >
-                        <Bug size={18} />
+                        <Bug size={20} />
                     </button>
-                    <Link to="/about" className="text-zinc-500 hover:text-blue-400 transition-colors" title="About">
-                        <Info size={18} />
+                    <Link to="/about" className="p-2 text-zinc-500 hover:bg-zinc-800 hover:text-blue-400 rounded-md transition-all" title="About">
+                        <Info size={20} />
                     </Link>
                 </div>
             </div>
 
-            {/* Version */}
-            <div className="space-y-2">
-                <label className="text-zinc-400 font-medium block">Game Version</label>
-                <select
-                    value={paletteVersion}
-                    onChange={(e) => setPaletteVersion(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md p-2 text-zinc-200 focus:ring-1 focus:ring-blue-500 outline-none"
-                >
-                    <option value="1.21.11">1.21.11 (Latest)</option>
-                    {/* Add more versions if available */}
-                </select>
-            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
 
-            {/* Image Adjustments */}
-            <div className="space-y-4">
-                <label className="text-zinc-400 font-medium block flex items-center gap-2">
-                    <PaletteIcon size={16} /> Image Adjustments
-                </label>
-
-                <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-zinc-500">
-                        <span>Saturation</span>
-                        <span>{imageSettings.saturation}%</span>
-                    </div>
-                    <input
-                        type="range" min="0" max="200"
-                        value={imageSettings.saturation}
-                        onChange={(e) => setImageSettings({ saturation: parseInt(e.target.value) })}
-                        className="w-full accent-blue-500"
-                    />
-                </div>
-
-                <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-zinc-500">
-                        <span>Brightness</span>
-                        <span>{imageSettings.brightness}</span>
-                    </div>
-                    <input
-                        type="range" min="-100" max="100"
-                        value={imageSettings.brightness}
-                        onChange={(e) => setImageSettings({ brightness: parseInt(e.target.value) })}
-                        className="w-full accent-blue-500"
-                    />
-                </div>
-
-                <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-zinc-500">
-                        <span>Contrast</span>
-                        <span>{imageSettings.contrast}</span>
-                    </div>
-                    <input
-                        type="range" min="-100" max="100"
-                        value={imageSettings.contrast}
-                        onChange={(e) => setImageSettings({ contrast: parseInt(e.target.value) })}
-                        className="w-full accent-blue-500"
-                    />
-                </div>
-            </div>
-
-            {/* Grid Dimensions */}
-            <div className="space-y-2">
-                <label className="text-zinc-400 font-medium block flex items-center gap-2">
-                    <Grid size={16} /> Dimensions (Map Count)
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col">
-                        <span className="text-xs text-zinc-500 mb-1">Width (X)</span>
-                        <input
-                            type="number" min="1" max="10"
-                            value={gridDimensions.x}
-                            onChange={(e) => setGridDimensions({ ...gridDimensions, x: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="bg-zinc-950 border border-zinc-800 rounded p-2 text-zinc-200"
-                        />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-zinc-500 mb-1">Height (Y)</span>
-                        <input
-                            type="number" min="1" max="10"
-                            value={gridDimensions.y}
-                            onChange={(e) => setGridDimensions({ ...gridDimensions, y: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="bg-zinc-950 border border-zinc-800 rounded p-2 text-zinc-200"
-                        />
-                    </div>
-                </div>
-                <div className="text-xs text-zinc-500 text-right">
-                    Total Blocks: {gridDimensions.x * 128} x {gridDimensions.y * 128}
-                </div>
-            </div>
-
-            {/* Build Mode */}
-            <div className="space-y-2">
-                <label className="text-zinc-400 font-medium block flex items-center gap-2">
-                    <Layers size={16} /> Build Mode
-                </label>
-                <div className="flex flex-col gap-2">
-                    {(['2d', '3d_valley', '3d_valley_lossy'] as BuildMode[]).map((mode) => (
-                        <label key={mode} className="flex items-center gap-2 cursor-pointer hover:bg-zinc-800/50 p-2 rounded transition-colors">
-                            <input
-                                type="radio"
-                                name="buildMode"
-                                checked={buildMode === mode}
-                                onChange={() => setBuildMode(mode)}
-                                className="accent-blue-500"
-                            />
-                            <span className="capitalize">{mode.replace(/_/g, ' ')}</span>
+                {/* STAGE 1: IMAGE SETUP */}
+                <Section title="1. Image & Layout" icon={<ImageIcon size={16} />} defaultOpen={true}>
+                    {/* Resolution / Grid */}
+                    <div className="space-y-4">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Grid size={14} /> Grid Size
                         </label>
-                    ))}
-                </div>
-            </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs text-zinc-600 font-semibold uppercase">Maps X</span>
+                                <input
+                                    type="number" min="1" max="100"
+                                    value={gridDimensions.x}
+                                    onChange={(e) => setGridDimensions({ ...gridDimensions, x: Math.max(1, parseInt(e.target.value) || 1) })}
+                                    className="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-100 text-sm outline-none focus:border-blue-500 transition-colors font-mono"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs text-zinc-600 font-semibold uppercase">Maps Y</span>
+                                <input
+                                    type="number" min="1" max="100"
+                                    value={gridDimensions.y}
+                                    onChange={(e) => setGridDimensions({ ...gridDimensions, y: Math.max(1, parseInt(e.target.value) || 1) })}
+                                    className="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-100 text-sm outline-none focus:border-blue-500 transition-colors font-mono"
+                                />
+                            </div>
+                        </div>
+                        <div className="text-xs text-zinc-500 text-right font-mono bg-black/20 p-1 rounded">
+                            Target: <span className="text-zinc-300 font-bold">{gridDimensions.x * 128}</span> × <span className="text-zinc-300 font-bold">{gridDimensions.y * 128}</span> pixels
+                        </div>
+                    </div>
 
-            {/* Block Support */}
-            <div className="space-y-2">
-                <label className="text-zinc-400 font-medium block flex items-center gap-2">
-                    <Box size={16} /> Block Support
-                </label>
-                <select
-                    value={blockSupport}
-                    onChange={(e) => setBlockSupport(e.target.value as BlockSupport)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md p-2 text-zinc-200 focus:ring-1 focus:ring-blue-500 outline-none capitalize"
-                >
-                    <option value="all">All Blocks</option>
-                    <option value="needed">Only Needed</option>
-                    <option value="survival">Survival Optimized</option>
-                </select>
-            </div>
+                    <div className="h-px bg-zinc-800/50 mx-[-4px]" />
 
-            {/* Dithering */}
-            <div className="space-y-2">
-                <label className="text-zinc-400 font-medium block flex items-center gap-2">
-                    <Droplets size={16} /> Dithering
-                </label>
-                <select
-                    value={dithering}
-                    onChange={(e) => setDithering(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-md p-2 text-zinc-200 focus:ring-1 focus:ring-blue-500 outline-none capitalize"
-                >
-                    <option value="none">None</option>
-                    <option value="floyd-steinberg">Floyd-Steinberg</option>
-                    <option value="ordered">Ordered</option>
-                </select>
-            </div>
+                    {/* Fit & Crop */}
+                    <div className="space-y-4">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Crop size={14} /> Fitting Strategy
+                        </label>
+                        <div className="flex gap-1.5 p-1.5 bg-zinc-950 rounded-lg border border-zinc-800">
+                            <button
+                                onClick={() => setImageFitMode('adjust')}
+                                className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-2 transition-all ${imageFitMode === 'adjust' ? 'bg-blue-600 shadow-lg shadow-blue-900/20 text-white' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                                    }`}
+                            >
+                                <Maximize size={14} /> ADJUST
+                            </button>
+                            <button
+                                onClick={() => setImageFitMode('crop')}
+                                className={`flex-1 py-2 rounded-md text-xs font-bold flex items-center justify-center gap-2 transition-all ${imageFitMode === 'crop' ? 'bg-green-600 shadow-lg shadow-green-900/20 text-white' : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                                    }`}
+                            >
+                                <Crop size={14} /> CROP
+                            </button>
+                        </div>
 
-            {/* Transparency */}
-            <div className="space-y-2 p-3 border border-zinc-800 rounded-lg bg-zinc-900/50">
-                <div className="flex items-center justify-between">
-                    <label className="text-zinc-300 font-medium flex items-center gap-2 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={transparency.enabled}
-                            onChange={(e) => setTransparency({ enabled: e.target.checked })}
-                            className="rounded accent-blue-500"
-                        />
-                        Transparency
-                    </label>
-                    {transparency.enabled && (
-                        <input
-                            type="color"
-                            value={transparency.color}
-                            onChange={(e) => setTransparency({ color: e.target.value })}
-                            className="bg-transparent border-none w-8 h-8 cursor-pointer rounded overflow-hidden p-0"
-                            title="Background Color"
-                        />
-                    )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">
-                    {transparency.enabled ? "Pick background color for transparent pixels." : "Transparent pixels ignored."}
-                </p>
-            </div>
+                        {imageFitMode === 'crop' && (
+                            <div className="space-y-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-green-500 font-black tracking-widest uppercase">Precision Crop</span>
+                                    <button onClick={resetCropSettings} className="text-zinc-600 hover:text-zinc-400 p-1 rounded hover:bg-zinc-800 transition-all">
+                                        <RefreshCw size={12} />
+                                    </button>
+                                </div>
+                                <PrecisionSlider label="Zoom Level" value={cropSettings.zoom} min={1} max={8} step={0.01} unit="x" onChange={(zoom) => setCropSettings({ zoom })} accentColor="accent-green-500" />
+                                <PrecisionSlider label="Offset X" value={cropSettings.offsetX} min={-1} max={1} step={0.01} unit="%" onChange={(offsetX) => setCropSettings({ offsetX })} accentColor="accent-green-500" />
+                                <PrecisionSlider label="Offset Y" value={cropSettings.offsetY} min={-1} max={1} step={0.01} unit="%" onChange={(offsetY) => setCropSettings({ offsetY })} accentColor="accent-green-500" />
+                            </div>
+                        )}
+                    </div>
 
+                    <div className="h-px bg-zinc-800/50 mx-[-4px]" />
+
+                    {/* Color Grading */}
+                    <div className="space-y-4">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <PaletteIcon size={14} /> Pre-Processing Filters
+                        </label>
+                        <PrecisionSlider label="Saturation" value={imageSettings.saturation} min={0} max={200} step={1} unit="%" onChange={(saturation) => setImageSettings({ saturation })} />
+                        <PrecisionSlider label="Brightness" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />
+                        <PrecisionSlider label="Contrast" value={imageSettings.contrast} min={-100} max={100} step={1} onChange={(contrast) => setImageSettings({ contrast })} />
+                    </div>
+                </Section>
+
+
+                {/* STAGE 2: PROCESSING */}
+                <Section title="2. Color Processing" icon={<Zap size={16} />} defaultOpen={true}>
+                    {/* Dithering */}
+                    <div className="space-y-2.5">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Droplets size={14} /> Quantization Algorithm
+                        </label>
+                        <select
+                            value={dithering}
+                            onChange={(e) => setDithering(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-200 text-sm focus:border-blue-500 outline-none cursor-pointer hover:border-zinc-700 transition-colors"
+                        >
+                            <option value="none">Disabled (Sharp Colors)</option>
+                            <option value="floyd-steinberg">Floyd-Steinberg (Diffusion)</option>
+                            <option value="ordered">Ordered (Dayer-like)</option>
+                        </select>
+                    </div>
+
+                    {/* Transparency */}
+                    <div className="space-y-2.5 p-3 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-zinc-400 uppercase font-bold flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={transparency.enabled}
+                                    onChange={(e) => setTransparency({ enabled: e.target.checked })}
+                                    className="w-4 h-4 rounded accent-blue-500 transition-all cursor-pointer"
+                                />
+                                ALPHA MASKING
+                            </label>
+                            {transparency.enabled && (
+                                <input
+                                    type="color"
+                                    value={transparency.color}
+                                    onChange={(e) => setTransparency({ color: e.target.value })}
+                                    className="bg-transparent border-none w-8 h-8 cursor-pointer rounded-full overflow-hidden p-0 ring-2 ring-zinc-800"
+                                />
+                            )}
+                        </div>
+                        <p className="text-[10px] text-zinc-500 font-medium">
+                            {transparency.enabled ? "REPLACING TRANSPARENCY WITH PICKED COLOR" : "IGNORING ALPHA CHANNEL"}
+                        </p>
+                    </div>
+
+                    {/* Game Version */}
+                    <div className="space-y-2.5">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Eye size={14} /> Target Minecraft Palette
+                        </label>
+                        <select
+                            value={paletteVersion}
+                            onChange={(e) => setPaletteVersion(e.target.value)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-200 text-sm focus:border-blue-500 outline-none cursor-pointer hover:border-zinc-700 transition-colors"
+                        >
+                            <option value="1.21.11">MINECRAFT 1.21.x</option>
+                        </select>
+                    </div>
+                </Section>
+
+
+                {/* STAGE 3: CONSTRUCTION */}
+                <Section title="3. Construction Model" icon={<Hammer size={16} />} defaultOpen={false}>
+                    {/* Build Mode */}
+                    <div className="space-y-3">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Layers size={14} /> Placement Logic
+                        </label>
+                        <div className="flex flex-col gap-2">
+                            {(['2d', '3d_valley', '3d_valley_lossy'] as BuildMode[]).map((mode) => (
+                                <label key={mode} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${buildMode === mode
+                                        ? 'bg-blue-600/10 border-blue-600 text-blue-100 ring-1 ring-blue-600/50'
+                                        : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                                    }`}>
+                                    <input
+                                        type="radio"
+                                        name="buildMode"
+                                        checked={buildMode === mode}
+                                        onChange={() => setBuildMode(mode)}
+                                        className="w-4 h-4 accent-blue-500"
+                                    />
+                                    <span className="capitalize text-sm font-bold tracking-wide">{mode.replace(/_/g, ' ')}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Block Support */}
+                    <div className="space-y-2.5">
+                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                            <Box size={14} /> Structural Strategy
+                        </label>
+                        <select
+                            value={blockSupport}
+                            onChange={(e) => setBlockSupport(e.target.value as BlockSupport)}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-200 text-sm focus:border-blue-500 outline-none cursor-pointer capitalize hover:border-zinc-700 transition-colors"
+                        >
+                            <option value="all">Include Physical Support</option>
+                            <option value="needed">Floating Blocks ONLY</option>
+                            <option value="survival">Survival Resource Efficient</option>
+                        </select>
+                    </div>
+                </Section>
+
+                {/* Footer space */}
+                <div className="h-8" />
+            </div>
         </div>
     );
 };

@@ -13,7 +13,7 @@ const Builder: React.FC = () => {
             <MainCanvas />
 
             {/* Control Panel (Anchored to the right) */}
-            <div className="w-80 h-full bg-zinc-900/95 border-l border-zinc-700 p-4 overflow-y-auto custom-scrollbar shadow-2xl z-20">
+            <div className="w-96 h-full bg-zinc-900/95 border-l border-zinc-700 p-4 overflow-y-auto custom-scrollbar shadow-2xl z-20">
                 <ControlPanel />
             </div>
         </div>

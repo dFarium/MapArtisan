@@ -2,6 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 
 export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
 export type BlockSupport = 'all' | 'needed' | 'survival';
+export type ImageFitMode = 'adjust' | 'crop';
 
 export interface ImageSettings {
     saturation: number; // 0-200, default 100
@@ -19,6 +20,12 @@ export interface TransparencySettings {
     color: string; // Hex color
 }
 
+export interface CropSettings {
+    zoom: number;      // 1 = 100%, 2 = 200%, etc.
+    offsetX: number;   // -1 to 1, where 0 is centered
+    offsetY: number;   // -1 to 1, where 0 is centered
+}
+
 export interface MapartState {
     paletteVersion: string;
     imageSettings: ImageSettings;
@@ -29,6 +36,8 @@ export interface MapartState {
     transparency: TransparencySettings;
     uploadedImage: File | null;
     previewUrl: string | null;
+    imageFitMode: ImageFitMode;
+    cropSettings: CropSettings;
     selectedPaletteItems: Record<number, string | null>;
 }
 
@@ -41,8 +50,17 @@ interface MapartContextType extends MapartState {
     setDithering: (dithering: string) => void;
     setTransparency: (settings: Partial<TransparencySettings>) => void;
     setUploadedImage: (file: File | null) => void;
+    setImageFitMode: (mode: ImageFitMode) => void;
+    setCropSettings: (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => void;
+    resetCropSettings: () => void;
     setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
 }
+
+const defaultCropSettings: CropSettings = {
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0
+};
 
 const defaultState: MapartState = {
     paletteVersion: '1.21.11',
@@ -54,6 +72,8 @@ const defaultState: MapartState = {
     transparency: { enabled: true, color: '#ffffff' },
     uploadedImage: null,
     previewUrl: null,
+    imageFitMode: 'adjust',
+    cropSettings: defaultCropSettings,
     selectedPaletteItems: {},
 };
 
@@ -69,6 +89,17 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const [transparency, setTransparencyState] = useState(defaultState.transparency);
     const [uploadedImage, setUploadedImageState] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [imageFitMode, setImageFitMode] = useState<ImageFitMode>(defaultState.imageFitMode);
+    const [cropSettings, setCropSettingsState] = useState<CropSettings>(defaultCropSettings);
+
+    const setCropSettings = (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => {
+        setCropSettingsState(prev => {
+            if (typeof settings === 'function') return settings(prev);
+            return { ...prev, ...settings };
+        });
+    };
+
+    const resetCropSettings = () => setCropSettingsState(defaultCropSettings);
 
     const setImageSettings = (settings: Partial<ImageSettings> | ((prev: ImageSettings) => ImageSettings)) => {
         setImageSettingsState(prev => {
@@ -106,6 +137,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         transparency,
         uploadedImage,
         previewUrl,
+        imageFitMode,
+        cropSettings,
         selectedPaletteItems,
         setPaletteVersion,
         setImageSettings,
@@ -115,6 +148,9 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setDithering,
         setTransparency,
         setUploadedImage,
+        setImageFitMode,
+        setCropSettings,
+        resetCropSettings,
         setSelectedPaletteItems,
     };
 
