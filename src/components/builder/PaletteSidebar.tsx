@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp } from 'lucide-react';
-import paletteData from '../../data/1_21_11_v2.json';
+import { Search, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Save, Trash2, RotateCcw } from 'lucide-react';
+import paletteData from '../../data/palette_1_21_11.json';
 import { useMapart } from '../../context/MapartContext';
 
 // Define the shape of a color entry based on palette.json
@@ -9,18 +9,88 @@ interface PaletteColor {
     colorName: string;
 
     brightnessValues: {
+        lowest: { r: number; g: number; b: number; };
+        low: { r: number; g: number; b: number; };
         normal: { r: number; g: number; b: number; };
+        high: { r: number; g: number; b: number; };
     };
-    blocks: string[];
+    blocks: { id: string; needsSupport: boolean }[];
 }
 
 export const PaletteSidebar = () => {
     const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
     const [isOpen, setIsOpen] = useState(true);
-    const [width, setWidth] = useState(320);
+    const [width, setWidth] = useState(400);
     const [isResizing, setIsResizing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
+    const [customPresets, setCustomPresets] = useState<{ name: string; selection: Record<number, string | null> }[]>([]);
+    const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+
+    // Load custom presets from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('mapart_custom_presets');
+        if (saved) {
+            try {
+                setCustomPresets(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse presets', e);
+            }
+        }
+    }, []);
+
+    const saveCustomPresets = (presets: typeof customPresets) => {
+        setCustomPresets(presets);
+        localStorage.setItem('mapart_custom_presets', JSON.stringify(presets));
+    };
+
+    const handleSaveCurrentAsPreset = () => {
+        const name = prompt('Enter a name for this preset:');
+        if (!name) return;
+        saveCustomPresets([...customPresets, { name, selection: { ...selectedPaletteItems } }]);
+    };
+
+    const handleDeletePreset = (index: number) => {
+        if (!confirm('Delete this preset?')) return;
+        saveCustomPresets(customPresets.filter((_, i) => i !== index));
+    };
+
+    const applyPreset = (type: 'all' | 'basic' | 'easy' | 'custom', customData?: Record<number, string | null>) => {
+        if (type === 'custom' && customData) {
+            setSelectedPaletteItems(customData);
+            return;
+        }
+
+        const newSelection: Record<number, string | null> = {};
+        const colors = paletteData.colors as unknown as PaletteColor[];
+
+        colors.forEach(color => {
+            if (color.colorName === 'clear') return;
+
+            const blockIds = color.blocks.map(b => b.id);
+
+            if (type === 'all') {
+                newSelection[color.colorID] = blockIds[0] || null;
+            } else if (type === 'basic') {
+                const basicColors = ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black'];
+                if (basicColors.includes(color.colorName.toLowerCase())) {
+                    // Prefer wool, then concrete
+                    const preferred = blockIds.find(id => id.includes('_wool')) ||
+                        blockIds.find(id => id.includes('_concrete')) ||
+                        blockIds[0];
+                    newSelection[color.colorID] = preferred || null;
+                } else {
+                    newSelection[color.colorID] = null;
+                }
+            } else if (type === 'easy') {
+                const easyKeywords = ['dirt', 'cobblestone', 'stone', 'sand', 'gravel', 'netherrack', 'oak_planks', 'deepslate', 'andesite', 'granite', 'diorite'];
+                const preferred = blockIds.find(id => easyKeywords.some(kw => id.includes(kw))) || blockIds[0];
+                newSelection[color.colorID] = preferred || null;
+            }
+        });
+
+        setSelectedPaletteItems(newSelection);
+    };
 
     // Texture bundle is now managed globally in MapartContext
 
@@ -59,7 +129,7 @@ export const PaletteSidebar = () => {
 
             const matches =
                 color.colorName.toLowerCase().includes(query) ||
-                color.blocks.some(block => block.toLowerCase().includes(query)) ||
+                color.blocks.some(block => block.id.toLowerCase().includes(query)) ||
                 color.colorID.toString().includes(query);
             return matches;
         });
@@ -135,16 +205,90 @@ export const PaletteSidebar = () => {
                         </button>
                     </div>
 
-                    {/* Search */}
-                    <div className="relative">
-                        <Search className="absolute left-2 top-2.5 text-zinc-500" size={14} />
-                        <input
-                            type="text"
-                            placeholder="Search blocks..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-8 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-600"
-                        />
+                    {/* Presets Toolbar */}
+                    <div className="flex flex-col gap-2">
+                        <div
+                            className="flex items-center justify-between cursor-pointer text-zinc-400 hover:text-zinc-200 transition-colors"
+                            onClick={() => setIsPresetsOpen(!isPresetsOpen)}
+                        >
+                            <span className="text-xs font-semibold uppercase tracking-wider">Presets</span>
+                            {isPresetsOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </div>
+
+                        {isPresetsOpen && (
+                            <div className="bg-zinc-950/50 rounded border border-zinc-800 p-2 flex flex-col gap-2 animate-in fade-in slide-in-from-top-1">
+                                <div className="grid grid-cols-3 gap-1.5">
+                                    <button
+                                        onClick={() => applyPreset('all')}
+                                        className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                                    >
+                                        All Colors
+                                    </button>
+                                    <button
+                                        onClick={() => applyPreset('basic')}
+                                        className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                                    >
+                                        Basic (16)
+                                    </button>
+                                    <button
+                                        onClick={() => applyPreset('easy')}
+                                        className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                                    >
+                                        Easy
+                                    </button>
+                                </div>
+
+                                {customPresets.length > 0 && (
+                                    <div className="border-t border-zinc-800/50 pt-2 flex flex-col gap-1">
+                                        <span className="text-[9px] text-zinc-500 uppercase font-bold px-1">My Presets</span>
+                                        {customPresets.map((p, i) => (
+                                            <div key={i} className="flex items-center gap-1 group/p">
+                                                <button
+                                                    onClick={() => applyPreset('custom', p.selection)}
+                                                    className="flex-1 text-left !px-2 !py-1 text-[10px] bg-zinc-900/50 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-zinc-200 truncate"
+                                                >
+                                                    {p.name}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePreset(i)}
+                                                    className="!p-1 text-zinc-600 hover:text-red-400 opacity-0 group-hover/p:opacity-100 transition-all bg-transparent border-none"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex gap-1.5 border-t border-zinc-800/50 pt-2">
+                                    <button
+                                        onClick={() => setSelectedPaletteItems({})}
+                                        className="flex-1 flex items-center justify-center gap-1 !py-1 text-[10px] bg-red-900/10 hover:bg-red-900/20 border-red-900/30 text-red-500/80 font-medium"
+                                    >
+                                        <RotateCcw size={10} /> Reset
+                                    </button>
+                                    <button
+                                        onClick={handleSaveCurrentAsPreset}
+                                        className="flex-[2] flex items-center justify-center gap-1 !py-1 text-[10px] bg-blue-900/20 hover:bg-blue-900/40 border-blue-900/30 text-blue-400 font-bold"
+                                    >
+                                        <Save size={10} /> Save Current
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-2 top-2.5 text-zinc-500" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search blocks..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded px-8 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-600"
+                            />
+                        </div>
                     </div>
                 </div>
             )}
@@ -154,7 +298,7 @@ export const PaletteSidebar = () => {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                     {filteredPalette.map((color) => {
                         const { r, g, b } = color.brightnessValues.normal;
-                        const rgb = `rgb(${r}, ${g}, ${b})`;
+                        const normalRgb = `rgb(${r}, ${g}, ${b})`;
                         const isExpanded = expandedGroups[color.colorID];
                         const selectedBlock = selectedPaletteItems[color.colorID];
 
@@ -165,56 +309,68 @@ export const PaletteSidebar = () => {
                                     className="flex items-center gap-3 p-2 hover:bg-zinc-800 cursor-pointer transition-colors"
                                     onClick={() => toggleGroup(color.colorID)}
                                 >
-                                    <div className="relative">
+                                    <div className="flex items-center gap-1.5">
                                         <div
-                                            className="w-6 h-6 rounded border border-zinc-700 shadow-sm"
-                                            style={{ backgroundColor: rgb }}
-                                        />
-                                        {/* Show selected block texture as badge if collapsed and something is selected */}
-                                        {!isExpanded && selectedBlock && (
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-sm border border-zinc-900 bg-zinc-800 z-10 flex items-center justify-center">
-                                                <img
-                                                    src={getTextureUrl(selectedBlock)}
-                                                    className="w-full h-full object-cover rendering-pixelated rounded-sm relative z-10"
-                                                    alt=""
-                                                    style={{ backgroundColor: rgb }}
-                                                    onError={(e) => ((e.target as HTMLElement).style.display = 'none')}
-                                                />
-                                            </div>
-                                        )}
+                                            className="w-12 h-12 border border-zinc-700 bg-zinc-800 overflow-hidden flex flex-col justify-end rounded"
+                                            style={{ outline: '1px solid var(--block-outline)', outlineOffset: '-1px' }}
+                                        >
+                                            {(() => {
+                                                const isSlab = selectedBlock?.includes('slab');
+                                                const isFlat = selectedBlock?.includes('pressure_plate') || selectedBlock?.includes('carpet') || selectedBlock?.includes('button') || selectedBlock?.includes('weighted_pressure_plate');
+
+                                                return (
+                                                    <img
+                                                        src={selectedBlock ? getTextureUrl(selectedBlock) : "/textures/barrier.png"}
+                                                        className={`
+                                                            w-full object-cover rendering-pixelated
+                                                            ${isFlat ? 'h-1/4' : isSlab ? 'h-1/2' : 'h-full'}
+                                                            ${(isFlat || isSlab) ? 'object-contain' : 'object-top'}
+                                                        `}
+                                                        alt={selectedBlock || "None"}
+                                                    />
+                                                );
+                                            })()}
+                                        </div>
+                                        <div
+                                            className="w-12 h-12 border border-zinc-700 shadow-sm rounded overflow-hidden grid grid-cols-2 grid-rows-2"
+                                            title="Map Color Variations"
+                                            style={{ outline: '1px solid var(--block-outline)', outlineOffset: '-1px' }}
+                                        >
+                                            <div style={{ backgroundColor: `rgb(${color.brightnessValues.lowest.r}, ${color.brightnessValues.lowest.g}, ${color.brightnessValues.lowest.b})` }} />
+                                            <div style={{ backgroundColor: `rgb(${color.brightnessValues.low.r}, ${color.brightnessValues.low.g}, ${color.brightnessValues.low.b})` }} />
+                                            <div style={{ backgroundColor: `rgb(${color.brightnessValues.normal.r}, ${color.brightnessValues.normal.g}, ${color.brightnessValues.normal.b})` }} />
+                                            <div style={{ backgroundColor: `rgb(${color.brightnessValues.high.r}, ${color.brightnessValues.high.g}, ${color.brightnessValues.high.b})` }} />
+                                        </div>
                                     </div>
 
-                                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-zinc-200 capitalize">
-                                                {color.colorName.replace(/_/g, ' ')}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-sm font-medium text-zinc-100 truncate">
+                                                {selectedBlock ? selectedBlock.replace('minecraft:', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') : color.colorName.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
                                             </span>
-                                            <span className="text-xs text-zinc-500">
-                                                {selectedBlock
-                                                    ? selectedBlock.replace('minecraft:', '').replace(/_/g, ' ')
-                                                    : 'None selected'}
-                                            </span>
+                                            {isExpanded ? <ChevronUp size={14} className="text-zinc-500" /> : <ChevronDown size={14} className="text-zinc-500" />}
                                         </div>
-                                        <div className="text-zinc-500">
-                                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        <div className="text-[10px] text-zinc-500 truncate">
+                                            {color.colorName}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Expanded Content (Block List) */}
+                                {/* Expanded Block Grid */}
                                 {isExpanded && (
-                                    <div className="bg-zinc-950/50 p-2 grid grid-cols-4 gap-2 border-t border-zinc-800/50">
-                                        {/* Option to select None */}
+                                    <div className="p-2 pt-0 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-1.5 bg-black/20">
+                                        {/* "None" selector (Clear) */}
                                         <button
                                             onClick={() => toggleBlockSelection(color.colorID, '')}
                                             className={`
-                                                flex flex-col items-center justify-center !p-0 !rounded-none !w-10 !h-10
+                                                flex flex-col items-center justify-center !p-0 rounded !w-12 !h-12
                                                 border transition-all
                                                 ${!selectedBlock
                                                     ? 'bg-zinc-800 border-blue-500/50 ring-1 ring-blue-500/20'
                                                     : 'bg-zinc-900/30 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700'}
                                             `}
                                             title="Unselect"
+                                            style={{ outline: '1px solid var(--block-outline)', outlineOffset: '-1px' }}
                                         >
                                             <img
                                                 src="/textures/barrier.png"
@@ -224,13 +380,13 @@ export const PaletteSidebar = () => {
                                             />
                                         </button>
 
-                                        {color.blocks.map((block) => {
+                                        {color.blocks.map((blockObj) => {
+                                            const block = blockObj.id;
                                             const isSelected = selectedBlock === block;
                                             const textureUrl = getTextureUrl(block);
 
                                             const isSlab = block.includes('slab');
-
-                                            // Only render if we have a texture or fallback
+                                            const isFlat = block.includes('pressure_plate') || block.includes('carpet') || block.includes('button') || block.includes('weighted_pressure_plate');
 
                                             return (
                                                 <button
@@ -238,20 +394,25 @@ export const PaletteSidebar = () => {
                                                     type="button"
                                                     onClick={() => toggleBlockSelection(color.colorID, block)}
                                                     className={`
-                                                        relative group block !p-0 !rounded-none !w-10 !h-10
+                                                        relative group block !p-0 rounded !w-12 !h-12
                                                         border transition-all overflow-hidden
                                                         ${isSelected
                                                             ? 'bg-zinc-800 border-blue-500 ring-1 ring-blue-500/30'
                                                             : 'bg-zinc-900/30 border-transparent hover:bg-zinc-800 hover:border-zinc-700'}
                                                     `}
                                                     title={block.replace('minecraft:', '')}
+                                                    style={{ outline: '1px solid var(--block-outline)', outlineOffset: '-1px' }}
                                                 >
-                                                    <div className={`w-full h-full relative flex flex-col ${isSlab ? 'justify-end' : ''}`}>
+                                                    <div className={`w-full h-full relative flex flex-col justify-end`}>
                                                         <img
                                                             src={textureUrl}
                                                             alt={block}
-                                                            className={`w-full object-cover rendering-pixelated !rounded-none relative z-10 ${isSlab ? 'h-1/2 object-contain bg-transparent' : 'h-full object-top'}`}
-                                                            style={{ backgroundColor: rgb, transition: 'background-color 0.2s' }}
+                                                            className={`
+                                                                w-full object-cover rendering-pixelated relative z-10
+                                                                ${isFlat ? 'h-1/4' : isSlab ? 'h-1/2' : 'h-full'}
+                                                                ${(isFlat || isSlab) ? 'object-contain bg-transparent' : 'object-top'}
+                                                            `}
+                                                            style={{ backgroundColor: normalRgb, transition: 'background-color 0.2s' }}
                                                             loading="lazy"
                                                             onLoad={(e) => {
                                                                 (e.target as HTMLElement).style.backgroundColor = 'transparent';

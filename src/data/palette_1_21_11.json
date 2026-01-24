@@ -1,0 +1,3977 @@
+{
+  "version": "1.21.11",
+  "colors": [
+    {
+      "colorID": 1,
+      "colorName": "pale_green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 67,
+          "g": 94,
+          "b": 29
+        },
+        "low": {
+          "r": 89,
+          "g": 125,
+          "b": 39
+        },
+        "normal": {
+          "r": 109,
+          "g": 153,
+          "b": 48
+        },
+        "high": {
+          "r": 127,
+          "g": 178,
+          "b": 56
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:grass_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:slime_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 2,
+      "colorName": "pale_yellow",
+      "brightnessValues": {
+        "lowest": {
+          "r": 130,
+          "g": 123,
+          "b": 86
+        },
+        "low": {
+          "r": 174,
+          "g": 164,
+          "b": 115
+        },
+        "normal": {
+          "r": 213,
+          "g": 201,
+          "b": 140
+        },
+        "high": {
+          "r": 247,
+          "g": 233,
+          "b": 163
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:birch_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:birch_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:birch_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:birch_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:birch_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bone_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:chiseled_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:end_stone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:end_stone_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:end_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:glowstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:ochre_froglight",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sand",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_birch_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_birch_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:suspicious_sand",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 3,
+      "colorName": "white_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 105,
+          "g": 105,
+          "b": 105
+        },
+        "low": {
+          "r": 140,
+          "g": 140,
+          "b": 140
+        },
+        "normal": {
+          "r": 171,
+          "g": 171,
+          "b": 171
+        },
+        "high": {
+          "r": 199,
+          "g": 199,
+          "b": 199
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:white_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:cobweb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mushroom_stem",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 4,
+      "colorName": "bright_red",
+      "brightnessValues": {
+        "lowest": {
+          "r": 135,
+          "g": 0,
+          "b": 0
+        },
+        "low": {
+          "r": 180,
+          "g": 0,
+          "b": 0
+        },
+        "normal": {
+          "r": 220,
+          "g": 0,
+          "b": 0
+        },
+        "high": {
+          "r": 255,
+          "g": 0,
+          "b": 0
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:redstone_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tnt",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 5,
+      "colorName": "pale_purple",
+      "brightnessValues": {
+        "lowest": {
+          "r": 84,
+          "g": 84,
+          "b": 135
+        },
+        "low": {
+          "r": 112,
+          "g": 112,
+          "b": 180
+        },
+        "normal": {
+          "r": 138,
+          "g": 138,
+          "b": 220
+        },
+        "high": {
+          "r": 160,
+          "g": 160,
+          "b": 255
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:blue_ice",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:frosted_ice",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:ice",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:packed_ice",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 6,
+      "colorName": "iron_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 88,
+          "g": 88,
+          "b": 88
+        },
+        "low": {
+          "r": 117,
+          "g": 117,
+          "b": 117
+        },
+        "normal": {
+          "r": 144,
+          "g": 144,
+          "b": 144
+        },
+        "high": {
+          "r": 167,
+          "g": 167,
+          "b": 167
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:iron_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:heavy_weighted_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:lodestone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_oak_leaves",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 7,
+      "colorName": "dark_green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 0,
+          "g": 65,
+          "b": 0
+        },
+        "low": {
+          "r": 0,
+          "g": 87,
+          "b": 0
+        },
+        "normal": {
+          "r": 0,
+          "g": 106,
+          "b": 0
+        },
+        "high": {
+          "r": 0,
+          "g": 124,
+          "b": 0
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:acacia_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:birch_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_oak_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jungle_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mangrove_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oak_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spruce_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:azalea_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:firefly_bush",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:flowering_azalea_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:large_fern",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:lilac",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:peony",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:pitcher_plant",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:rose_bush",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:sunflower",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:tall_grass",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:vine",
+          "needsSupport": true
+        }
+      ]
+    },
+    {
+      "colorID": 8,
+      "colorName": "white",
+      "brightnessValues": {
+        "lowest": {
+          "r": 135,
+          "g": 135,
+          "b": 135
+        },
+        "low": {
+          "r": 180,
+          "g": 180,
+          "b": 180
+        },
+        "normal": {
+          "r": 220,
+          "g": 220,
+          "b": 220
+        },
+        "high": {
+          "r": 255,
+          "g": 255,
+          "b": 255
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:white_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:white_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:powder_snow",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:snow_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 9,
+      "colorName": "light_blue_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 86,
+          "g": 88,
+          "b": 97
+        },
+        "low": {
+          "r": 115,
+          "g": 118,
+          "b": 129
+        },
+        "normal": {
+          "r": 141,
+          "g": 144,
+          "b": 158
+        },
+        "high": {
+          "r": 164,
+          "g": 168,
+          "b": 184
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:clay",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_chiseled_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_cobblestone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_cracked_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_mossy_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_stone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_stone_bricks",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 10,
+      "colorName": "dirt_brown",
+      "brightnessValues": {
+        "lowest": {
+          "r": 79,
+          "g": 57,
+          "b": 40
+        },
+        "low": {
+          "r": 106,
+          "g": 76,
+          "b": 54
+        },
+        "normal": {
+          "r": 130,
+          "g": 94,
+          "b": 66
+        },
+        "high": {
+          "r": 151,
+          "g": 109,
+          "b": 77
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:brown_mushroom_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:granite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:granite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jungle_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jungle_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jungle_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:jungle_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jungle_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:coarse_dirt",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dirt",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jukebox",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:packed_mud",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_granite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_granite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:rooted_dirt",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_jungle_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_jungle_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 11,
+      "colorName": "stone_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 59,
+          "g": 59,
+          "b": 59
+        },
+        "low": {
+          "r": 79,
+          "g": 79,
+          "b": 79
+        },
+        "normal": {
+          "r": 96,
+          "g": 96,
+          "b": 96
+        },
+        "high": {
+          "r": 112,
+          "g": 112,
+          "b": 112
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:andesite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:andesite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cobblestone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cobblestone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:copper_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gold_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:iron_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stone_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stone_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:stone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bedrock",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blast_furnace",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:coal_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cracked_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:crafter",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:diamond_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dispenser",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dropper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:emerald_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:furnace",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gravel",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lapis_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mossy_cobblestone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mossy_cobblestone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mossy_stone_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mossy_stone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:observer",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_oak_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:piston",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_andesite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_andesite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:redstone_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smoker",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_stone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_stone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spawner",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sticky_piston",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:suspicious_gravel",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:trial_spawner",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:vault",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 12,
+      "colorName": "water_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 33,
+          "g": 33,
+          "b": 135
+        },
+        "low": {
+          "r": 45,
+          "g": 45,
+          "b": 180
+        },
+        "normal": {
+          "r": 55,
+          "g": 55,
+          "b": 220
+        },
+        "high": {
+          "r": 64,
+          "g": 64,
+          "b": 255
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:kelp_plant",
+          "needsSupport": true
+        }
+      ]
+    },
+    {
+      "colorID": 13,
+      "colorName": "oak_tan",
+      "brightnessValues": {
+        "lowest": {
+          "r": 75,
+          "g": 63,
+          "b": 38
+        },
+        "low": {
+          "r": 100,
+          "g": 84,
+          "b": 50
+        },
+        "normal": {
+          "r": 123,
+          "g": 102,
+          "b": 62
+        },
+        "high": {
+          "r": 143,
+          "g": 119,
+          "b": 72
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oak_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oak_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:oak_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oak_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:barrel",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:beehive",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bookshelf",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cartography_table",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_bookshelf",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:crafting_table",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:fletching_table",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:loom",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:note_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:petrified_oak_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smithing_table",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_oak_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 14,
+      "colorName": "off_white",
+      "brightnessValues": {
+        "lowest": {
+          "r": 135,
+          "g": 133,
+          "b": 129
+        },
+        "low": {
+          "r": 180,
+          "g": 177,
+          "b": 172
+        },
+        "normal": {
+          "r": 220,
+          "g": 217,
+          "b": 211
+        },
+        "high": {
+          "r": 255,
+          "g": 252,
+          "b": 245
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:diorite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:diorite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:quartz_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:quartz_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:quartz_pillar",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:quartz_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_quartz_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_oak_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_oak_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:pale_oak_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_diorite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_diorite_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sea_lantern",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_quartz",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_quartz_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_pale_oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_pale_oak_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:target",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 15,
+      "colorName": "orange",
+      "brightnessValues": {
+        "lowest": {
+          "r": 114,
+          "g": 67,
+          "b": 27
+        },
+        "low": {
+          "r": 152,
+          "g": 89,
+          "b": 36
+        },
+        "normal": {
+          "r": 186,
+          "g": 109,
+          "b": 44
+        },
+        "high": {
+          "r": 216,
+          "g": 127,
+          "b": 51
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:acacia_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:acacia_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:acacia_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:acacia_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:copper_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:orange_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:orange_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:orange_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_sand",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:carved_pumpkin",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_red_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:creaking_heart",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_copper_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_red_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cut_red_sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:honey_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:honeycomb_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jack_o_lantern",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pumpkin",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:raw_copper_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_red_sandstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:smooth_red_sandstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_acacia_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_acacia_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_copper_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_cut_copper_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 16,
+      "colorName": "magenta",
+      "brightnessValues": {
+        "lowest": {
+          "r": 94,
+          "g": 40,
+          "b": 114
+        },
+        "low": {
+          "r": 125,
+          "g": 53,
+          "b": 152
+        },
+        "normal": {
+          "r": 153,
+          "g": 65,
+          "b": 186
+        },
+        "high": {
+          "r": 178,
+          "g": 76,
+          "b": 216
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:magenta_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:magenta_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:magenta_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magenta_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magenta_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magenta_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magenta_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magenta_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purpur_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purpur_pillar",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purpur_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 17,
+      "colorName": "light_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 54,
+          "g": 81,
+          "b": 114
+        },
+        "low": {
+          "r": 72,
+          "g": 108,
+          "b": 152
+        },
+        "normal": {
+          "r": 88,
+          "g": 132,
+          "b": 186
+        },
+        "high": {
+          "r": 102,
+          "g": 153,
+          "b": 216
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:light_blue_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:light_blue_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:light_blue_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_blue_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_blue_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_blue_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_blue_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_blue_wool",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 18,
+      "colorName": "yellow",
+      "brightnessValues": {
+        "lowest": {
+          "r": 121,
+          "g": 121,
+          "b": 27
+        },
+        "low": {
+          "r": 161,
+          "g": 161,
+          "b": 36
+        },
+        "normal": {
+          "r": 197,
+          "g": 197,
+          "b": 44
+        },
+        "high": {
+          "r": 229,
+          "g": 229,
+          "b": 51
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:bamboo_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bamboo_mosaic",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bamboo_mosaic_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bamboo_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bamboo_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:bamboo_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:yellow_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:yellow_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:yellow_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bee_nest",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:hay_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:horn_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sponge",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_bamboo_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:wet_sponge",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 19,
+      "colorName": "lime",
+      "brightnessValues": {
+        "lowest": {
+          "r": 67,
+          "g": 108,
+          "b": 13
+        },
+        "low": {
+          "r": 89,
+          "g": 144,
+          "b": 17
+        },
+        "normal": {
+          "r": 109,
+          "g": 176,
+          "b": 21
+        },
+        "high": {
+          "r": 127,
+          "g": 204,
+          "b": 25
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:lime_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:lime_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:lime_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lime_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lime_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lime_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lime_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:lime_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:melon",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 20,
+      "colorName": "pink",
+      "brightnessValues": {
+        "lowest": {
+          "r": 128,
+          "g": 67,
+          "b": 87
+        },
+        "low": {
+          "r": 170,
+          "g": 89,
+          "b": 116
+        },
+        "normal": {
+          "r": 208,
+          "g": 109,
+          "b": 142
+        },
+        "high": {
+          "r": 242,
+          "g": 127,
+          "b": 165
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:cherry_leaves",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:pink_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:pink_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pink_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brain_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pearlescent_froglight",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 21,
+      "colorName": "gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 40,
+          "g": 40,
+          "b": 40
+        },
+        "low": {
+          "r": 53,
+          "g": 53,
+          "b": 53
+        },
+        "normal": {
+          "r": 65,
+          "g": 65,
+          "b": 65
+        },
+        "high": {
+          "r": 76,
+          "g": 76,
+          "b": 76
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:acacia_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:gray_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:gray_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dead_brain_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dead_bubble_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dead_fire_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dead_horn_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dead_tube_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tinted_glass",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 22,
+      "colorName": "light_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 81,
+          "g": 81,
+          "b": 81
+        },
+        "low": {
+          "r": 108,
+          "g": 108,
+          "b": 108
+        },
+        "normal": {
+          "r": 132,
+          "g": 132,
+          "b": 132
+        },
+        "high": {
+          "r": 153,
+          "g": 153,
+          "b": 153
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:light_gray_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:light_gray_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:light_gray_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_gray_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_gray_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_gray_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_gray_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_gray_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:jigsaw",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:pale_moss_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:structure_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:test_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 23,
+      "colorName": "cyan",
+      "brightnessValues": {
+        "lowest": {
+          "r": 40,
+          "g": 67,
+          "b": 81
+        },
+        "low": {
+          "r": 53,
+          "g": 89,
+          "b": 108
+        },
+        "normal": {
+          "r": 65,
+          "g": 109,
+          "b": 132
+        },
+        "high": {
+          "r": 76,
+          "g": 127,
+          "b": 153
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:cyan_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:cyan_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:cyan_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cyan_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cyan_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cyan_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cyan_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cyan_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:prismarine",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:prismarine_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 24,
+      "colorName": "purple",
+      "brightnessValues": {
+        "lowest": {
+          "r": 67,
+          "g": 33,
+          "b": 94
+        },
+        "low": {
+          "r": 89,
+          "g": 44,
+          "b": 125
+        },
+        "normal": {
+          "r": 109,
+          "g": 54,
+          "b": 153
+        },
+        "high": {
+          "r": 127,
+          "g": 63,
+          "b": 178
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:purple_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:purple_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:purple_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purple_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purple_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purple_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purple_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:amethyst_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bubble_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:budding_amethyst",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chorus_flower",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:mycelium",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:repeating_command_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:shulker_box",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 25,
+      "colorName": "blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 27,
+          "g": 40,
+          "b": 94
+        },
+        "low": {
+          "r": 36,
+          "g": 53,
+          "b": 125
+        },
+        "normal": {
+          "r": 44,
+          "g": 65,
+          "b": 153
+        },
+        "high": {
+          "r": 51,
+          "g": 76,
+          "b": 178
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:blue_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:blue_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:blue_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blue_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blue_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blue_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blue_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blue_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tube_coral_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 26,
+      "colorName": "brown",
+      "brightnessValues": {
+        "lowest": {
+          "r": 54,
+          "g": 40,
+          "b": 27
+        },
+        "low": {
+          "r": 72,
+          "g": 53,
+          "b": 36
+        },
+        "normal": {
+          "r": 88,
+          "g": 65,
+          "b": 44
+        },
+        "high": {
+          "r": 102,
+          "g": 76,
+          "b": 51
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:brown_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:brown_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:brown_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brown_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brown_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brown_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brown_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brown_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_oak_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_oak_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:dark_oak_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_oak_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:command_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:soul_sand",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:soul_soil",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_dark_oak_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_dark_oak_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 27,
+      "colorName": "green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 54,
+          "g": 67,
+          "b": 27
+        },
+        "low": {
+          "r": 72,
+          "g": 89,
+          "b": 36
+        },
+        "normal": {
+          "r": 88,
+          "g": 109,
+          "b": 44
+        },
+        "high": {
+          "r": 102,
+          "g": 127,
+          "b": 51
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:green_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:green_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:green_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:green_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:green_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:green_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:green_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:green_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chain_command_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dried_kelp_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:moss_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:moss_carpet",
+          "needsSupport": true
+        }
+      ]
+    },
+    {
+      "colorID": 28,
+      "colorName": "red",
+      "brightnessValues": {
+        "lowest": {
+          "r": 81,
+          "g": 27,
+          "b": 27
+        },
+        "low": {
+          "r": 108,
+          "g": 36,
+          "b": 36
+        },
+        "normal": {
+          "r": 132,
+          "g": 44,
+          "b": 44
+        },
+        "high": {
+          "r": 153,
+          "g": 51,
+          "b": 51
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:mangrove_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mangrove_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mangrove_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:mangrove_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mangrove_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:red_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:red_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_mushroom_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:fire_coral_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:nether_wart_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:shroomlight",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_mangrove_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_mangrove_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 29,
+      "colorName": "black",
+      "brightnessValues": {
+        "lowest": {
+          "r": 13,
+          "g": 13,
+          "b": 13
+        },
+        "low": {
+          "r": 17,
+          "g": 17,
+          "b": 17
+        },
+        "normal": {
+          "r": 21,
+          "g": 21,
+          "b": 21
+        },
+        "high": {
+          "r": 25,
+          "g": 25,
+          "b": 25
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:black_candle",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:black_carpet",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:black_concrete",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:black_concrete_powder",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:black_glazed_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:black_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:black_stained_glass",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:black_wool",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blackstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:blackstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:ancient_debris",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:basalt",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_polished_blackstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:coal_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cracked_polished_blackstone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:crying_obsidian",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:end_gateway",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gilded_blackstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:netherite_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:obsidian",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_basalt",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_blackstone",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_blackstone_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_blackstone_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_blackstone_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:polished_blackstone_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:respawn_anchor",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sculk",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sculk_catalyst",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sculk_shrieker",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:sculk_vein",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:smooth_basalt",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 30,
+      "colorName": "gold",
+      "brightnessValues": {
+        "lowest": {
+          "r": 132,
+          "g": 126,
+          "b": 40
+        },
+        "low": {
+          "r": 176,
+          "g": 168,
+          "b": 54
+        },
+        "normal": {
+          "r": 215,
+          "g": 205,
+          "b": 66
+        },
+        "high": {
+          "r": 250,
+          "g": 238,
+          "b": 77
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:gold_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:light_weighted_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:raw_gold_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 31,
+      "colorName": "diamond_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 48,
+          "g": 115,
+          "b": 112
+        },
+        "low": {
+          "r": 64,
+          "g": 154,
+          "b": 150
+        },
+        "normal": {
+          "r": 79,
+          "g": 188,
+          "b": 183
+        },
+        "high": {
+          "r": 92,
+          "g": 219,
+          "b": 213
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:prismarine_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:prismarine_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:beacon",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_prismarine",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dark_prismarine_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:diamond_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 32,
+      "colorName": "lapis_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 39,
+          "g": 67,
+          "b": 135
+        },
+        "low": {
+          "r": 52,
+          "g": 90,
+          "b": 180
+        },
+        "normal": {
+          "r": 63,
+          "g": 110,
+          "b": 220
+        },
+        "high": {
+          "r": 74,
+          "g": 128,
+          "b": 255
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:lapis_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 33,
+      "colorName": "emerald_green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 0,
+          "g": 114,
+          "b": 30
+        },
+        "low": {
+          "r": 0,
+          "g": 153,
+          "b": 40
+        },
+        "normal": {
+          "r": 0,
+          "g": 187,
+          "b": 50
+        },
+        "high": {
+          "r": 0,
+          "g": 217,
+          "b": 58
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:emerald_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 34,
+      "colorName": "spruce_brown",
+      "brightnessValues": {
+        "lowest": {
+          "r": 68,
+          "g": 45,
+          "b": 25
+        },
+        "low": {
+          "r": 91,
+          "g": 60,
+          "b": 34
+        },
+        "normal": {
+          "r": 111,
+          "g": 74,
+          "b": 42
+        },
+        "high": {
+          "r": 129,
+          "g": 86,
+          "b": 49
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:mangrove_roots",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spruce_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spruce_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spruce_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:spruce_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:spruce_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:muddy_mangrove_roots",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:podzol",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_spruce_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_spruce_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 35,
+      "colorName": "dark_red",
+      "brightnessValues": {
+        "lowest": {
+          "r": 59,
+          "g": 1,
+          "b": 0
+        },
+        "low": {
+          "r": 79,
+          "g": 1,
+          "b": 0
+        },
+        "normal": {
+          "r": 96,
+          "g": 1,
+          "b": 0
+        },
+        "high": {
+          "r": 112,
+          "g": 2,
+          "b": 0
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:nether_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_nether_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:red_nether_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_nether_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cracked_nether_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:magma_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:nether_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:nether_gold_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:nether_quartz_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:netherrack",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 36,
+      "colorName": "terracotta_white",
+      "brightnessValues": {
+        "lowest": {
+          "r": 110,
+          "g": 93,
+          "b": 85
+        },
+        "low": {
+          "r": 147,
+          "g": 124,
+          "b": 113
+        },
+        "normal": {
+          "r": 180,
+          "g": 152,
+          "b": 138
+        },
+        "high": {
+          "r": 209,
+          "g": 177,
+          "b": 161
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:cherry_log",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cherry_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cherry_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:cherry_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:white_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:calcite",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_cherry_log",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 37,
+      "colorName": "terracotta_orange",
+      "brightnessValues": {
+        "lowest": {
+          "r": 84,
+          "g": 43,
+          "b": 19
+        },
+        "low": {
+          "r": 112,
+          "g": 57,
+          "b": 25
+        },
+        "normal": {
+          "r": 137,
+          "g": 70,
+          "b": 31
+        },
+        "high": {
+          "r": 159,
+          "g": 82,
+          "b": 36
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:orange_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_resin_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:redstone_lamp",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:resin_block",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:resin_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:resin_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:resin_clump",
+          "needsSupport": true
+        }
+      ]
+    },
+    {
+      "colorID": 38,
+      "colorName": "terracotta_magenta",
+      "brightnessValues": {
+        "lowest": {
+          "r": 78,
+          "g": 46,
+          "b": 57
+        },
+        "low": {
+          "r": 105,
+          "g": 61,
+          "b": 76
+        },
+        "normal": {
+          "r": 128,
+          "g": 75,
+          "b": 93
+        },
+        "high": {
+          "r": 149,
+          "g": 87,
+          "b": 108
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:magenta_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 39,
+      "colorName": "terracotta_light_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 59,
+          "g": 57,
+          "b": 73
+        },
+        "low": {
+          "r": 79,
+          "g": 76,
+          "b": 97
+        },
+        "normal": {
+          "r": 96,
+          "g": 93,
+          "b": 119
+        },
+        "high": {
+          "r": 112,
+          "g": 108,
+          "b": 138
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:light_blue_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 40,
+      "colorName": "terracotta_yellow",
+      "brightnessValues": {
+        "lowest": {
+          "r": 98,
+          "g": 70,
+          "b": 19
+        },
+        "low": {
+          "r": 131,
+          "g": 93,
+          "b": 25
+        },
+        "normal": {
+          "r": 160,
+          "g": 114,
+          "b": 31
+        },
+        "high": {
+          "r": 186,
+          "g": 133,
+          "b": 36
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:yellow_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 41,
+      "colorName": "terracotta_lime",
+      "brightnessValues": {
+        "lowest": {
+          "r": 54,
+          "g": 61,
+          "b": 28
+        },
+        "low": {
+          "r": 72,
+          "g": 82,
+          "b": 37
+        },
+        "normal": {
+          "r": 88,
+          "g": 100,
+          "b": 45
+        },
+        "high": {
+          "r": 103,
+          "g": 117,
+          "b": 53
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:lime_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 42,
+      "colorName": "terracotta_pink",
+      "brightnessValues": {
+        "lowest": {
+          "r": 84,
+          "g": 40,
+          "b": 41
+        },
+        "low": {
+          "r": 112,
+          "g": 54,
+          "b": 55
+        },
+        "normal": {
+          "r": 138,
+          "g": 66,
+          "b": 67
+        },
+        "high": {
+          "r": 160,
+          "g": 77,
+          "b": 78
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:pink_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_cherry_wood",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 43,
+      "colorName": "terracotta_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 30,
+          "g": 21,
+          "b": 18
+        },
+        "low": {
+          "r": 40,
+          "g": 28,
+          "b": 24
+        },
+        "normal": {
+          "r": 49,
+          "g": 35,
+          "b": 30
+        },
+        "high": {
+          "r": 57,
+          "g": 41,
+          "b": 35
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:cherry_wood",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:gray_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_tuff",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_tuff_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_tuff",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_tuff_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tuff",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tuff_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tuff_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:tuff_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 44,
+      "colorName": "terracotta_light_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 71,
+          "g": 56,
+          "b": 51
+        },
+        "low": {
+          "r": 95,
+          "g": 75,
+          "b": 69
+        },
+        "normal": {
+          "r": 116,
+          "g": 92,
+          "b": 84
+        },
+        "high": {
+          "r": 135,
+          "g": 107,
+          "b": 98
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:light_gray_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mud_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mud_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:exposed_cut_copper_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_exposed_cut_copper_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 45,
+      "colorName": "terracotta_cyan",
+      "brightnessValues": {
+        "lowest": {
+          "r": 46,
+          "g": 48,
+          "b": 48
+        },
+        "low": {
+          "r": 61,
+          "g": 64,
+          "b": 64
+        },
+        "normal": {
+          "r": 75,
+          "g": 79,
+          "b": 79
+        },
+        "high": {
+          "r": 87,
+          "g": 92,
+          "b": 92
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:cyan_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:mud",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 46,
+      "colorName": "terracotta_purple",
+      "brightnessValues": {
+        "lowest": {
+          "r": 64,
+          "g": 38,
+          "b": 46
+        },
+        "low": {
+          "r": 86,
+          "g": 51,
+          "b": 62
+        },
+        "normal": {
+          "r": 105,
+          "g": 62,
+          "b": 75
+        },
+        "high": {
+          "r": 122,
+          "g": 73,
+          "b": 88
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:purple_shulker_box",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:purple_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 47,
+      "colorName": "terracotta_blue",
+      "brightnessValues": {
+        "lowest": {
+          "r": 40,
+          "g": 32,
+          "b": 48
+        },
+        "low": {
+          "r": 53,
+          "g": 43,
+          "b": 64
+        },
+        "normal": {
+          "r": 65,
+          "g": 53,
+          "b": 79
+        },
+        "high": {
+          "r": 76,
+          "g": 62,
+          "b": 92
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:blue_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 48,
+      "colorName": "terracotta_brown",
+      "brightnessValues": {
+        "lowest": {
+          "r": 40,
+          "g": 26,
+          "b": 18
+        },
+        "low": {
+          "r": 53,
+          "g": 35,
+          "b": 24
+        },
+        "normal": {
+          "r": 65,
+          "g": 43,
+          "b": 30
+        },
+        "high": {
+          "r": 76,
+          "g": 50,
+          "b": 35
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:brown_terracotta",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:dripstone_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 49,
+      "colorName": "terracotta_green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 40,
+          "g": 43,
+          "b": 22
+        },
+        "low": {
+          "r": 53,
+          "g": 57,
+          "b": 29
+        },
+        "normal": {
+          "r": 65,
+          "g": 70,
+          "b": 36
+        },
+        "high": {
+          "r": 76,
+          "g": 82,
+          "b": 42
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:green_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 50,
+      "colorName": "terracotta_red",
+      "brightnessValues": {
+        "lowest": {
+          "r": 75,
+          "g": 31,
+          "b": 24
+        },
+        "low": {
+          "r": 100,
+          "g": 42,
+          "b": 32
+        },
+        "normal": {
+          "r": 122,
+          "g": 51,
+          "b": 39
+        },
+        "high": {
+          "r": 142,
+          "g": 60,
+          "b": 46
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:red_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 51,
+      "colorName": "terracotta_black",
+      "brightnessValues": {
+        "lowest": {
+          "r": 19,
+          "g": 11,
+          "b": 8
+        },
+        "low": {
+          "r": 26,
+          "g": 15,
+          "b": 11
+        },
+        "normal": {
+          "r": 31,
+          "g": 18,
+          "b": 13
+        },
+        "high": {
+          "r": 37,
+          "g": 22,
+          "b": 16
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:black_terracotta",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 52,
+      "colorName": "dull_red",
+      "brightnessValues": {
+        "lowest": {
+          "r": 100,
+          "g": 25,
+          "b": 25
+        },
+        "low": {
+          "r": 133,
+          "g": 33,
+          "b": 34
+        },
+        "normal": {
+          "r": 163,
+          "g": 41,
+          "b": 42
+        },
+        "high": {
+          "r": 189,
+          "g": 48,
+          "b": 49
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:crimson_nylium",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 53,
+      "colorName": "dull_pink",
+      "brightnessValues": {
+        "lowest": {
+          "r": 78,
+          "g": 33,
+          "b": 51
+        },
+        "low": {
+          "r": 104,
+          "g": 44,
+          "b": 68
+        },
+        "normal": {
+          "r": 127,
+          "g": 54,
+          "b": 83
+        },
+        "high": {
+          "r": 148,
+          "g": 63,
+          "b": 97
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:crimson_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:crimson_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:crimson_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:crimson_stem",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_crimson_stem",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 54,
+      "colorName": "dark_crimson",
+      "brightnessValues": {
+        "lowest": {
+          "r": 48,
+          "g": 13,
+          "b": 15
+        },
+        "low": {
+          "r": 64,
+          "g": 17,
+          "b": 20
+        },
+        "normal": {
+          "r": 79,
+          "g": 21,
+          "b": 25
+        },
+        "high": {
+          "r": 92,
+          "g": 25,
+          "b": 29
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:crimson_hyphae",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_crimson_hyphae",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 55,
+      "colorName": "teal",
+      "brightnessValues": {
+        "lowest": {
+          "r": 11,
+          "g": 66,
+          "b": 70
+        },
+        "low": {
+          "r": 15,
+          "g": 88,
+          "b": 94
+        },
+        "normal": {
+          "r": 18,
+          "g": 108,
+          "b": 115
+        },
+        "high": {
+          "r": 22,
+          "g": 126,
+          "b": 134
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:warped_nylium",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:oxidized_cut_copper_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_oxidized_cut_copper_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 56,
+      "colorName": "dark_aqua",
+      "brightnessValues": {
+        "lowest": {
+          "r": 30,
+          "g": 75,
+          "b": 74
+        },
+        "low": {
+          "r": 40,
+          "g": 100,
+          "b": 98
+        },
+        "normal": {
+          "r": 50,
+          "g": 122,
+          "b": 120
+        },
+        "high": {
+          "r": 58,
+          "g": 142,
+          "b": 140
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:warped_planks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:warped_pressure_plate",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:warped_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:warped_stem",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_warped_stem",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:waxed_weathered_cut_copper_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_chiseled_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_copper_bulb",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_copper_grate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_cut_copper",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:weathered_cut_copper_slab",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 57,
+      "colorName": "dark_dull_pink",
+      "brightnessValues": {
+        "lowest": {
+          "r": 45,
+          "g": 23,
+          "b": 32
+        },
+        "low": {
+          "r": 60,
+          "g": 31,
+          "b": 43
+        },
+        "normal": {
+          "r": 74,
+          "g": 37,
+          "b": 53
+        },
+        "high": {
+          "r": 86,
+          "g": 44,
+          "b": 62
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:warped_hyphae",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:stripped_warped_hyphae",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 58,
+      "colorName": "bright_teal",
+      "brightnessValues": {
+        "lowest": {
+          "r": 10,
+          "g": 95,
+          "b": 70
+        },
+        "low": {
+          "r": 14,
+          "g": 127,
+          "b": 93
+        },
+        "normal": {
+          "r": 17,
+          "g": 155,
+          "b": 114
+        },
+        "high": {
+          "r": 20,
+          "g": 180,
+          "b": 133
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:warped_wart_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 59,
+      "colorName": "deepslate_gray",
+      "brightnessValues": {
+        "lowest": {
+          "r": 52,
+          "g": 52,
+          "b": 52
+        },
+        "low": {
+          "r": 70,
+          "g": 70,
+          "b": 70
+        },
+        "normal": {
+          "r": 86,
+          "g": 86,
+          "b": 86
+        },
+        "high": {
+          "r": 100,
+          "g": 100,
+          "b": 100
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:deepslate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_brick_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_coal_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_copper_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_diamond_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_emerald_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_gold_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_iron_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_lapis_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_redstone_ore",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_tile_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:deepslate_tiles",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:chiseled_deepslate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cobbled_deepslate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cobbled_deepslate_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cracked_deepslate_bricks",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:cracked_deepslate_tiles",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:infested_deepslate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_deepslate",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:polished_deepslate_slab",
+          "needsSupport": false
+        },
+        {
+          "id": "minecraft:reinforced_deepslate",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 60,
+      "colorName": "raw_iron_pink",
+      "brightnessValues": {
+        "lowest": {
+          "r": 114,
+          "g": 92,
+          "b": 77
+        },
+        "low": {
+          "r": 152,
+          "g": 123,
+          "b": 103
+        },
+        "normal": {
+          "r": 186,
+          "g": 150,
+          "b": 126
+        },
+        "high": {
+          "r": 216,
+          "g": 175,
+          "b": 147
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:raw_iron_block",
+          "needsSupport": false
+        }
+      ]
+    },
+    {
+      "colorID": 61,
+      "colorName": "lichen_green",
+      "brightnessValues": {
+        "lowest": {
+          "r": 67,
+          "g": 88,
+          "b": 79
+        },
+        "low": {
+          "r": 89,
+          "g": 117,
+          "b": 105
+        },
+        "normal": {
+          "r": 109,
+          "g": 144,
+          "b": 129
+        },
+        "high": {
+          "r": 127,
+          "g": 167,
+          "b": 150
+        }
+      },
+      "blocks": [
+        {
+          "id": "minecraft:glow_lichen",
+          "needsSupport": true
+        },
+        {
+          "id": "minecraft:verdant_froglight",
+          "needsSupport": false
+        }
+      ]
+    }
+  ]
+}

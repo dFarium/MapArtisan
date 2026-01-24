@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useMapart, type BuildMode, type BlockSupport } from '../../context/MapartContext';
-import { Settings2, Grid, Layers, Box, Droplets, Palette as PaletteIcon, Info } from 'lucide-react';
+import { Settings2, Grid, Layers, Box, Droplets, Palette as PaletteIcon, Info, Bug } from 'lucide-react';
 
 export const ControlPanel = () => {
+    const context = useMapart();
     const {
         paletteVersion, setPaletteVersion,
         imageSettings, setImageSettings,
@@ -11,7 +12,7 @@ export const ControlPanel = () => {
         blockSupport, setBlockSupport,
         dithering, setDithering,
         transparency, setTransparency
-    } = useMapart();
+    } = context;
 
     return (
         <div className="h-full flex flex-col space-y-6 text-sm">
@@ -19,9 +20,18 @@ export const ControlPanel = () => {
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                     <Settings2 size={20} /> Parameters
                 </h2>
-                <Link to="/about" className="text-zinc-500 hover:text-blue-400 transition-colors" title="About">
-                    <Info size={18} />
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => console.log('Mapart Configuration Data:', context)}
+                        className="text-zinc-500 hover:text-amber-400 transition-colors"
+                        title="Debug: Log Data"
+                    >
+                        <Bug size={18} />
+                    </button>
+                    <Link to="/about" className="text-zinc-500 hover:text-blue-400 transition-colors" title="About">
+                        <Info size={18} />
+                    </Link>
+                </div>
             </div>
 
             {/* Version */}

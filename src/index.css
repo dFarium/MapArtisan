@@ -13,6 +13,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --block-outline: rgba(255, 255, 255, 0.2);
 }
 
 a {
@@ -57,6 +59,7 @@ button:focus-visible {
   :root {
     color: #213547;
     background-color: #ffffff;
+    --block-outline: rgba(0, 0, 0, 0.15);
   }
   a:hover {
     color: #747bff;
