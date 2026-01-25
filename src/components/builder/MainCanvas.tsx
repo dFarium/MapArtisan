@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, ZoomIn, ZoomOut, Move, Grid3X3, FlaskConical } from 'lucide-react';
+import { Upload, ZoomIn, ZoomOut, Move, Grid3X3 } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
-import { processMapart, processMapartExperimental, type DitheringMode } from '../../utils/mapartProcessing';
+import { processMapart, type DitheringMode } from '../../utils/mapartProcessing';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -20,8 +20,6 @@ export const MainCanvas = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
-    const [experimentalPreviewUrl, setExperimentalPreviewUrl] = useState<string | null>(null);
-    const [showExperimental, setShowExperimental] = useState(true);
 
     // Calculate mapart resolution based on grid dimensions
     const mapartResolution = useMemo(() => ({
@@ -101,52 +99,6 @@ export const MainCanvas = () => {
             }
 
             setScaledPreviewUrl(canvas.toDataURL('image/png'));
-
-            // Also generate experimental preview
-            if (hasSelection) {
-                const canvas2 = document.createElement('canvas');
-                canvas2.width = mapartResolution.width;
-                canvas2.height = mapartResolution.height;
-                const ctx2 = canvas2.getContext('2d');
-                if (ctx2) {
-                    ctx2.imageSmoothingEnabled = false;
-                    if (imageFitMode === 'adjust') {
-                        ctx2.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
-                    } else {
-                        const { zoom, offsetX, offsetY } = cropSettings;
-                        const imgAspect = img.width / img.height;
-                        const canvasAspect = mapartResolution.width / mapartResolution.height;
-                        let baseWidth, baseHeight;
-                        if (imgAspect > canvasAspect) {
-                            baseHeight = img.height;
-                            baseWidth = img.height * canvasAspect;
-                        } else {
-                            baseWidth = img.width;
-                            baseHeight = img.width / canvasAspect;
-                        }
-                        const zoomedWidth = baseWidth / zoom;
-                        const zoomedHeight = baseHeight / zoom;
-                        const maxOffsetX = (img.width - zoomedWidth) / 2;
-                        const maxOffsetY = (img.height - zoomedHeight) / 2;
-                        const finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
-                        const finalOffsetY = (img.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
-                        ctx2.drawImage(img, finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight, 0, 0, mapartResolution.width, mapartResolution.height);
-                    }
-                    const imageData2 = ctx2.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-                    const experimentalData = processMapartExperimental(
-                        imageData2,
-                        buildMode,
-                        selectedPaletteItems,
-                        threeDPrecision,
-                        'hybrid', // Hardcoded for A/B testing
-                        useCielab
-                    );
-                    ctx2.putImageData(experimentalData, 0, 0);
-                    setExperimentalPreviewUrl(canvas2.toDataURL('image/png'));
-                }
-            } else {
-                setExperimentalPreviewUrl(null);
-            }
         };
         img.src = previewUrl;
     }, [previewUrl, mapartResolution, imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength]);
@@ -239,13 +191,7 @@ export const MainCanvas = () => {
                         >
                             <Grid3X3 size={18} />
                         </button>
-                        <button
-                            onClick={() => setShowExperimental(!showExperimental)}
-                            className={clsx("p-2 hover:bg-zinc-700 rounded", showExperimental ? "text-orange-400 bg-zinc-800" : "text-zinc-300")}
-                            title="Toggle Experimental Preview"
-                        >
-                            <FlaskConical size={18} />
-                        </button>
+
                         <button onClick={() => setUploadedImage(null)} className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded text-zinc-300 ml-2">
                             X
                         </button>
@@ -319,34 +265,7 @@ export const MainCanvas = () => {
                                 </div>
                             )}
 
-                            {/* Experimental Preview */}
-                            {showExperimental && experimentalPreviewUrl && (
-                                <div className="relative">
-                                    <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-orange-500 font-semibold">Experimental</div>
-                                    <img
-                                        src={experimentalPreviewUrl}
-                                        alt="Experimental Preview"
-                                        className="max-w-none pointer-events-none select-none border border-orange-600/50 rendering-pixelated"
-                                        draggable={false}
-                                        style={{
-                                            width: mapartResolution.width,
-                                            height: mapartResolution.height,
-                                            imageRendering: 'pixelated'
-                                        }}
-                                    />
-                                    {/* Grid Overlay */}
-                                    <div
-                                        className="absolute inset-0 pointer-events-none"
-                                        style={{
-                                            backgroundImage: `
-                                                linear-gradient(to right, rgba(255,150,0,0.15) 1px, transparent 1px),
-                                                linear-gradient(to bottom, rgba(255,150,0,0.15) 1px, transparent 1px)
-                                            `,
-                                            backgroundSize: `${128}px ${128}px`
-                                        }}
-                                    />
-                                </div>
-                            )}
+
                         </div>
                     </div>
 
