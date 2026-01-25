@@ -2,11 +2,15 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, ZoomIn, ZoomOut, Move, Grid3X3 } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
+import { processMapart } from '../../utils/mapartProcessing';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export const MainCanvas = () => {
-    const { uploadedImage, setUploadedImage, previewUrl, gridDimensions, imageFitMode, cropSettings } = useMapart();
+    const {
+        uploadedImage, setUploadedImage, previewUrl, gridDimensions,
+        imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision
+    } = useMapart();
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -78,10 +82,18 @@ export const MainCanvas = () => {
                 );
             }
 
+            // Apply color mapping if any colors are selected
+            const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
+            if (hasSelection) {
+                const imageData = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
+                const processedData = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision);
+                ctx.putImageData(processedData, 0, 0);
+            }
+
             setScaledPreviewUrl(canvas.toDataURL('image/png'));
         };
         img.src = previewUrl;
-    }, [previewUrl, mapartResolution, imageFitMode, cropSettings]);
+    }, [previewUrl, mapartResolution, imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {

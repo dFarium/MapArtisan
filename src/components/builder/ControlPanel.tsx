@@ -117,7 +117,8 @@ export const ControlPanel = () => {
         dithering, setDithering,
         transparency, setTransparency,
         imageFitMode, setImageFitMode,
-        cropSettings, setCropSettings, resetCropSettings
+        cropSettings, setCropSettings, resetCropSettings,
+        threeDPrecision, setThreeDPrecision
     } = context;
 
     return (
@@ -299,8 +300,8 @@ export const ControlPanel = () => {
                         <div className="flex flex-col gap-2">
                             {(['2d', '3d_valley', '3d_valley_lossy'] as BuildMode[]).map((mode) => (
                                 <label key={mode} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${buildMode === mode
-                                        ? 'bg-blue-600/10 border-blue-600 text-blue-100 ring-1 ring-blue-600/50'
-                                        : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
+                                    ? 'bg-blue-600/10 border-blue-600 text-blue-100 ring-1 ring-blue-600/50'
+                                    : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
                                     }`}>
                                     <input
                                         type="radio"
@@ -313,6 +314,25 @@ export const ControlPanel = () => {
                                 </label>
                             ))}
                         </div>
+
+                        {/* 3D Precision Slider - Only for 3D Lossy mode */}
+                        {buildMode === '3d_valley_lossy' && (
+                            <div className="mt-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                                <PrecisionSlider
+                                    label="3D Precision"
+                                    value={threeDPrecision}
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    unit="%"
+                                    onChange={setThreeDPrecision}
+                                    accentColor="accent-purple-500"
+                                />
+                                <p className="text-[10px] text-zinc-500 mt-2">
+                                    0% = Flat map, 100% = Full 3D precision
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Block Support */}
