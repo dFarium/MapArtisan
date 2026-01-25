@@ -9,7 +9,7 @@ import { twMerge } from 'tailwind-merge';
 export const MainCanvas = () => {
     const {
         uploadedImage, setUploadedImage, previewUrl, gridDimensions,
-        imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab
+        imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength
     } = useMapart();
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -94,7 +94,8 @@ export const MainCanvas = () => {
                     selectedPaletteItems,
                     threeDPrecision,
                     dithering as DitheringMode,
-                    useCielab
+                    useCielab,
+                    hybridStrength
                 );
                 ctx.putImageData(processedData, 0, 0);
             }
@@ -137,7 +138,7 @@ export const MainCanvas = () => {
                         buildMode,
                         selectedPaletteItems,
                         threeDPrecision,
-                        dithering as DitheringMode,
+                        'hybrid', // Hardcoded for A/B testing
                         useCielab
                     );
                     ctx2.putImageData(experimentalData, 0, 0);
@@ -148,7 +149,7 @@ export const MainCanvas = () => {
             }
         };
         img.src = previewUrl;
-    }, [previewUrl, mapartResolution, imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab]);
+    }, [previewUrl, mapartResolution, imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {

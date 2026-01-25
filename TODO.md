@@ -8,7 +8,18 @@
 - **Solution**: Reduce error diffusion strength by scaling the error accumulation.
 - **Implementation**: Multiply error by `0.85` before distributing to neighbors.
 - **Results**: Cleaner skies, smoother gradients, significantly better flat color handling (mecha image).
-- **Action**: Implement as a toggle or default behavior in final version.
+- **Action**: Implemented as "Adaptive (85% Error)" option.
+
+### Hybrid (Smart) Dithering (Experiment 7 - The Solution)
+
+- **Problem**: Balancing clean flat areas (skies) vs detailed gradients (moon, faces).
+- **Solution**: "Super Algorithm" that adapts Error Scale per-pixel based on Local Variance and Quantization Error.
+- **Implementation**:
+  - Calculates 3x3 local variance.
+  - Checks quantization error (color distance).
+  - Interpolates error scale dynamically (0.1 to 1.0).
+  - **User Control**: Added "Hybrid Strength" slider to UI.
+- **Status**: **IMPLEMENTED**. This is the recommended default.
 
 ## ❌ Failed Experiments
 
@@ -27,7 +38,7 @@
 
 - **Idea**: Use 8x8 Bayer matrix instead of 4x4 or Error Diffusion.
 - **Result**: Good for stylized/flat art (Night in the Woods), but creates visible "screen door" grid on photos.
-- **Action**: Add as a new "High Quality Ordered" option. **Keep standard 4x4 Ordered** as it produces a different, sometimes preferred aesthetic.
+- **Action**: Implemented as "Ordered 8x8". Both 4x4 and 8x8 are available.
 
 ### Multi-Pass Strategy 1: Selective Detail (Experiment 5.1)
 
@@ -46,3 +57,14 @@
 - **Idea**: Use 2D (flat) as base. If 3D (slope) improves color match significantly, use it.
 - **Result**: **FAILURE**. "Had potential but didn't work out". Likely caused jarring inconsistency between flat and sloped areas.
 - **Action**: Discard. Inconsistency is worse than overall lower quality.
+
+### Multi-Pass Strategy 4: Variance-Based (Experiment 5.4)
+
+- **Idea**: Use local variance (texture complexity) to switch between Solid (High Variance) and Dithered (Low Variance).
+- **Result**: Mixed. User moved to Adaptive Dithering. Likely difficult to calibrate threshold for all images.
+
+### Experiment 6: Adaptive Dithering / Dampened Error (Current)
+
+- **Idea**: Use standard Floyd-Steinberg but multiply the error by a factor (e.g. 0.85).
+- **Goal**: Reduce "worms" and excessive noise in flat areas by letting the error die out rather than propagating forever.
+- **Implementation**: `ERROR_SCALE = 0.85` inside the loop.

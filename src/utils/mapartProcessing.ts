@@ -132,7 +132,10 @@ export type DitheringMode =
     | 'stucki'
     | 'burkes'
     | 'sierra-lite'
-    | 'ordered';
+    | 'ordered'
+    | 'ordered-8x8'
+    | 'adaptive'
+    | 'hybrid';
 
 interface DitherMatrix {
     divisor: number;
@@ -184,13 +187,69 @@ const DITHER_MATRICES: Record<string, DitherMatrix> = {
     }
 };
 
-// Bayer 4x4 threshold matrix for ordered dithering
+// Bayer 4x4 threshold matrix for ordered dithering (values 1-16)
 const BAYER_4X4 = [
     [1, 9, 3, 11],
     [13, 5, 15, 7],
     [4, 12, 2, 10],
     [16, 8, 14, 6]
 ];
+
+// Bayer 8x8 threshold matrix for ordered dithering (values 1-64)
+const BAYER_8X8 = [
+    [1, 49, 13, 61, 4, 52, 16, 64],
+    [33, 17, 45, 29, 36, 20, 48, 32],
+    [9, 57, 5, 53, 12, 60, 8, 56],
+    [41, 25, 37, 21, 44, 28, 40, 24],
+    [3, 51, 15, 63, 2, 50, 14, 62],
+    [35, 19, 47, 31, 34, 18, 46, 30],
+    [11, 59, 7, 55, 10, 58, 6, 54],
+    [43, 27, 39, 23, 42, 26, 38, 22]
+];
+
+// ============================================================================
+// Hybrid Dithering - Local Variance Analysis
+// ============================================================================
+
+// Hybrid variance thresholds are now calculated dynamically based on hybridStrength parameter
+
+/**
+ * Calculate local variance in a 3x3 window around a pixel.
+ * Returns the sum of squared differences from the center pixel.
+ */
+function calculateLocalVariance(
+    floatBuffer: number[][],
+    x: number,
+    y: number,
+    width: number,
+    height: number
+): number {
+    const centerR = floatBuffer[y][x * 3];
+    const centerG = floatBuffer[y][x * 3 + 1];
+    const centerB = floatBuffer[y][x * 3 + 2];
+
+    let variance = 0;
+    let count = 0;
+
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+
+            const nx = x + dx;
+            const ny = y + dy;
+
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const dr = floatBuffer[ny][nx * 3] - centerR;
+                const dg = floatBuffer[ny][nx * 3 + 1] - centerG;
+                const db = floatBuffer[ny][nx * 3 + 2] - centerB;
+                variance += dr * dr + dg * dg + db * db;
+                count++;
+            }
+        }
+    }
+
+    return count > 0 ? variance / count : 0;
+}
 
 // ============================================================================
 // Color Candidate Functions
@@ -342,7 +401,8 @@ export function processMapart(
     selectedPaletteItems: Record<number, string | null>,
     threeDPrecision: number,
     dithering: DitheringMode = 'none',
-    useCielab: boolean = true
+    useCielab: boolean = true,
+    hybridStrength: number = 50
 ): ImageData {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
@@ -383,8 +443,14 @@ export function processMapart(
     const candidateLabs = candidates.map(c => rgbToLab(c.rgb));
 
     // Get dither matrix if using error diffusion
-    const ditherMatrix = DITHER_MATRICES[dithering];
-    const isErrorDiffusion = ditherMatrix !== undefined;
+    // 'adaptive' mode uses Floyd-Steinberg with reduced error propagation
+    // 'hybrid' mode uses Floyd-Steinberg with variance-based error scaling
+    const effectiveDithering = (dithering === 'adaptive' || dithering === 'hybrid') ? 'floyd-steinberg' : dithering;
+    const ditherMatrix = DITHER_MATRICES[effectiveDithering];
+    const isErrorDiffusion = ditherMatrix !== undefined || dithering === 'hybrid';
+    const baseErrorScale = dithering === 'adaptive' ? 0.85 : 1.0;
+    const isHybrid = dithering === 'hybrid';
+    const fsMatrix = DITHER_MATRICES['floyd-steinberg']; // For hybrid mode
 
     if (buildMode === '3d_valley_lossy') {
         // Column-by-column processing for height tracking
@@ -404,14 +470,16 @@ export function processMapart(
 
                 let bestIndex = -1;
 
-                if (dithering === 'ordered') {
+                if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering: choose between two closest based on threshold
                     const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab);
-                    const threshold = BAYER_4X4[y % 4][x % 4];
+                    const is8x8 = dithering === 'ordered-8x8';
+                    const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
+                    const maxThreshold = is8x8 ? 65 : 17;
 
                     // Only use second color if it's valid and ratio meets threshold
                     if (twoClosest.second.distance > 0) {
-                        const ratio = (twoClosest.first.distance * 17) / twoClosest.second.distance;
+                        const ratio = (twoClosest.first.distance * maxThreshold) / twoClosest.second.distance;
                         bestIndex = ratio > threshold ? twoClosest.second.index : twoClosest.first.index;
                     } else {
                         bestIndex = twoClosest.first.index;
@@ -457,9 +525,9 @@ export function processMapart(
 
                     // Error diffusion (column-adapted) - use UNCLAMPED values (like mapartcraft)
                     if (isErrorDiffusion) {
-                        const errR = r - best.rgb.r;
-                        const errG = g - best.rgb.g;
-                        const errB = b - best.rgb.b;
+                        const errR = (r - best.rgb.r) * baseErrorScale;
+                        const errG = (g - best.rgb.g) * baseErrorScale;
+                        const errB = (b - best.rgb.b) * baseErrorScale;
                         const divisor = ditherMatrix.divisor;
                         const matrix = ditherMatrix.matrix;
 
@@ -503,13 +571,15 @@ export function processMapart(
 
                 let bestIndex: number;
 
-                if (dithering === 'ordered') {
+                if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering with two-color selection
                     const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab);
-                    const threshold = BAYER_4X4[y % 4][x % 4];
+                    const is8x8 = dithering === 'ordered-8x8';
+                    const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
+                    const maxThreshold = is8x8 ? 65 : 17;
 
                     if (twoClosest.second.distance > 0) {
-                        const ratio = (twoClosest.first.distance * 17) / twoClosest.second.distance;
+                        const ratio = (twoClosest.first.distance * maxThreshold) / twoClosest.second.distance;
                         bestIndex = ratio > threshold ? twoClosest.second.index : twoClosest.first.index;
                     } else {
                         bestIndex = twoClosest.first.index;
@@ -528,11 +598,52 @@ export function processMapart(
 
                 // Error diffusion - use UNCLAMPED values (like mapartcraft) for proper error propagation
                 if (isErrorDiffusion) {
-                    const errR = r - best.rgb.r;
-                    const errG = g - best.rgb.g;
-                    const errB = b - best.rgb.b;
-                    const divisor = ditherMatrix.divisor;
-                    const matrix = ditherMatrix.matrix;
+                    // Calculate error scale based on mode
+                    let errorScale = baseErrorScale;
+
+                    if (isHybrid) {
+                        // Hybrid mode: adjust error scale based on local variance AND quantization error
+                        const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
+
+                        // Calculate quantization error (how far is the chosen color from the original?)
+                        const quantErrorSq = (r - best.rgb.r) ** 2 + (g - best.rgb.g) ** 2 + (b - best.rgb.b) ** 2;
+
+                        // User-controlled thresholds based on hybridStrength (0-100)
+                        // hybridStrength=0: very aggressive noise reduction (minScale=0.1)
+                        // hybridStrength=100: nearly full F-S (minScale=0.9)
+                        const minScale = 0.1 + (hybridStrength / 100) * 0.8; // 0.1 to 0.9
+
+                        // Variance thresholds scaled by hybridStrength
+                        const varianceLow = 50 + (hybridStrength / 100) * 300;   // 50 to 350
+                        const varianceHigh = 500 + (hybridStrength / 100) * 3000; // 500 to 3500
+
+                        // If quantization error is high, use more dithering regardless of variance
+                        // This preserves gradients like the moon detail
+                        const quantErrorThreshold = 1000; // ~sqrt(1000) ≈ 31 per channel difference
+
+                        if (quantErrorSq > quantErrorThreshold) {
+                            // High quantization error: boost error scale to preserve detail
+                            const boostFactor = Math.min(1.0, quantErrorSq / 5000);
+                            errorScale = minScale + (1.0 - minScale) * boostFactor;
+                        } else if (variance < varianceLow) {
+                            // Flat area with good color match: minimal dithering
+                            errorScale = minScale;
+                        } else if (variance > varianceHigh) {
+                            // Edge/detail: full error diffusion
+                            errorScale = 1.0;
+                        } else {
+                            // Gradient: interpolate
+                            const t = (variance - varianceLow) / (varianceHigh - varianceLow);
+                            errorScale = minScale + t * (1.0 - minScale);
+                        }
+                    }
+
+                    const errR = (r - best.rgb.r) * errorScale;
+                    const errG = (g - best.rgb.g) * errorScale;
+                    const errB = (b - best.rgb.b) * errorScale;
+                    const activeMatrix = isHybrid ? fsMatrix : ditherMatrix;
+                    const divisor = activeMatrix.divisor;
+                    const matrix = activeMatrix.matrix;
 
                     for (let row = 0; row < matrix.length; row++) {
                         for (let col = 0; col < matrix[row].length; col++) {
@@ -571,75 +682,120 @@ export function processMapartExperimental(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true
 ): ImageData {
-    // EXPERIMENT 5: STRATEGY 4 - VARIANCE-BASED (Texture vs Gradient)
-    // Goal: Use Solid for high-detail areas (preserve text/edges).
-    //       Use Dither for low-detail areas (smooth gradients/skies).
+    // EXPERIMENT 6: Adaptive Dithering (Reduced Strength)
+    // Scale down error diffusion to reduce noise in flat areas (like skies)
+    // Using 0.85 scaling factor (85% error propagation)
 
-    // Pass 1: Solid (Nearest Neighbor) - Crisp details
-    const solidPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, 'none', useCielab);
+    const candidates = getValidColors(selectedPaletteItems, buildMode);
 
-    // Pass 2: Dithered - Smooth gradients
-    // ISOLATION FIX: Always use 'floyd-steinberg' for the experimental Dither pass,
-    // ignoring the UI selector so the experiment is consistent.
-    const ditherPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, 'floyd-steinberg', useCielab);
+    if (candidates.length === 0) {
+        return imageData;
+    }
 
-    const width = imageData.width;
-    const height = imageData.height;
-    const output = new Uint8ClampedArray(imageData.data);
-    const input = imageData.data;
+    // Clear color cache for fresh processing
+    clearColorCache();
 
-    // Threshold for Variance.
-    // High Variance = Detailed area -> Use Solid.
-    // Low Variance = Flat area -> Use Dither.
-    // Range 0-255 roughly (luminance difference).
-    const VARIANCE_THRESHOLD = 15.0;
+    const { width, height, data } = imageData;
 
-    // Helper to get luminance
-    const getLum = (idx: number) => {
-        // Boundary check
-        if (idx < 0 || idx >= input.length) return 0;
-        return 0.299 * input[idx] + 0.587 * input[idx + 1] + 0.114 * input[idx + 2];
-    };
+    // Create float buffer for error diffusion
+    const floatBuffer: number[][] = [];
+    for (let i = 0; i < height; i++) {
+        floatBuffer[i] = [];
+        for (let j = 0; j < width; j++) {
+            const idx = (i * width + j) * 4;
+            floatBuffer[i][j * 3] = data[idx];
+            floatBuffer[i][j * 3 + 1] = data[idx + 1];
+            floatBuffer[i][j * 3 + 2] = data[idx + 2];
+        }
+    }
 
+    const output = new Uint8ClampedArray(data);
+
+    // Height penalty for 3D lossy
+    const normalizedPrecision = threeDPrecision / 100;
+    let heightPenalty: number;
+    if (threeDPrecision === 0) {
+        heightPenalty = MAX_HEIGHT_PENALTY;
+    } else {
+        const PRACTICAL_MAX = useCielab ? 50 : 5000;
+        heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
+    }
+
+    // Pre-compute LAB values for candidates
+    const candidateLabs = candidates.map(c => rgbToLab(c.rgb));
+
+    // Get dither matrix
+    const ditherMatrix = DITHER_MATRICES[dithering];
+    const isErrorDiffusion = ditherMatrix !== undefined;
+
+    // Error scaling factor for adaptive dithering
+    const ERROR_SCALE = 0.85;
+
+    // Standard scanning
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            const i = (y * width + x) * 4;
+            let r = floatBuffer[y][x * 3];
+            let g = floatBuffer[y][x * 3 + 1];
+            let b = floatBuffer[y][x * 3 + 2];
 
-            // Calculate Variance (Standard Deviation of 3x3 window)
-            // Or simpler: Max - Min in 3x3 window (Range)
-            let minLum = 255;
-            let maxLum = 0;
+            const target: RGB = {
+                r: Math.max(0, Math.min(255, r)),
+                g: Math.max(0, Math.min(255, g)),
+                b: Math.max(0, Math.min(255, b))
+            };
 
-            // 3x3 Loop
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const ny = y + dy;
-                    const nx = x + dx;
+            let bestIndex: number;
 
-                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                        const idx = (ny * width + nx) * 4;
-                        const lum = getLum(idx);
-                        if (lum < minLum) minLum = lum;
-                        if (lum > maxLum) maxLum = lum;
+            // Use standard matching (reverted Weighted LAB)
+            if (buildMode === '3d_valley_lossy') {
+                const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion);
+                bestIndex = result.index;
+            } else {
+                if (dithering === 'ordered' || dithering === 'ordered-8x8') {
+                    const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab);
+                    const is8x8 = dithering === 'ordered-8x8';
+                    const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
+                    const maxThreshold = is8x8 ? 65 : 17;
+                    if (twoClosest.second.distance > 0) {
+                        const ratio = (twoClosest.first.distance * maxThreshold) / twoClosest.second.distance;
+                        bestIndex = ratio > threshold ? twoClosest.second.index : twoClosest.first.index;
+                    } else {
+                        bestIndex = twoClosest.first.index;
                     }
+                } else {
+                    const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion);
+                    bestIndex = result.index;
                 }
             }
 
-            // "Variance" approximation
-            const localRange = maxLum - minLum;
+            const best = candidates[bestIndex];
+            const idx = (y * width + x) * 4;
+            output[idx] = best.rgb.r;
+            output[idx + 1] = best.rgb.g;
+            output[idx + 2] = best.rgb.b;
 
-            if (localRange > VARIANCE_THRESHOLD) {
-                // High detail/contrast area -> Keep it Solid (Crisp)
-                output[i] = solidPass.data[i];
-                output[i + 1] = solidPass.data[i + 1];
-                output[i + 2] = solidPass.data[i + 2];
-                output[i + 3] = 255;
-            } else {
-                // Low detail/smooth area -> Dither (Smooth gradients)
-                output[i] = ditherPass.data[i];
-                output[i + 1] = ditherPass.data[i + 1];
-                output[i + 2] = ditherPass.data[i + 2];
-                output[i + 3] = 255;
+            if (isErrorDiffusion) {
+                const errR = (r - best.rgb.r) * ERROR_SCALE; // Scale error
+                const errG = (g - best.rgb.g) * ERROR_SCALE;
+                const errB = (b - best.rgb.b) * ERROR_SCALE;
+                const divisor = ditherMatrix.divisor;
+                const matrix = ditherMatrix.matrix;
+
+                for (let row = 0; row < matrix.length; row++) {
+                    for (let col = 0; col < matrix[row].length; col++) {
+                        const weight = matrix[row][col];
+                        if (weight === 0) continue;
+
+                        const nx = x + (col - 2);
+                        const ny = y + row;
+
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            floatBuffer[ny][nx * 3] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3] + errR * weight / divisor));
+                            floatBuffer[ny][nx * 3 + 1] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 1] + errG * weight / divisor));
+                            floatBuffer[ny][nx * 3 + 2] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 2] + errB * weight / divisor));
+                        }
+                    }
+                }
             }
         }
     }

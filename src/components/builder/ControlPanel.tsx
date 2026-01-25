@@ -119,7 +119,8 @@ export const ControlPanel = () => {
         imageFitMode, setImageFitMode,
         cropSettings, setCropSettings, resetCropSettings,
         threeDPrecision, setThreeDPrecision,
-        useCielab, setUseCielab
+        useCielab, setUseCielab,
+        hybridStrength, setHybridStrength
     } = context;
 
     return (
@@ -245,13 +246,35 @@ export const ControlPanel = () => {
                         >
                             <option value="none">Disabled (Sharp Colors)</option>
                             <option value="floyd-steinberg">Floyd-Steinberg</option>
+                            <option value="adaptive">Adaptive (85% Error)</option>
                             <option value="atkinson">Atkinson</option>
                             <option value="stucki">Stucki</option>
                             <option value="burkes">Burkes</option>
                             <option value="sierra-lite">Sierra-Lite</option>
-                            <option value="ordered">Ordered (Bayer)</option>
+                            <option value="ordered">Ordered 4x4 (Bayer)</option>
+                            <option value="ordered-8x8">Ordered 8x8 (Bayer)</option>
+                            <option value="hybrid">Hybrid (Smart)</option>
                         </select>
                     </div>
+
+                    {/* Hybrid Strength Slider - Only shown when hybrid is selected */}
+                    {dithering === 'hybrid' && (
+                        <div className="p-3 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                            <PrecisionSlider
+                                label="Hybrid Strength"
+                                value={hybridStrength}
+                                min={0}
+                                max={100}
+                                step={1}
+                                unit="%"
+                                onChange={setHybridStrength}
+                                accentColor="accent-cyan-500"
+                            />
+                            <p className="text-[10px] text-zinc-500 mt-2">
+                                0% = Aggressive noise reduction, 100% = More detail preservation
+                            </p>
+                        </div>
+                    )}
 
                     {/* Transparency */}
                     <div className="space-y-2.5 p-3 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
