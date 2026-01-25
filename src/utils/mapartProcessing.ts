@@ -609,24 +609,27 @@ export function processMapart(
                         const quantErrorSq = (r - best.rgb.r) ** 2 + (g - best.rgb.g) ** 2 + (b - best.rgb.b) ** 2;
 
                         // User-controlled thresholds based on hybridStrength (0-100)
-                        // hybridStrength=0: very aggressive noise reduction (minScale=0.1)
+                        // hybridStrength=0: Absolute noise reduction (minScale=0.0) -> Solid colors
                         // hybridStrength=100: full F-S (minScale=1.0)
-                        const minScale = 0.1 + (hybridStrength / 100) * 0.9; // 0.1 to 1.0
+                        const minScale = (hybridStrength / 100) * 1.0;
 
                         // Variance thresholds - INVERTED LOGIC relative to strength
-                        // Low Strength (0) = Aggressive Noise Reduction = HIGH Thresholds (force more areas to be flat)
-                        // High Strength (100) = Max Detail = LOW Thresholds (sensitive to any detail)
+                        // Low Strength (0) = Aggressive Noise Reduction = EXTREME Thresholds
+                        // High Strength (100) = Max Detail = LOW Thresholds
                         const invStrength = 100 - hybridStrength;
-                        const varianceLow = 50 + (invStrength / 100) * 450;   // Strength 100->50, Strength 0->500
-                        const varianceHigh = 500 + (invStrength / 100) * 3500; // Strength 100->500, Strength 0->4000
+                        const varianceLow = 50 + (invStrength / 100) * 950;   // Strength 100->50, Strength 0->1000
+                        const varianceHigh = 500 + (invStrength / 100) * 5500; // Strength 100->500, Strength 0->6000
 
                         // If quantization error is high, use more dithering regardless of variance
                         // This preserves gradients like the moon detail
+                        // BUT: If hybridStrength is low, we ignore this validly to force posterization (user preference)
                         const quantErrorThreshold = 1000; // ~sqrt(1000) ≈ 31 per channel difference
 
                         if (quantErrorSq > quantErrorThreshold) {
                             // High quantization error: boost error scale to preserve detail
-                            const boostFactor = Math.min(1.0, quantErrorSq / 5000);
+                            // Scale boost by hybridStrength: 0% strength -> 0% boost (force solid), 100% strength -> full boost
+                            const strengthFactor = hybridStrength / 100;
+                            const boostFactor = Math.min(1.0, quantErrorSq / 5000) * strengthFactor;
                             errorScale = minScale + (1.0 - minScale) * boostFactor;
                         } else if (variance < varianceLow) {
                             // Flat area with good color match: minimal dithering
