@@ -610,12 +610,15 @@ export function processMapart(
 
                         // User-controlled thresholds based on hybridStrength (0-100)
                         // hybridStrength=0: very aggressive noise reduction (minScale=0.1)
-                        // hybridStrength=100: nearly full F-S (minScale=0.9)
-                        const minScale = 0.1 + (hybridStrength / 100) * 0.8; // 0.1 to 0.9
+                        // hybridStrength=100: full F-S (minScale=1.0)
+                        const minScale = 0.1 + (hybridStrength / 100) * 0.9; // 0.1 to 1.0
 
-                        // Variance thresholds scaled by hybridStrength
-                        const varianceLow = 50 + (hybridStrength / 100) * 300;   // 50 to 350
-                        const varianceHigh = 500 + (hybridStrength / 100) * 3000; // 500 to 3500
+                        // Variance thresholds - INVERTED LOGIC relative to strength
+                        // Low Strength (0) = Aggressive Noise Reduction = HIGH Thresholds (force more areas to be flat)
+                        // High Strength (100) = Max Detail = LOW Thresholds (sensitive to any detail)
+                        const invStrength = 100 - hybridStrength;
+                        const varianceLow = 50 + (invStrength / 100) * 450;   // Strength 100->50, Strength 0->500
+                        const varianceHigh = 500 + (invStrength / 100) * 3500; // Strength 100->500, Strength 0->4000
 
                         // If quantization error is high, use more dithering regardless of variance
                         // This preserves gradients like the moon detail
@@ -667,6 +670,86 @@ export function processMapart(
     }
 
     return new ImageData(output, width, height);
+}
+
+// ============================================================================
+// Auto-Detection Logic
+// ============================================================================
+
+export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMode; strength: number } {
+    const { width, height, data } = imageData;
+    const stride = 10; // Sample every 10th pixel for performance
+    let totalVariance = 0;
+    let samples = 0;
+    let flatSamples = 0;
+
+    // Create a temporary float buffer for variance calculation (only for sampled area)
+    // To properly use calculateLocalVariance, we need a buffer. 
+    // Since we can't easily recreate the full buffer efficiently just for sampling without cost,
+    // we'll implement a simplified direct variance check here.
+
+    for (let y = 1; y < height - 1; y += stride) {
+        for (let x = 1; x < width - 1; x += stride) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+
+            // Calculate variance with 4 neighbors (up, down, left, right)
+            let localVar = 0;
+            const neighbors = [
+                ((y - 1) * width + x) * 4,
+                ((y + 1) * width + x) * 4,
+                ((y) * width + (x - 1)) * 4,
+                ((y) * width + (x + 1)) * 4
+            ];
+
+            for (const nIdx of neighbors) {
+                const nr = data[nIdx];
+                const ng = data[nIdx + 1];
+                const nb = data[nIdx + 2];
+                localVar += (r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2;
+            }
+
+            const pixelVariance = localVar / 4;
+            totalVariance += pixelVariance;
+
+            if (pixelVariance < 50) flatSamples++;
+
+            samples++;
+        }
+    }
+
+    const avgVariance = samples > 0 ? totalVariance / samples : 0;
+    const flatPercentage = samples > 0 ? (flatSamples / samples) * 100 : 0;
+
+    // Heuristics:
+    // Very low variance (< 50) -> Flat image / Vector art -> 'none' or very low hybrid
+    // High variance -> Photo / Complex -> 'hybrid'
+
+    console.log(`[AutoDetect] avgVar: ${avgVariance.toFixed(0)}, flat%: ${flatPercentage.toFixed(1)}%`);
+
+    if (flatPercentage > 60) {
+        return { mode: 'none', strength: 0 };
+    }
+
+    if (avgVariance < 20) {
+        return { mode: 'none', strength: 0 };
+    } else {
+        // Map variance to suggested strength
+        // 20 variance -> 0% strength (almost flat)
+        // 500 variance -> 50% strength
+        // 2000+ variance -> 100% strength
+
+        let strength = 50;
+        if (avgVariance < 100) strength = 20;
+        else if (avgVariance < 500) strength = 40;
+        else if (avgVariance < 1000) strength = 60;
+        else if (avgVariance < 2000) strength = 80;
+        else strength = 100;
+
+        return { mode: 'hybrid', strength };
+    }
 }
 
 

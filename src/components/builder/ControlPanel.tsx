@@ -18,8 +18,10 @@ import {
     ImageIcon,
     Zap,
     Hammer,
-    Eye
+    Eye,
+    Sparkles
 } from 'lucide-react';
+import { suggestDitheringMode } from '../../utils/mapartProcessing';
 
 // Precision Slider Component with mouse wheel support
 const PrecisionSlider = ({
@@ -120,8 +122,44 @@ export const ControlPanel = () => {
         cropSettings, setCropSettings, resetCropSettings,
         threeDPrecision, setThreeDPrecision,
         useCielab, setUseCielab,
-        hybridStrength, setHybridStrength
+        hybridStrength, setHybridStrength,
+        previewUrl
     } = context;
+
+    const handleAutoDetect = () => {
+        if (!previewUrl) return;
+
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            // Limit analysis size for performance if image is huge
+            const MAX_SIZE = 1000;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_SIZE || height > MAX_SIZE) {
+                const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+                width = Math.round(width * ratio);
+                height = Math.round(height * ratio);
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.drawImage(img, 0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height);
+
+            const result = suggestDitheringMode(imageData);
+            setDithering(result.mode);
+            if (result.mode === 'hybrid') {
+                setHybridStrength(result.strength);
+            }
+        };
+        img.src = previewUrl;
+    };
 
     return (
         <div className="h-full flex flex-col space-y-3 text-sm">
@@ -236,24 +274,34 @@ export const ControlPanel = () => {
                 <Section title="2. Color Processing" icon={<Zap size={16} />} defaultOpen={true}>
                     {/* Dithering */}
                     <div className="space-y-2.5">
-                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
-                            <Droplets size={14} /> Quantization Algorithm
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                                <Droplets size={14} /> Quantization Algorithm
+                            </label>
+                            <button
+                                onClick={handleAutoDetect}
+                                disabled={!previewUrl}
+                                className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Auto-detect best settings based on image"
+                            >
+                                <Sparkles size={12} /> Auto
+                            </button>
+                        </div>
                         <select
                             value={dithering}
                             onChange={(e) => setDithering(e.target.value)}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-200 text-sm focus:border-blue-500 outline-none cursor-pointer hover:border-zinc-700 transition-colors"
                         >
-                            <option value="none">Disabled (Sharp Colors)</option>
-                            <option value="floyd-steinberg">Floyd-Steinberg</option>
-                            <option value="adaptive">Adaptive (85% Error)</option>
-                            <option value="atkinson">Atkinson</option>
-                            <option value="stucki">Stucki</option>
-                            <option value="burkes">Burkes</option>
-                            <option value="sierra-lite">Sierra-Lite</option>
-                            <option value="ordered">Ordered 4x4 (Bayer)</option>
-                            <option value="ordered-8x8">Ordered 8x8 (Bayer)</option>
-                            <option value="hybrid">Hybrid (Smart)</option>
+                            <option value="hybrid">Smart (Hybrid F-S)</option>
+                            <option value="floyd-steinberg">Standard (Floyd-Steinberg)</option>
+                            <option value="ordered">Retro 4x4 (Bayer)</option>
+                            <option value="ordered-8x8">Retro 8x8 (Bayer)</option>
+                            <option value="adaptive">Smooth (Adaptive F-S)</option>
+                            <option value="atkinson">High Contrast (Atkinson)</option>
+                            <option value="stucki">Soft Detail (Stucki)</option>
+                            <option value="burkes">Balanced (Burkes)</option>
+                            <option value="sierra-lite">Fast (Sierra-Lite)</option>
+                            <option value="none">Disabled (No Dithering)</option>
                         </select>
                     </div>
 
