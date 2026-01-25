@@ -27,4 +27,10 @@
 
 - **Idea**: Use 8x8 Bayer matrix instead of 4x4 or Error Diffusion.
 - **Result**: Good for stylized/flat art (Night in the Woods), but creates visible "screen door" grid on photos.
-- **Action**: Consider upgrading current "Ordered" mode to use 8x8 matrix, or add as separate option. Not suitable as default replacement for Floyd-Steinberg.
+- **Action**: Add as a new "High Quality Ordered" option. **Keep standard 4x4 Ordered** as it produces a different, sometimes preferred aesthetic.
+
+### Multi-Pass Strategy 1: Selective Detail (Experiment 5.1)
+
+- **Idea**: Pass 1 Solid (clean), Pass 2 Dithered. Pixel = Solid if error < threshold, else Dithered.
+- **Result**: **SUCCESS**. Significantly cleans up flat backgrounds (Red robot, Night in the Woods) while keeping detail in complex areas (Minecraft landscape).
+- **Action**: This is a keeper. Candidate name: "Smart Dithering" or "Clean Dithering".

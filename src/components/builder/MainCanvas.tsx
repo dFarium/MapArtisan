@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, ZoomIn, ZoomOut, Move, Grid3X3 } from 'lucide-react';
+import { Upload, ZoomIn, ZoomOut, Move, Grid3X3, FlaskConical } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
 import { processMapart, processMapartExperimental, type DitheringMode } from '../../utils/mapartProcessing';
 import { clsx } from 'clsx';
@@ -237,6 +237,13 @@ export const MainCanvas = () => {
                             title="Toggle Mapart Preview"
                         >
                             <Grid3X3 size={18} />
+                        </button>
+                        <button
+                            onClick={() => setShowExperimental(!showExperimental)}
+                            className={clsx("p-2 hover:bg-zinc-700 rounded", showExperimental ? "text-orange-400 bg-zinc-800" : "text-zinc-300")}
+                            title="Toggle Experimental Preview"
+                        >
+                            <FlaskConical size={18} />
                         </button>
                         <button onClick={() => setUploadedImage(null)} className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded text-zinc-300 ml-2">
                             X

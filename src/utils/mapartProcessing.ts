@@ -571,7 +571,52 @@ export function processMapartExperimental(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true
 ): ImageData {
-    // For now, just call the original function
-    // TODO: Add experimental improvements here
-    return processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab);
+    // EXPERIMENT 5: STRATEGY 1 - SELECTIVE DETAIL (Solid + Refinement)
+    // Goal: Clean skies/flat areas (Solid), detailed textures (Dithering)
+
+    // Pass 1: Solid (Nearest Neighbor) - Base for clean areas
+    const solidPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, 'none', useCielab);
+
+    // Pass 2: Dithered - Source for detailed areas
+    // If 'none' selected, force 'floyd-steinberg' for the detailed pass
+    const ditherModeToUse = dithering === 'none' ? 'floyd-steinberg' : dithering;
+    const ditherPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, ditherModeToUse, useCielab);
+
+    const width = imageData.width;
+    const height = imageData.height;
+    const output = new Uint8ClampedArray(imageData.data);
+
+    // Threshold for switching to dithered version
+    // CIELAB DeltaE ~2.3 is noticeable. 
+    // We want a higher threshold so we only dither when "Solid" is clearly wrong.
+    const DETAIL_THRESHOLD = 10.0;
+
+    for (let i = 0; i < output.length; i += 4) {
+        // Original Color
+        const org: RGB = { r: imageData.data[i], g: imageData.data[i + 1], b: imageData.data[i + 2] };
+
+        // Solid Pass Color
+        const sol: RGB = { r: solidPass.data[i], g: solidPass.data[i + 1], b: solidPass.data[i + 2] };
+
+        // Calculate Error of Solid Pass
+        const orgLab = rgbToLab(org);
+        const solLab = rgbToLab(sol);
+        const error = deltaE(orgLab, solLab);
+
+        if (error > DETAIL_THRESHOLD) {
+            // Error is high -> Use Dithered Pixel
+            output[i] = ditherPass.data[i];
+            output[i + 1] = ditherPass.data[i + 1];
+            output[i + 2] = ditherPass.data[i + 2];
+            output[i + 3] = 255;
+        } else {
+            // Error is low -> Keep Solid Pixel (Cleaner)
+            output[i] = solidPass.data[i];
+            output[i + 1] = solidPass.data[i + 1];
+            output[i + 2] = solidPass.data[i + 2];
+            output[i + 3] = 255;
+        }
+    }
+
+    return new ImageData(output, width, height);
 }
