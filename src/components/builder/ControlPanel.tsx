@@ -123,6 +123,7 @@ export const ControlPanel = () => {
         threeDPrecision, setThreeDPrecision,
         useCielab, setUseCielab,
         hybridStrength, setHybridStrength,
+        independentMaps, setIndependentMaps,
         previewUrl
     } = context;
 
@@ -192,6 +193,19 @@ export const ControlPanel = () => {
                         <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
                             <Grid size={14} /> Grid Size
                         </label>
+                        <div className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-950/50 p-2 rounded border border-zinc-800/50">
+                            <span className="font-semibold">Reset Height per Map</span>
+                            <button
+                                onClick={() => setIndependentMaps(!independentMaps)}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${independentMaps ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                            >
+                                <div className={`absolute top-0.5 bottom-0.5 w-3 bg-white rounded-full transition-all ${independentMaps ? 'left-4.5' : 'left-0.5'}`} style={{ left: independentMaps ? '18px' : '2px' }} />
+                            </button>
+                        </div>
+
+                        <div className="text-xs text-zinc-500 text-right font-mono bg-black/20 p-1 rounded">
+                            Target: <span className="text-zinc-300 font-bold">{gridDimensions.x * 128}</span> × <span className="text-zinc-300 font-bold">{gridDimensions.y * 128}</span> pixels
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-xs text-zinc-600 font-semibold uppercase">Maps X</span>
@@ -211,9 +225,6 @@ export const ControlPanel = () => {
                                     className="bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-100 text-sm outline-none focus:border-blue-500 transition-colors font-mono"
                                 />
                             </div>
-                        </div>
-                        <div className="text-xs text-zinc-500 text-right font-mono bg-black/20 p-1 rounded">
-                            Target: <span className="text-zinc-300 font-bold">{gridDimensions.x * 128}</span> × <span className="text-zinc-300 font-bold">{gridDimensions.y * 128}</span> pixels
                         </div>
                     </div>
 

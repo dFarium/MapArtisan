@@ -55,6 +55,11 @@ export interface LAB {
     b: number;
 }
 
+export interface MapartStats {
+    minHeight: number;
+    maxHeight: number;
+}
+
 /**
  * RGB to LAB conversion - exact copy from mapartcraft (redstonehelper's program).
  * This version scales L to 0-255 range for consistent distance calculations.
@@ -402,12 +407,13 @@ export function processMapart(
     threeDPrecision: number,
     dithering: DitheringMode = 'none',
     useCielab: boolean = true,
-    hybridStrength: number = 50
-): ImageData {
+    hybridStrength: number = 50,
+    independentMaps: boolean = false
+): { imageData: ImageData; stats: MapartStats } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
-        return imageData;
+        return { imageData, stats: { minHeight: 0, maxHeight: 0 } };
     }
 
     // Clear color cache for fresh processing
@@ -442,6 +448,11 @@ export function processMapart(
     // Pre-compute LAB values for candidates
     const candidateLabs = candidates.map(c => rgbToLab(c.rgb));
 
+    // Stats tracking
+    let overallMin = 0;
+    let overallMax = 0;
+    const colHeights = new Int32Array(width).fill(0);
+
     // Get dither matrix if using error diffusion
     // 'adaptive' mode uses Floyd-Steinberg with reduced error propagation
     // 'hybrid' mode uses Floyd-Steinberg with variance-based error scaling
@@ -452,12 +463,24 @@ export function processMapart(
     const isHybrid = dithering === 'hybrid';
     const fsMatrix = DITHER_MATRICES['floyd-steinberg']; // For hybrid mode
 
+
+
     if (buildMode === '3d_valley_lossy') {
         // Column-by-column processing for height tracking
         for (let x = 0; x < width; x++) {
             let currentHeight = 0;
+            // Independent Maps: Reset error buffer for this column if it's a map boundary
+            // Note: Horizontal error shouldn't bleed across maps if they are independent
+            // Since we process column by column, bleeding only happens via dither matrix.
+            // Resetting floatBuffer neighbors at boundary is complex in col-mode.
+            // For now, we focus on HEIGHT reset.
 
             for (let y = 0; y < height; y++) {
+                // Height Reset at Map Boundaries
+                if (independentMaps && y > 0 && y % 128 === 0) {
+                    currentHeight = 0;
+                }
+
                 let r = floatBuffer[y][x * 3];
                 let g = floatBuffer[y][x * 3 + 1];
                 let b = floatBuffer[y][x * 3 + 2];
@@ -523,11 +546,32 @@ export function processMapart(
                     output[idx + 1] = best.rgb.g;
                     output[idx + 2] = best.rgb.b;
 
-                    // Error diffusion (column-adapted) - use UNCLAMPED values (like mapartcraft)
+                    // Error diffusion (column-adapted)
                     if (isErrorDiffusion) {
-                        const errR = (r - best.rgb.r) * baseErrorScale;
-                        const errG = (g - best.rgb.g) * baseErrorScale;
-                        const errB = (b - best.rgb.b) * baseErrorScale;
+                        let errorScale = baseErrorScale;
+
+                        if (isHybrid) {
+                            // Calculate local variance for Hybrid mode
+                            const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
+
+                            // Adaptive strength based on user setting
+                            // hybridStrength 0 -> minScale 1.0 (No noise reduction)
+                            // hybridStrength 100 -> minScale 0.0 (Max logic scaling)
+                            const userFactor = 1.0 - (hybridStrength / 100);
+
+                            // Map variance 0..500 to scale 0..1
+                            // Low variance (flat) -> scale approaches 0 (less noise)
+                            // High variance (complex) -> scale approaches 1 (more detail)
+                            let dynamicScale = Math.min(1.0, Math.max(0, variance / 50));
+
+                            // Apply user strength: Ensure we never go below userFactor
+                            // If user sets 0% strength (userFactor 1.0), scale stays at 1.0
+                            errorScale = Math.max(userFactor, dynamicScale);
+                        }
+
+                        const errR = (r - best.rgb.r) * errorScale;
+                        const errG = (g - best.rgb.g) * errorScale;
+                        const errB = (b - best.rgb.b) * errorScale;
                         const divisor = ditherMatrix.divisor;
                         const matrix = ditherMatrix.matrix;
 
@@ -541,6 +585,13 @@ export function processMapart(
                                 const ny = y + row;
 
                                 if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    // Independent Maps: Prevent error from bleeding into the next map vertical chunk
+                                    if (independentMaps) {
+                                        const currentMapIndex = Math.floor(y / 128);
+                                        const nextMapIndex = Math.floor(ny / 128);
+                                        if (currentMapIndex !== nextMapIndex) continue;
+                                    }
+
                                     floatBuffer[ny][nx * 3] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3] + errR * weight / divisor));
                                     floatBuffer[ny][nx * 3 + 1] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 1] + errG * weight / divisor));
                                     floatBuffer[ny][nx * 3 + 2] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 2] + errB * weight / divisor));
@@ -552,12 +603,24 @@ export function processMapart(
                     // Update height
                     if (best.brightness === 'high') currentHeight++;
                     else if (best.brightness === 'low') currentHeight--;
+
+                    // Update stats
+                    if (currentHeight > overallMax) overallMax = currentHeight;
+                    if (currentHeight < overallMin) overallMin = currentHeight;
                 }
             }
         }
     } else {
         // 2D or standard 3D: row-by-row processing
         for (let y = 0; y < height; y++) {
+            // Independent Maps: Reset column heights at row boundary
+            if (independentMaps && y > 0 && y % 128 === 0) {
+                colHeights.fill(0);
+                // Also, preventing error diffusion across y-boundary (vertical bleeding)
+                // involves clearing the relevant parts of floatBuffer or just accepting it.
+                // Height reset is the critical part.
+            }
+
             for (let x = 0; x < width; x++) {
                 let r = floatBuffer[y][x * 3];
                 let g = floatBuffer[y][x * 3 + 1];
@@ -595,6 +658,13 @@ export function processMapart(
                 output[idx] = best.rgb.r;
                 output[idx + 1] = best.rgb.g;
                 output[idx + 2] = best.rgb.b;
+
+                // Update height stats (standard/2d modes)
+                if (best.brightness === 'high') colHeights[x]++;
+                else if (best.brightness === 'low') colHeights[x]--;
+
+                if (colHeights[x] > overallMax) overallMax = colHeights[x];
+                if (colHeights[x] < overallMin) overallMin = colHeights[x];
 
                 // Error diffusion - use UNCLAMPED values (like mapartcraft) for proper error propagation
                 if (isErrorDiffusion) {
@@ -661,6 +731,13 @@ export function processMapart(
 
                             // Clamp to 0-255 to mimic Uint8ClampedArray behavior
                             if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                // Independent Maps: Prevent error from bleeding into the next map vertical chunk
+                                if (independentMaps) {
+                                    const currentMapIndex = Math.floor(y / 128);
+                                    const nextMapIndex = Math.floor(ny / 128);
+                                    if (currentMapIndex !== nextMapIndex) continue;
+                                }
+
                                 floatBuffer[ny][nx * 3] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3] + errR * weight / divisor));
                                 floatBuffer[ny][nx * 3 + 1] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 1] + errG * weight / divisor));
                                 floatBuffer[ny][nx * 3 + 2] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 2] + errB * weight / divisor));
@@ -672,7 +749,10 @@ export function processMapart(
         }
     }
 
-    return new ImageData(output, width, height);
+    return {
+        imageData: new ImageData(output, width, height),
+        stats: { minHeight: overallMin, maxHeight: overallMax }
+    };
 }
 
 // ============================================================================

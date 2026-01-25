@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import type { MapartStats } from '../utils/mapartProcessing';
 
 export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
 export type BlockSupport = 'all' | 'needed' | 'survival';
@@ -42,6 +43,8 @@ export interface MapartState {
     threeDPrecision: number; // 0-100, 0=flat, 100=precise
     useCielab: boolean;
     hybridStrength: number; // 0-100, controls error diffusion strength in flat areas
+    mapartStats: MapartStats | null;
+    independentMaps: boolean; // If true, resets height/error at 128px boundaries
 }
 
 interface MapartContextType extends MapartState {
@@ -60,6 +63,8 @@ interface MapartContextType extends MapartState {
     setThreeDPrecision: (value: number) => void;
     setUseCielab: (value: boolean) => void;
     setHybridStrength: (value: number) => void;
+    setMapartStats: (stats: MapartStats | null) => void;
+    setIndependentMaps: (value: boolean) => void;
 }
 
 const defaultCropSettings: CropSettings = {
@@ -84,6 +89,8 @@ const defaultState: MapartState = {
     threeDPrecision: 50,
     useCielab: true,
     hybridStrength: 50,
+    mapartStats: null,
+    independentMaps: true,
 };
 
 const MapartContext = createContext<MapartContextType | undefined>(undefined);
@@ -125,7 +132,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const [threeDPrecision, setThreeDPrecision] = useState(defaultState.threeDPrecision);
     const [useCielab, setUseCielab] = useState(defaultState.useCielab);
     const [hybridStrength, setHybridStrength] = useState(defaultState.hybridStrength);
-
+    const [mapartStats, setMapartStats] = useState<MapartStats | null>(null);
+    const [independentMaps, setIndependentMaps] = useState(defaultState.independentMaps);
 
 
     const setUploadedImage = (file: File | null) => {
@@ -170,6 +178,9 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setUseCielab,
         hybridStrength,
         setHybridStrength,
+        mapartStats,
+        setMapartStats,
+        independentMaps, setIndependentMaps,
     };
 
     return (
