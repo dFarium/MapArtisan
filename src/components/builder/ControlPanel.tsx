@@ -118,7 +118,8 @@ export const ControlPanel = () => {
         transparency, setTransparency,
         imageFitMode, setImageFitMode,
         cropSettings, setCropSettings, resetCropSettings,
-        threeDPrecision, setThreeDPrecision
+        threeDPrecision, setThreeDPrecision,
+        useCielab, setUseCielab
     } = context;
 
     return (
@@ -243,8 +244,12 @@ export const ControlPanel = () => {
                             className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-zinc-200 text-sm focus:border-blue-500 outline-none cursor-pointer hover:border-zinc-700 transition-colors"
                         >
                             <option value="none">Disabled (Sharp Colors)</option>
-                            <option value="floyd-steinberg">Floyd-Steinberg (Diffusion)</option>
-                            <option value="ordered">Ordered (Dayer-like)</option>
+                            <option value="floyd-steinberg">Floyd-Steinberg</option>
+                            <option value="atkinson">Atkinson</option>
+                            <option value="stucki">Stucki</option>
+                            <option value="burkes">Burkes</option>
+                            <option value="sierra-lite">Sierra-Lite</option>
+                            <option value="ordered">Ordered (Bayer)</option>
                         </select>
                     </div>
 
@@ -271,6 +276,22 @@ export const ControlPanel = () => {
                         </div>
                         <p className="text-[10px] text-zinc-500 font-medium">
                             {transparency.enabled ? "REPLACING TRANSPARENCY WITH PICKED COLOR" : "IGNORING ALPHA CHANNEL"}
+                        </p>
+                    </div>
+
+                    {/* CIELAB Toggle */}
+                    <div className="space-y-2.5 p-3 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
+                        <label className="text-xs text-zinc-400 uppercase font-bold flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={useCielab}
+                                onChange={(e) => setUseCielab(e.target.checked)}
+                                className="w-4 h-4 rounded accent-purple-500 transition-all cursor-pointer"
+                            />
+                            CIELAB COLOR SPACE
+                        </label>
+                        <p className="text-[10px] text-zinc-500 font-medium">
+                            {useCielab ? "PERCEPTUALLY UNIFORM (RECOMMENDED)" : "FASTER RGB DISTANCE"}
                         </p>
                     </div>
 

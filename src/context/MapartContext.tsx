@@ -40,6 +40,7 @@ export interface MapartState {
     cropSettings: CropSettings;
     selectedPaletteItems: Record<number, string | null>;
     threeDPrecision: number; // 0-100, 0=flat, 100=precise
+    useCielab: boolean;
 }
 
 interface MapartContextType extends MapartState {
@@ -56,6 +57,7 @@ interface MapartContextType extends MapartState {
     resetCropSettings: () => void;
     setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
     setThreeDPrecision: (value: number) => void;
+    setUseCielab: (value: boolean) => void;
 }
 
 const defaultCropSettings: CropSettings = {
@@ -78,6 +80,7 @@ const defaultState: MapartState = {
     cropSettings: defaultCropSettings,
     selectedPaletteItems: {},
     threeDPrecision: 50,
+    useCielab: true,
 };
 
 const MapartContext = createContext<MapartContextType | undefined>(undefined);
@@ -117,6 +120,7 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const [selectedPaletteItems, setSelectedPaletteItems] = useState<Record<number, string | null>>({});
     const [threeDPrecision, setThreeDPrecision] = useState(defaultState.threeDPrecision);
+    const [useCielab, setUseCielab] = useState(defaultState.useCielab);
 
 
 
@@ -158,6 +162,8 @@ export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         setSelectedPaletteItems,
         threeDPrecision,
         setThreeDPrecision,
+        useCielab,
+        setUseCielab,
     };
 
     return (
