@@ -34,3 +34,15 @@
 - **Idea**: Pass 1 Solid (clean), Pass 2 Dithered. Pixel = Solid if error < threshold, else Dithered.
 - **Result**: **SUCCESS**. Significantly cleans up flat backgrounds (Red robot, Night in the Woods) while keeping detail in complex areas (Minecraft landscape).
 - **Action**: This is a keeper. Candidate name: "Smart Dithering" or "Clean Dithering".
+
+### Multi-Pass Strategy 2: Edge-Critical (Experiment 5.2)
+
+- **Idea**: Apply Solid on edges, Dithering elsewhere.
+- **Result**: **FAILURE**. Regression in flat areas (they get dithered again). Visual clash between solid "edge" pixels and adjacent dithered pixels. Looks like artifacts/noise rather than sharpness.
+- **Action**: Discard. The "Smart/Selective" approach (Strat 1) is better because it relies on _Color Error_ rather than _Edge Geometry_.
+
+### Multi-Pass Strategy 3: Hybrid Palette (2D Base / 3D Detail) (Experiment 5.3)
+
+- **Idea**: Use 2D (flat) as base. If 3D (slope) improves color match significantly, use it.
+- **Result**: **FAILURE**. "Had potential but didn't work out". Likely caused jarring inconsistency between flat and sloped areas.
+- **Action**: Discard. Inconsistency is worse than overall lower quality.

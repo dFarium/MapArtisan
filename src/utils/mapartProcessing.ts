@@ -571,50 +571,76 @@ export function processMapartExperimental(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true
 ): ImageData {
-    // EXPERIMENT 5: STRATEGY 1 - SELECTIVE DETAIL (Solid + Refinement)
-    // Goal: Clean skies/flat areas (Solid), detailed textures (Dithering)
+    // EXPERIMENT 5: STRATEGY 4 - VARIANCE-BASED (Texture vs Gradient)
+    // Goal: Use Solid for high-detail areas (preserve text/edges).
+    //       Use Dither for low-detail areas (smooth gradients/skies).
 
-    // Pass 1: Solid (Nearest Neighbor) - Base for clean areas
+    // Pass 1: Solid (Nearest Neighbor) - Crisp details
     const solidPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, 'none', useCielab);
 
-    // Pass 2: Dithered - Source for detailed areas
-    // If 'none' selected, force 'floyd-steinberg' for the detailed pass
-    const ditherModeToUse = dithering === 'none' ? 'floyd-steinberg' : dithering;
-    const ditherPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, ditherModeToUse, useCielab);
+    // Pass 2: Dithered - Smooth gradients
+    // ISOLATION FIX: Always use 'floyd-steinberg' for the experimental Dither pass,
+    // ignoring the UI selector so the experiment is consistent.
+    const ditherPass = processMapart(imageData, buildMode, selectedPaletteItems, threeDPrecision, 'floyd-steinberg', useCielab);
 
     const width = imageData.width;
     const height = imageData.height;
     const output = new Uint8ClampedArray(imageData.data);
+    const input = imageData.data;
 
-    // Threshold for switching to dithered version
-    // CIELAB DeltaE ~2.3 is noticeable. 
-    // We want a higher threshold so we only dither when "Solid" is clearly wrong.
-    const DETAIL_THRESHOLD = 10.0;
+    // Threshold for Variance.
+    // High Variance = Detailed area -> Use Solid.
+    // Low Variance = Flat area -> Use Dither.
+    // Range 0-255 roughly (luminance difference).
+    const VARIANCE_THRESHOLD = 15.0;
 
-    for (let i = 0; i < output.length; i += 4) {
-        // Original Color
-        const org: RGB = { r: imageData.data[i], g: imageData.data[i + 1], b: imageData.data[i + 2] };
+    // Helper to get luminance
+    const getLum = (idx: number) => {
+        // Boundary check
+        if (idx < 0 || idx >= input.length) return 0;
+        return 0.299 * input[idx] + 0.587 * input[idx + 1] + 0.114 * input[idx + 2];
+    };
 
-        // Solid Pass Color
-        const sol: RGB = { r: solidPass.data[i], g: solidPass.data[i + 1], b: solidPass.data[i + 2] };
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
 
-        // Calculate Error of Solid Pass
-        const orgLab = rgbToLab(org);
-        const solLab = rgbToLab(sol);
-        const error = deltaE(orgLab, solLab);
+            // Calculate Variance (Standard Deviation of 3x3 window)
+            // Or simpler: Max - Min in 3x3 window (Range)
+            let minLum = 255;
+            let maxLum = 0;
 
-        if (error > DETAIL_THRESHOLD) {
-            // Error is high -> Use Dithered Pixel
-            output[i] = ditherPass.data[i];
-            output[i + 1] = ditherPass.data[i + 1];
-            output[i + 2] = ditherPass.data[i + 2];
-            output[i + 3] = 255;
-        } else {
-            // Error is low -> Keep Solid Pixel (Cleaner)
-            output[i] = solidPass.data[i];
-            output[i + 1] = solidPass.data[i + 1];
-            output[i + 2] = solidPass.data[i + 2];
-            output[i + 3] = 255;
+            // 3x3 Loop
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const ny = y + dy;
+                    const nx = x + dx;
+
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const idx = (ny * width + nx) * 4;
+                        const lum = getLum(idx);
+                        if (lum < minLum) minLum = lum;
+                        if (lum > maxLum) maxLum = lum;
+                    }
+                }
+            }
+
+            // "Variance" approximation
+            const localRange = maxLum - minLum;
+
+            if (localRange > VARIANCE_THRESHOLD) {
+                // High detail/contrast area -> Keep it Solid (Crisp)
+                output[i] = solidPass.data[i];
+                output[i + 1] = solidPass.data[i + 1];
+                output[i + 2] = solidPass.data[i + 2];
+                output[i + 3] = 255;
+            } else {
+                // Low detail/smooth area -> Dither (Smooth gradients)
+                output[i] = ditherPass.data[i];
+                output[i + 1] = ditherPass.data[i + 1];
+                output[i + 2] = ditherPass.data[i + 2];
+                output[i + 3] = 255;
+            }
         }
     }
 
