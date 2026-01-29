@@ -1,8 +1,10 @@
+import { wrap, type Remote } from 'comlink';
+import type { MapartWorkerApi } from '../../workers/mapart.worker';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, ZoomIn, ZoomOut, Move, Grid3X3, Download } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
-import { processMapart, type DitheringMode } from '../../utils/mapartProcessing';
+import { type DitheringMode } from '../../utils/mapartProcessing';
 import { downloadLitematica } from '../../utils/litematicaExport';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -14,8 +16,32 @@ export const MainCanvas = () => {
         setMapartStats, mapartStats, independentMaps
     } = useMapart();
 
-    // Function to export Litematica
+    // Worker instance reference
+    const workerRef = useRef<Worker | null>(null);
+    const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Initialize worker
+    useEffect(() => {
+        workerRef.current = new Worker(new URL('../../workers/mapart.worker.ts', import.meta.url), {
+            type: 'module'
+        });
+        workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
+
+        return () => {
+            workerRef.current?.terminate();
+        };
+    }, []);
+
+    // ... (export schematic logic remains mostly same, maybe move to worker later but focus on preview first)
     const handleExportSchematic = () => {
+        // ... existing export logic ... 
+        // Note: Exporting still uses main thread logic for now unless we move that too. 
+        // The user plan focused on "processMapart" which affects preview heavily.
+        // Let's keep export as is for now, or use the worker if it exposes it? 
+        // The worker exposes processMapart. Export calls processMapart internally? 
+        // Yes, downloadLitematica callsimageDataToBlockStates which calls processMapart.
+        // For now, let's just optimize the PREVIEW loop which is the heaviest interactive part.
         if (!scaledPreviewUrl) return;
 
         // Convert dataURL to ImageData
@@ -30,7 +56,7 @@ export const MainCanvas = () => {
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
-            // Export to Litematica
+            // Export to Litematica (Sync for now, as it's a one-time action)
             downloadLitematica(
                 imageData,
                 selectedPaletteItems,
@@ -50,6 +76,8 @@ export const MainCanvas = () => {
         };
         img.src = scaledPreviewUrl;
     };
+
+    // ... basic state ...
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -74,24 +102,21 @@ export const MainCanvas = () => {
         }
 
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
+            // ... canvas setup ...
             const canvas = document.createElement('canvas');
             canvas.width = mapartResolution.width;
             canvas.height = mapartResolution.height;
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 
-            // Disable smoothing for pixelated effect
             ctx.imageSmoothingEnabled = false;
 
             if (imageFitMode === 'adjust') {
-                // Stretch to fit (may distort aspect ratio)
                 ctx.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
             } else {
-                // Crop mode with custom zoom and offset
+                // ... crop logic ...
                 const { zoom, offsetX, offsetY } = cropSettings;
-
-                // Calculate base crop region (what fits at zoom=1)
                 const imgAspect = img.width / img.height;
                 const canvasAspect = mapartResolution.width / mapartResolution.height;
 
@@ -104,11 +129,9 @@ export const MainCanvas = () => {
                     baseHeight = img.width / canvasAspect;
                 }
 
-                // Apply zoom (smaller region = more zoom)
                 const zoomedWidth = baseWidth / zoom;
                 const zoomedHeight = baseHeight / zoom;
 
-                // Calculate offset range and apply offset
                 const maxOffsetX = (img.width - zoomedWidth) / 2;
                 const maxOffsetY = (img.height - zoomedHeight) / 2;
                 const finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
@@ -123,20 +146,30 @@ export const MainCanvas = () => {
 
             // Apply color mapping if any colors are selected
             const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
-            if (hasSelection) {
-                const imageData = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-                const { imageData: processedData, stats } = processMapart(
-                    imageData,
-                    buildMode,
-                    selectedPaletteItems,
-                    threeDPrecision,
-                    dithering as DitheringMode,
-                    useCielab,
-                    hybridStrength,
-                    independentMaps
-                );
-                ctx.putImageData(processedData, 0, 0);
-                setMapartStats(stats);
+            if (hasSelection && workerApiRef.current) {
+                setIsProcessing(true);
+                try {
+                    const imageData = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
+
+                    // Call worker
+                    const { imageData: processedData, stats } = await workerApiRef.current.processMapart(
+                        imageData,
+                        buildMode,
+                        selectedPaletteItems,
+                        threeDPrecision,
+                        dithering as DitheringMode,
+                        useCielab,
+                        hybridStrength,
+                        independentMaps
+                    );
+
+                    ctx.putImageData(processedData, 0, 0);
+                    setMapartStats(stats);
+                } catch (err) {
+                    console.error("Worker error:", err);
+                } finally {
+                    setIsProcessing(false);
+                }
             }
 
             setScaledPreviewUrl(canvas.toDataURL('image/png'));
@@ -255,6 +288,15 @@ export const MainCanvas = () => {
                     </div>
 
                     {/* Resolution Info */}
+
+                    {/* Processing Indicator */}
+                    {isProcessing && (
+                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
+                            <span className="text-white font-medium">Processing Mapart...</span>
+                        </div>
+                    )}
+
                     {/* Resolution & Stats Info */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-zinc-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-zinc-700 text-xs text-zinc-400 flex items-center gap-4 shadow-xl whitespace-nowrap">
                         <div className="flex items-center gap-2">

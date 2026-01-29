@@ -1,4 +1,5 @@
 import paletteData from '../data/palette_1_21_11.json';
+import { MAPART } from './constants';
 
 // Types based on palette structure
 export interface RGB {
@@ -25,7 +26,7 @@ export interface ColorCandidate {
 
 export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
 
-const MAX_HEIGHT_PENALTY = 255 * 255 * 3 + 1;
+const MAX_HEIGHT_PENALTY = MAPART.MAX_HEIGHT_PENALTY;
 
 // ============================================================================
 // Caching System
@@ -75,24 +76,29 @@ export function rgbToLab(rgb: RGB): LAB {
     let b1 = rgb.b / 255.0;
 
     // sRGB to linear RGB (gamma correction)
-    r1 = 0.04045 >= r1 ? (r1 / 12.0) : Math.pow((r1 + 0.055) / 1.055, 2.4);
-    g1 = 0.04045 >= g1 ? (g1 / 12.0) : Math.pow((g1 + 0.055) / 1.055, 2.4);
-    b1 = 0.04045 >= b1 ? (b1 / 12.0) : Math.pow((b1 + 0.055) / 1.055, 2.4);
+    const { RGB_TO_LINEAR_THRESHOLD: THRESHOLD, RGB_TO_LINEAR_DIVISOR: DIVISOR, RGB_TO_LINEAR_OFFSET: OFFSET, RGB_TO_LINEAR_POWER: POWER } = MAPART;
 
-    // Linear RGB to XYZ (mapartcraft uses slightly different coefficients)
-    const f = (0.43605202 * r1 + 0.3850816 * g1 + 0.14308742 * b1) / 0.964221;
-    const h = 0.22249159 * r1 + 0.71688604 * g1 + 0.060621485 * b1;
-    const k = (0.013929122 * r1 + 0.097097 * g1 + 0.7141855 * b1) / 0.825211;
+    r1 = THRESHOLD >= r1 ? (r1 / DIVISOR) : Math.pow((r1 + OFFSET) / (1 + OFFSET), POWER);
+    g1 = THRESHOLD >= g1 ? (g1 / DIVISOR) : Math.pow((g1 + OFFSET) / (1 + OFFSET), POWER);
+    b1 = THRESHOLD >= b1 ? (b1 / DIVISOR) : Math.pow((b1 + OFFSET) / (1 + OFFSET), POWER);
+
+    // Linear RGB to XYZ
+    const { XYZ_R_COEFFS: Rc, XYZ_G_COEFFS: Gc, XYZ_B_COEFFS: Bc, XYZ_WHITE_REF: Wr } = MAPART;
+
+    const f = (Rc[0] * r1 + Rc[1] * g1 + Rc[2] * b1) / Wr.X;
+    const h = (Gc[0] * r1 + Gc[1] * g1 + Gc[2] * b1) / Wr.Y;
+    const k = (Bc[0] * r1 + Bc[1] * g1 + Bc[2] * b1) / Wr.Z;
 
     // XYZ to Lab
-    const threshold = 0.008856452;
-    const l = threshold < h ? Math.pow(h, 1 / 3) : (903.2963 * h + 16.0) / 116.0;
-    const m = 500.0 * ((threshold < f ? Math.pow(f, 1 / 3) : (903.2963 * f + 16.0) / 116.0) - l);
-    const n = 200.0 * (l - (threshold < k ? Math.pow(k, 1 / 3) : (903.2963 * k + 16.0) / 116.0));
+    const { LAB_THRESHOLD: L_THRESH, LAB_FACTOR_LOW: L_FACT, LAB_OFFSET_LOW: L_OFF, LAB_DIVISOR_LOW: L_DIV } = MAPART;
 
-    // Scale L to 0-255 range (like mapartcraft)
+    const l = L_THRESH < h ? Math.pow(h, MAPART.LAB_POWER) : (L_FACT * h + L_OFF) / L_DIV;
+    const m = MAPART.LAB_A_FACTOR * ((L_THRESH < f ? Math.pow(f, MAPART.LAB_POWER) : (L_FACT * f + L_OFF) / L_DIV) - l);
+    const n = MAPART.LAB_B_FACTOR * (l - (L_THRESH < k ? Math.pow(k, MAPART.LAB_POWER) : (L_FACT * k + L_OFF) / L_DIV));
+
+    // Scale L to 0-255 range
     const lab: LAB = {
-        L: 2.55 * (116.0 * l - 16.0) + 0.5,
+        L: MAPART.CIELAB_SCALE / 100 * (MAPART.LAB_L_FACTOR * l - MAPART.LAB_L_OFFSET) + 0.5, // Approx scaling
         a: m + 0.5,
         b: n + 0.5
     };

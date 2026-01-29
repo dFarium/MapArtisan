@@ -211,6 +211,7 @@ export const PaletteSidebar = () => {
                                     </button>
                                 </div>
 
+                                {/* Custom Presets */}
                                 {customPresets.length > 0 && (
                                     <div className="border-t border-zinc-800/50 pt-2 flex flex-col gap-1">
                                         <span className="text-[9px] text-zinc-500 uppercase font-bold px-1">My Presets</span>
