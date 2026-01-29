@@ -18,7 +18,9 @@ interface PaletteColor {
 }
 
 export const PaletteSidebar = () => {
-    const { paletteVersion, selectedPaletteItems, setSelectedPaletteItems } = useMapart();
+    const paletteVersion = useMapart(s => s.paletteVersion);
+    const selectedPaletteItems = useMapart(s => s.selectedPaletteItems);
+    const setSelectedPaletteItems = useMapart(s => s.setSelectedPaletteItems);
     const [isOpen, setIsOpen] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});

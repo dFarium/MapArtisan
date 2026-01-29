@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import { Link } from 'react-router-dom';
 import { useMapart, type BuildMode, type BlockSupport } from '../../context/MapartContext';
 import {
@@ -10,8 +10,6 @@ import {
     Palette as PaletteIcon,
     Info,
     Bug,
-    ChevronDown,
-    ChevronUp,
     Crop,
     Maximize,
     RefreshCw,
@@ -22,91 +20,11 @@ import {
     Sparkles
 } from 'lucide-react';
 import { suggestDitheringMode } from '../../utils/mapartProcessing';
+import { PrecisionSlider } from '../ui/PrecisionSlider';
+import { CollapsibleSection } from '../ui/CollapsibleSection';
 
-// Precision Slider Component with mouse wheel support
-const PrecisionSlider = ({
-    label,
-    value,
-    min,
-    max,
-    step,
-    unit = "",
-    onChange,
-    accentColor = "accent-blue-500"
-}: {
-    label: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    unit?: string;
-    onChange: (val: number) => void;
-    accentColor?: string;
-}) => {
-    const handleWheel = (e: React.WheelEvent) => {
-        e.preventDefault();
-        const direction = e.deltaY > 0 ? -1 : 1;
-        const range = max - min;
-        const incrementalChange = Math.max(step, range * 0.01);
-        const newValue = Math.min(max, Math.max(min, value + direction * incrementalChange));
-        const roundedValue = Math.round(newValue / step) * step;
-        onChange(Number(roundedValue.toFixed(2)));
-    };
 
-    return (
-        <div className="space-y-1.5 group">
-            <div className="flex justify-between text-xs text-zinc-400 group-hover:text-zinc-200 transition-colors uppercase tracking-wider font-semibold">
-                <span>{label}</span>
-                <span className="font-mono">{value}{unit}</span>
-            </div>
-            <input
-                type="range"
-                min={min}
-                max={max}
-                step={step}
-                value={value}
-                onChange={(e) => onChange(parseFloat(e.target.value))}
-                onWheel={handleWheel}
-                className={`w-full ${accentColor} cursor-pointer`}
-            />
-        </div>
-    );
-};
 
-// Collapsible Section Component
-const Section = ({
-    title,
-    icon,
-    children,
-    defaultOpen = true
-}: {
-    title: string;
-    icon: React.ReactNode;
-    children: React.ReactNode;
-    defaultOpen?: boolean;
-}) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
-
-    return (
-        <div className="border-b border-zinc-800 pb-5 last:border-0 last:pb-0">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between text-zinc-400 font-bold uppercase tracking-widest hover:text-zinc-100 transition-colors py-2"
-            >
-                <span className="flex items-center gap-3 text-xs">
-                    {icon}
-                    {title}
-                </span>
-                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-            {isOpen && (
-                <div className="mt-3 space-y-5 px-1">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
 
 export const ControlPanel = () => {
     const context = useMapart();
@@ -187,7 +105,7 @@ export const ControlPanel = () => {
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
 
                 {/* STAGE 1: IMAGE SETUP */}
-                <Section title="1. Image & Layout" icon={<ImageIcon size={16} />} defaultOpen={true}>
+                <CollapsibleSection title="1. Image & Layout" icon={<ImageIcon size={16} />} defaultOpen={true}>
                     {/* Resolution / Grid */}
                     <div className="space-y-4">
                         <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
@@ -278,11 +196,11 @@ export const ControlPanel = () => {
                         <PrecisionSlider label="Brightness" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />
                         <PrecisionSlider label="Contrast" value={imageSettings.contrast} min={-100} max={100} step={1} onChange={(contrast) => setImageSettings({ contrast })} />
                     </div>
-                </Section>
+                </CollapsibleSection>
 
 
                 {/* STAGE 2: PROCESSING */}
-                <Section title="2. Color Processing" icon={<Zap size={16} />} defaultOpen={true}>
+                <CollapsibleSection title="2. Color Processing" icon={<Zap size={16} />} defaultOpen={true}>
                     {/* Dithering */}
                     <div className="space-y-2.5">
                         <div className="flex items-center justify-between">
@@ -390,11 +308,11 @@ export const ControlPanel = () => {
                             <option value="1.21.11">MINECRAFT 1.21.x</option>
                         </select>
                     </div>
-                </Section>
+                </CollapsibleSection>
 
 
                 {/* STAGE 3: CONSTRUCTION */}
-                <Section title="3. Construction Model" icon={<Hammer size={16} />} defaultOpen={false}>
+                <CollapsibleSection title="3. Construction Model" icon={<Hammer size={16} />} defaultOpen={false}>
                     {/* Build Mode */}
                     <div className="space-y-3">
                         <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
@@ -453,7 +371,7 @@ export const ControlPanel = () => {
                             <option value="survival">Survival Resource Efficient</option>
                         </select>
                     </div>
-                </Section>
+                </CollapsibleSection>
 
                 {/* Footer space */}
                 <div className="h-8" />

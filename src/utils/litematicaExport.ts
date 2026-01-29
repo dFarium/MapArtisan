@@ -358,57 +358,33 @@ export function downloadLitematica(
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
-    dithering: DitheringMode = 'none',
+    // dithering param removed to avoid unused variable warning (intentionally 'none' internally)
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
 ): void {
-    // Generate unoptimized version
-    const blockStatesUnopt = imageDataToBlockStates(
-        imageData, selectedPaletteItems, buildMode, false,
-        threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
-    );
-    const nbtUnopt = createLitematicaNBT(blockStatesUnopt, {
-        ...metadata,
-        name: (metadata.name || 'MapArt') + ' (Unoptimized)',
-        description: (metadata.description || '') + ' - Original version without optimization'
-    });
-    const nbtDataUnopt = serializeNBT(nbtUnopt);
-
-    // Generate optimized version
+    // Generate optimized version (now the standard version)
     const blockStatesOpt = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
         threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
     );
+
+    // Create NBT without '(Optimized)' suffix since it's the only one
     const nbtOpt = createLitematicaNBT(blockStatesOpt, {
         ...metadata,
-        name: (metadata.name || 'MapArt') + ' (Optimized)',
-        description: (metadata.description || '') + ' - Optimized with midpoint centering'
+        name: metadata.name || 'MapArt',
+        description: metadata.description || 'MapArt created by mapart-creator'
     });
     const nbtDataOpt = serializeNBT(nbtOpt);
 
-    // Download UNOPTIMIZED file
-    const baseFilename = filename.replace('.litematic', '');
-    const blobUnopt = new Blob([nbtDataUnopt as BlobPart], { type: 'application/octet-stream' });
-    const urlUnopt = URL.createObjectURL(blobUnopt);
-    const linkUnopt = document.createElement('a');
-    linkUnopt.href = urlUnopt;
-    linkUnopt.download = `${baseFilename}_unoptimized.litematic`;
-    document.body.appendChild(linkUnopt);
-    linkUnopt.click();
-    document.body.removeChild(linkUnopt);
-    URL.revokeObjectURL(urlUnopt);
-
-    // Download OPTIMIZED file (with small delay to avoid browser blocking)
-    setTimeout(() => {
-        const blobOpt = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
-        const urlOpt = URL.createObjectURL(blobOpt);
-        const linkOpt = document.createElement('a');
-        linkOpt.href = urlOpt;
-        linkOpt.download = `${baseFilename}_optimized.litematic`;
-        document.body.appendChild(linkOpt);
-        linkOpt.click();
-        document.body.removeChild(linkOpt);
-        URL.revokeObjectURL(urlOpt);
-    }, 100);
+    // Download file
+    const blobOpt = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
+    const urlOpt = URL.createObjectURL(blobOpt);
+    const linkOpt = document.createElement('a');
+    linkOpt.href = urlOpt;
+    linkOpt.download = filename; // Use provided filename directly
+    document.body.appendChild(linkOpt);
+    linkOpt.click();
+    document.body.removeChild(linkOpt);
+    URL.revokeObjectURL(urlOpt);
 }
