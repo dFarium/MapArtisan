@@ -289,11 +289,11 @@ export const MainCanvas = () => {
 
                     {/* Resolution Info */}
 
-                    {/* Processing Indicator */}
+                    {/* Processing Indicator (Subtle) */}
                     {isProcessing && (
-                        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-4"></div>
-                            <span className="text-white font-medium">Processing Mapart...</span>
+                        <div className="absolute top-4 right-4 z-30 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-500 border-t-transparent"></div>
+                            <span className="text-yellow-500 text-xs font-medium">Processing...</span>
                         </div>
                     )}
 
