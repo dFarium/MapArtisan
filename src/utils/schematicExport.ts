@@ -74,19 +74,12 @@ export function imageDataToBlockStates(
             const blockId = selectedPaletteItems[colorInfo.colorID];
             if (!blockId) continue;
 
-            // Update height BEFORE placing the block
-            // Map color is determined by comparing THIS block with the block to its NORTH:
-            // - 'high': this block appears lighter = this block is HIGHER than north
-            // - 'low': this block appears darker = this block is LOWER than north
-            const previousHeight = currentHeight;
-            if (colorInfo.brightness === 'high') {
-                currentHeight += 1;  // This block goes UP (appears lighter than north)
-            } else if (colorInfo.brightness === 'low') {
-                currentHeight -= 1;  // This block goes DOWN (appears darker than north)
-            }
-            // 'normal' keeps same height as north
+            // Adjust height based on brightness (compared to north block)
+            // high = lighter = higher, low = darker = lower
+            if (colorInfo.brightness === 'high') currentHeight += 1;
+            else if (colorInfo.brightness === 'low') currentHeight -= 1;
 
-            // Add main block at the adjusted height
+            // Add main block
             blockStates.push({
                 x,
                 y: currentHeight,
@@ -94,13 +87,12 @@ export function imageDataToBlockStates(
                 blockId,
             });
 
-            // Add support blocks if needed (simplified logic)
+            // Add support block below for 3D modes
             if (buildMode !== '2d') {
-                // Add support block below if there's a height change
-                if (colorInfo.brightness === 'low' || colorInfo.brightness === 'high') {
+                if (colorInfo.brightness !== 'normal') {
                     blockStates.push({
                         x,
-                        y: Math.min(previousHeight, currentHeight) - 1,
+                        y: currentHeight - 1,
                         z: z + 1,
                         blockId: 'minecraft:stone',
                     });
