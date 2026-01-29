@@ -21,17 +21,7 @@ export const MainCanvas = () => {
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Initialize worker
-    useEffect(() => {
-        workerRef.current = new Worker(new URL('../../workers/mapart.worker.ts', import.meta.url), {
-            type: 'module'
-        });
-        workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
-
-        return () => {
-            workerRef.current?.terminate();
-        };
-    }, []);
+    // Worker init moved to dedicated callback below
 
     // ... (export schematic logic remains mostly same, maybe move to worker later but focus on preview first)
     const handleExportSchematic = () => {
@@ -87,6 +77,26 @@ export const MainCanvas = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
+    const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
+    const sourceImageDataRef = useRef<ImageData | null>(null);
+    const [sourceImageVersion, setSourceImageVersion] = useState(0);
+
+    // Initialize worker function
+    const initWorker = useCallback(() => {
+        if (workerRef.current) workerRef.current.terminate();
+        workerRef.current = new Worker(new URL('../../workers/mapart.worker.ts', import.meta.url), {
+            type: 'module'
+        });
+        workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
+    }, []);
+
+    // Initial setup
+    useEffect(() => {
+        initWorker();
+        return () => {
+            workerRef.current?.terminate();
+        };
+    }, [initWorker]);
 
     // Calculate mapart resolution based on grid dimensions
     const mapartResolution = useMemo(() => ({
@@ -94,10 +104,12 @@ export const MainCanvas = () => {
         height: 128 * gridDimensions.y
     }), [gridDimensions]);
 
-    // Generate scaled preview when image or grid changes
+    // 1. Prepare Image Step
     useEffect(() => {
         if (!previewUrl) {
             setScaledPreviewUrl(null);
+            setOriginalTransformedUrl(null);
+            sourceImageDataRef.current = null;
             return;
         }
 
@@ -107,13 +119,25 @@ export const MainCanvas = () => {
             const canvas = document.createElement('canvas');
             canvas.width = mapartResolution.width;
             canvas.height = mapartResolution.height;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             if (!ctx) return;
 
             ctx.imageSmoothingEnabled = false;
 
             if (imageFitMode === 'adjust') {
                 ctx.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
+
+                // For visual original: Use high res but match target aspect ratio
+                const targetAspect = mapartResolution.width / mapartResolution.height;
+                const highResWidth = Math.min(img.width, 2048);
+                const highResHeight = highResWidth / targetAspect;
+
+                const highResCanvas = document.createElement('canvas');
+                highResCanvas.width = highResWidth;
+                highResCanvas.height = highResHeight;
+                highResCanvas.getContext('2d')?.drawImage(img, 0, 0, highResWidth, highResHeight);
+                setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
+
             } else {
                 // ... crop logic ...
                 const { zoom, offsetX, offsetY } = cropSettings;
@@ -142,40 +166,84 @@ export const MainCanvas = () => {
                     finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
                     0, 0, mapartResolution.width, mapartResolution.height
                 );
+
+                // For visual original: Use exact crop dimensions (high res)
+                const highResCanvas = document.createElement('canvas');
+                highResCanvas.width = zoomedWidth;
+                highResCanvas.height = zoomedHeight;
+                highResCanvas.getContext('2d')?.drawImage(
+                    img,
+                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
+                    0, 0, zoomedWidth, zoomedHeight
+                );
+                // Use jpeg to save memory on large crops
+                setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
             }
 
-            // Apply color mapping if any colors are selected
-            const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
-            if (hasSelection && workerApiRef.current) {
-                setIsProcessing(true);
-                try {
-                    const imageData = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-
-                    // Call worker
-                    const { imageData: processedData, stats } = await workerApiRef.current.processMapart(
-                        imageData,
-                        buildMode,
-                        selectedPaletteItems,
-                        threeDPrecision,
-                        dithering as DitheringMode,
-                        useCielab,
-                        hybridStrength,
-                        independentMaps
-                    );
-
-                    ctx.putImageData(processedData, 0, 0);
-                    setMapartStats(stats);
-                } catch (err) {
-                    console.error("Worker error:", err);
-                } finally {
-                    setIsProcessing(false);
-                }
-            }
-
+            // Capture source data
+            sourceImageDataRef.current = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
+            // Set initial raw preview
             setScaledPreviewUrl(canvas.toDataURL('image/png'));
+            // Trigger processing
+            setSourceImageVersion(v => v + 1);
         };
         img.src = previewUrl;
-    }, [previewUrl, mapartResolution, imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, setMapartStats, independentMaps]);
+    }, [previewUrl, mapartResolution, imageFitMode, cropSettings]);
+
+    // 2. Mapart Processing Effect (Watcher with Cancellation)
+    useEffect(() => {
+        if (!sourceImageDataRef.current || !workerApiRef.current) return;
+
+        const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
+        if (!hasSelection) return;
+
+        // If currently processing, cancel by tearing down the worker
+        if (isProcessing) {
+            console.debug("Cancelling stale processing task...");
+            initWorker();
+        }
+
+        setIsProcessing(true);
+
+        const process = async () => {
+            try {
+                // Determine current worker api
+                const api = workerApiRef.current;
+                if (!api) return;
+
+                const { imageData: processedData, stats } = await api.processMapart(
+                    sourceImageDataRef.current!,
+                    buildMode,
+                    selectedPaletteItems,
+                    threeDPrecision,
+                    dithering as DitheringMode,
+                    useCielab,
+                    hybridStrength,
+                    independentMaps
+                );
+
+                const canvas = document.createElement('canvas');
+                canvas.width = mapartResolution.width;
+                canvas.height = mapartResolution.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.putImageData(processedData, 0, 0);
+                    setScaledPreviewUrl(canvas.toDataURL('image/png'));
+                    setMapartStats(stats);
+                }
+            } catch (err) {
+                // Ignore worker errors if cancelled
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+
+        process();
+    }, [
+        sourceImageVersion, // Image changed
+        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, // Settings changed
+        initWorker
+    ]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length > 0) {
@@ -353,14 +421,14 @@ export const MainCanvas = () => {
                                 <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
                                 <img
                                     ref={imageRef}
-                                    src={previewUrl!}
+                                    src={originalTransformedUrl || previewUrl!}
                                     alt="Original"
-                                    className="max-w-none pointer-events-none select-none border border-zinc-600"
+                                    className="max-w-none pointer-events-none select-none border border-zinc-600 rendering-pixelated"
                                     draggable={false}
                                     style={{
                                         width: mapartResolution.width,
                                         height: mapartResolution.height,
-                                        objectFit: 'cover'
+                                        imageRendering: 'auto'
                                     }}
                                 />
                             </div>
