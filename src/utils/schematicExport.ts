@@ -74,16 +74,19 @@ export function imageDataToBlockStates(
             const blockId = selectedPaletteItems[colorInfo.colorID];
             if (!blockId) continue;
 
-            // Adjust height based on brightness
+            // Update height BEFORE placing the block
+            // Map color is determined by comparing THIS block with the block to its NORTH:
+            // - 'high': this block appears lighter = this block is HIGHER than north
+            // - 'low': this block appears darker = this block is LOWER than north
             const previousHeight = currentHeight;
-            if (colorInfo.brightness === 'low') {
-                currentHeight -= 1;
-            } else if (colorInfo.brightness === 'high') {
-                currentHeight += 1;
+            if (colorInfo.brightness === 'high') {
+                currentHeight += 1;  // This block goes UP (appears lighter than north)
+            } else if (colorInfo.brightness === 'low') {
+                currentHeight -= 1;  // This block goes DOWN (appears darker than north)
             }
-            // 'normal' keeps same height
+            // 'normal' keeps same height as north
 
-            // Add main block
+            // Add main block at the adjusted height
             blockStates.push({
                 x,
                 y: currentHeight,
@@ -93,11 +96,11 @@ export function imageDataToBlockStates(
 
             // Add support blocks if needed (simplified logic)
             if (buildMode !== '2d') {
-                // Add support block below if there's a height change or for all blocks
+                // Add support block below if there's a height change
                 if (colorInfo.brightness === 'low' || colorInfo.brightness === 'high') {
                     blockStates.push({
                         x,
-                        y: previousHeight - 1,
+                        y: Math.min(previousHeight, currentHeight) - 1,
                         z: z + 1,
                         blockId: 'minecraft:stone',
                     });

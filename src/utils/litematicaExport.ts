@@ -1,5 +1,6 @@
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
-import type { BrightnessLevel, PaletteColor } from './mapartProcessing';
+import type { BrightnessLevel, PaletteColor, DitheringMode } from './mapartProcessing';
+import { processMapart } from './mapartProcessing';
 import * as bitArray from './litematicaBitArray';
 import paletteData from '../data/palette_1_21_11.json';
 
@@ -26,13 +27,13 @@ export interface LitematicaMetadata {
  * - normal = 1 (same color)
  * - high = 2 (lighter, go up)
  */
-function brightnessToHue(brightness: BrightnessLevel): number {
-    switch (brightness) {
-        case 'low': return 0;
-        case 'normal': return 1;
-        case 'high': return 2;
-    }
-}
+// function brightnessToHue(brightness: BrightnessLevel): number {
+//     switch (brightness) {
+//         case 'low': return 0;
+//         case 'normal': return 1;
+//         case 'high': return 2;
+//     }
+// }
 
 /**
  * Calculate Y offset for next block using mapartcraft's Baseline algorithm
@@ -76,33 +77,58 @@ function calculateNextY(
 
 /**
  * Generate block space from image data
- * Following mapartcraft's block-space.ts implementation
+ * NOW calls processMapart internally to ensure EXACT same colors as preview  
  */
 export function imageDataToBlockStates(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
     buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
-    applyOptimization: boolean = true
+    applyOptimization: boolean = true,
+    threeDPrecision: number = 0,
+    dithering: DitheringMode = 'none',
+    useCielab: boolean = true,
+    hybridStrength: number = 50,
+    independentMaps: boolean = false
 ): BlockWithCoords[] {
-    const { width, height, data } = imageData;
+    console.log('[Litematica Export] Processing image with processMapart to ensure color accuracy...');
+    console.log('[Litematica Export] Loaded Palette:', (paletteData as any).version, 'Colors:', (paletteData as any).colors.length);
+    const firstColor = (paletteData as any).colors[0];
+    console.log('[Litematica Export] Color 1 (Grass) High RGB:', firstColor.brightnessValues.high);
+
+    // Call processMapart to get EXACT same processed image as preview
+    const { imageData: processedImageData } = processMapart(
+        imageData,
+        buildMode,
+        selectedPaletteItems,
+        threeDPrecision,
+        dithering,
+        useCielab,
+        hybridStrength,
+        independentMaps
+    );
+
+    const { width, height, data } = processedImageData;
     const blockStates: BlockWithCoords[] = [];
+    let totalChecked = 0;
+    let totalErrors = 0;
     const palette = (paletteData as any).colors as PaletteColor[];
 
-    // Build RGB lookup map
-    const rgbToColor = new Map<number, { colorID: number; brightness: BrightnessLevel }>();
+    // Build RGB lookup map - include blockId directly
+    const rgbToColor = new Map<number, { colorID: number; brightness: BrightnessLevel; blockId: string }>();
     for (const color of palette) {
-        if (!selectedPaletteItems[color.colorID]) continue;
+        const blockId = selectedPaletteItems[color.colorID];
+        if (!blockId) continue;
 
         for (const [brightness, rgb] of Object.entries(color.brightnessValues)) {
             const key = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
             rgbToColor.set(key, {
                 colorID: color.colorID,
                 brightness: brightness as BrightnessLevel,
+                blockId: blockId
             });
         }
     }
 
-    const useBaselineResets = buildMode === '3d_valley';
     const is2D = buildMode === '2d';
 
     // Store blocks organized by column for per-column optimization
@@ -111,64 +137,87 @@ export function imageDataToBlockStates(
     // Process each column (X axis in Minecraft)
     for (let x = 0; x < width; x++) {
         const currentColumnBlocks: BlockWithCoords[] = [];
-        let previousY = 0;
-        let previousHue = 1; // Start with normal/unchanged
+        let currentHeight = 0;
 
-        // Process each row (Z axis in Minecraft)
-        for (let z = 0; z < height; z++) {
-            const idx = (z * width + x) * 4;
+        // Initial previous height for the first block (to set noobline correctly)
+        // If first block (Z=1, Y=0) is High, we need Noobline (Z=0) to be Y=-1
+        // If Low, Noobline Y=1. If Normal, Noobline Y=0.
+        let nooblineY = 0;
+
+        // Process each row (Y in image -> Z in Minecraft)
+        for (let y = 0; y < height; y++) {
+            const idx = (y * width + x) * 4;
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
             const key = (r << 16) | (g << 8) | b;
 
             const colorInfo = rgbToColor.get(key);
-            if (!colorInfo) continue;
+            if (!colorInfo) {
+                if (x === 0 && y < 20) console.warn(`[Litematica Export] Color not found: RGB(${r},${g},${b}) at (${x},${y})`);
+                continue;
+            }
 
-            const blockId = selectedPaletteItems[colorInfo.colorID];
-            if (!blockId) continue;
+            // Capture logic for noobline from the first pixel
+            if (y === 0) {
+                if (colorInfo.brightness === 'high') nooblineY = -1;
+                else if (colorInfo.brightness === 'low') nooblineY = 1;
+                else nooblineY = 0;
+            }
 
-            let currentY: number;
+            let blockY: number;
 
             if (is2D) {
                 // 2D: all blocks at Y=0
-                currentY = 0;
+                blockY = 0;
             } else {
-                // 3D: calculate Y using Baseline or Continuous algorithm
-                if (z === 0) {
-                    // First block starts at Y=0
-                    currentY = 0;
-                } else {
-                    currentY = calculateNextY(previousY, previousHue, useBaselineResets);
+                // Update height BEFORE placing the block
+                // Map color is determined by comparing THIS block with the block to its NORTH:
+                // - 'high': this block appears lighter = this block is HIGHER than north
+                // - 'low': this block appears darker = this block is LOWER than north
+                if (colorInfo.brightness === 'high') {
+                    currentHeight++;  // This block goes UP (appears lighter than north)
+                } else if (colorInfo.brightness === 'low') {
+                    currentHeight--;  // This block goes DOWN (appears darker than north)
                 }
+                // 'normal': same height as north
+
+                blockY = currentHeight;
             }
 
-            // Add main block at z+1 (offset for noobline at z=0)
+            // Add main block at z=y+1 (offset for noobline at z=0)
             currentColumnBlocks.push({
-                blockId,
+                blockId: colorInfo.blockId,
                 x,
-                y: currentY,
-                z: z + 1,
+                y: blockY,
+                z: y + 1,
             });
 
             // Add support block if needed (only for 3D modes)
-            // Support blocks are ALWAYS below the colored block
-            if (!is2D && currentY !== 0) {
+            if (!is2D && blockY !== 0) {
                 currentColumnBlocks.push({
                     blockId: 'minecraft:stone',
                     x,
-                    y: currentY - 1, // Always one block below the colored block
-                    z: z + 1,
+                    y: blockY - 1, // Always one block below
+                    z: y + 1,
                 });
             }
 
-            // Update for next iteration
-            previousY = currentY;
-            previousHue = brightnessToHue(colorInfo.brightness);
+            // Verify ALL pixels without spamming console
+            const paletteEntry = palette.find(p => p.colorID === colorInfo.colorID);
+            const expectedRGB = paletteEntry?.brightnessValues[colorInfo.brightness];
 
-            // Debug: Log first column for analysis
-            if (x === 0) {
-                console.log(`Z=${z}: brightness=${colorInfo.brightness}, Y=${currentY}, hue=${previousHue}`);
+            if (expectedRGB) {
+                totalChecked++;
+                const isMatch = expectedRGB.r === r && expectedRGB.g === g && expectedRGB.b === b;
+
+                if (!isMatch) {
+                    totalErrors++;
+                    // Only log first 20 errors to avoid freezing browser
+                    if (totalErrors <= 20) {
+                        console.error(`[Verify Error] (${x},${y}) Block: ${colorInfo.blockId} (${colorInfo.brightness}) | Expected RGB(${expectedRGB.r},${expectedRGB.g},${expectedRGB.b}) != Image RGB(${r},${g},${b})`);
+                    }
+                }
             }
         }
 
@@ -176,7 +225,7 @@ export function imageDataToBlockStates(
         currentColumnBlocks.push({
             blockId: 'minecraft:stone',
             x,
-            y: is2D ? 0 : previousY + previousHue - 1,
+            y: is2D ? 0 : nooblineY,
             z: 0,
         });
 
@@ -226,6 +275,13 @@ export function imageDataToBlockStates(
         for (const block of blockStates) {
             block.y -= globalMinY;
         }
+    }
+
+    // Final Verification Summary
+    if (totalErrors === 0) {
+        console.log(`%c[Verification Success] All ${totalChecked} pixels match perfectly! ✅`, 'color: green; font-weight: bold; font-size: 14px');
+    } else {
+        console.error(`[Verification Failed] Found ${totalErrors} mismatches out of ${totalChecked} pixels checked. ❌`);
     }
 
     return blockStates;
@@ -418,11 +474,19 @@ export function downloadLitematica(
     selectedPaletteItems: Record<number, string | null>,
     buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
     filename: string = 'mapart.litematic',
-    metadata: LitematicaMetadata = {}
+    metadata: LitematicaMetadata = {},
+    threeDPrecision: number = 0,
+    dithering: DitheringMode = 'none',
+    useCielab: boolean = true,
+    hybridStrength: number = 50,
+    independentMaps: boolean = false
 ): void {
     // Generate UNOPTIMIZED version
     console.log('[Litematica Export] Generating UNOPTIMIZED version...');
-    const blockStatesUnopt = imageDataToBlockStates(imageData, selectedPaletteItems, buildMode, false);
+    const blockStatesUnopt = imageDataToBlockStates(
+        imageData, selectedPaletteItems, buildMode, false,
+        threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+    );
     const nbtUnopt = createLitematicaNBT(blockStatesUnopt, {
         ...metadata,
         name: (metadata.name || 'MapArt') + ' (Unoptimized)',
@@ -432,7 +496,10 @@ export function downloadLitematica(
 
     // Generate OPTIMIZED version
     console.log('[Litematica Export] Generating OPTIMIZED version...');
-    const blockStatesOpt = imageDataToBlockStates(imageData, selectedPaletteItems, buildMode, true);
+    const blockStatesOpt = imageDataToBlockStates(
+        imageData, selectedPaletteItems, buildMode, true,
+        threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+    );
     const nbtOpt = createLitematicaNBT(blockStatesOpt, {
         ...metadata,
         name: (metadata.name || 'MapArt') + ' (Optimized)',
