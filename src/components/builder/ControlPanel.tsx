@@ -189,9 +189,18 @@ export const ControlPanel = () => {
 
                     {/* Color Grading */}
                     <div className="space-y-4">
-                        <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
-                            <PaletteIcon size={14} /> Pre-Processing Filters
-                        </label>
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-zinc-500 uppercase font-bold flex items-center gap-2 tracking-wider">
+                                <PaletteIcon size={14} /> Pre-Processing Filters
+                            </label>
+                            <button
+                                onClick={() => setImageSettings({ saturation: 100, brightness: 0, contrast: 0 })}
+                                className="text-zinc-600 hover:text-zinc-400 p-1 rounded hover:bg-zinc-800 transition-all"
+                                title="Reset Filters"
+                            >
+                                <RefreshCw size={12} />
+                            </button>
+                        </div>
                         <PrecisionSlider label="Saturation" value={imageSettings.saturation} min={0} max={200} step={1} unit="%" onChange={(saturation) => setImageSettings({ saturation })} />
                         <PrecisionSlider label="Brightness" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />
                         <PrecisionSlider label="Contrast" value={imageSettings.contrast} min={-100} max={100} step={1} onChange={(contrast) => setImageSettings({ contrast })} />

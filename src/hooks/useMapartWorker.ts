@@ -1,7 +1,7 @@
 import { wrap, type Remote } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
-import type { MapartState, CropSettings, BuildMode, GridDimensions } from '../store/useMapartStore';
+import type { MapartState, CropSettings, BuildMode, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import { type DitheringMode, type MapartStats } from '../utils/mapartProcessing';
 
 interface UseMapartWorkerProps {
@@ -18,6 +18,7 @@ interface UseMapartWorkerProps {
     hybridStrength: number;
     independentMaps: boolean;
     setMapartStats: (stats: MapartStats | null) => void;
+    imageSettings: ImageSettings;
 }
 
 export const useMapartWorker = ({
@@ -32,7 +33,8 @@ export const useMapartWorker = ({
     useCielab,
     hybridStrength,
     independentMaps,
-    setMapartStats
+    setMapartStats,
+    imageSettings
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -81,6 +83,8 @@ export const useMapartWorker = ({
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
             if (!ctx) return;
 
+            const filterString = `brightness(${100 + imageSettings.brightness}%) contrast(${100 + imageSettings.contrast}%) saturate(${imageSettings.saturation}%)`;
+            ctx.filter = filterString;
             ctx.imageSmoothingEnabled = false;
 
             if (imageFitMode === 'adjust') {
@@ -94,7 +98,11 @@ export const useMapartWorker = ({
                 const highResCanvas = document.createElement('canvas');
                 highResCanvas.width = highResWidth;
                 highResCanvas.height = highResHeight;
-                highResCanvas.getContext('2d')?.drawImage(img, 0, 0, highResWidth, highResHeight);
+                const highResCtx = highResCanvas.getContext('2d');
+                if (highResCtx) {
+                    highResCtx.filter = filterString;
+                    highResCtx.drawImage(img, 0, 0, highResWidth, highResHeight);
+                }
                 setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
 
             } else {
@@ -129,11 +137,15 @@ export const useMapartWorker = ({
                 const highResCanvas = document.createElement('canvas');
                 highResCanvas.width = zoomedWidth;
                 highResCanvas.height = zoomedHeight;
-                highResCanvas.getContext('2d')?.drawImage(
-                    img,
-                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
-                    0, 0, zoomedWidth, zoomedHeight
-                );
+                const highResCtx = highResCanvas.getContext('2d');
+                if (highResCtx) {
+                    highResCtx.filter = filterString;
+                    highResCtx.drawImage(
+                        img,
+                        finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
+                        0, 0, zoomedWidth, zoomedHeight
+                    );
+                }
                 setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
             }
 
@@ -142,7 +154,7 @@ export const useMapartWorker = ({
             setSourceImageVersion(v => v + 1);
         };
         img.src = previewUrl;
-    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings]);
+    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings]);
 
     // 2. Process Mapart
     useEffect(() => {

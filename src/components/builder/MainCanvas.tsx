@@ -11,7 +11,7 @@ export const MainCanvas = () => {
     const {
         uploadedImage, setUploadedImage, previewUrl, gridDimensions,
         imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength,
-        setMapartStats, mapartStats, independentMaps
+        setMapartStats, mapartStats, independentMaps, imageSettings
     } = useMapart();
 
     // Custom Hooks
@@ -33,7 +33,8 @@ export const MainCanvas = () => {
         useCielab,
         hybridStrength,
         independentMaps,
-        setMapartStats
+        setMapartStats,
+        imageSettings
     });
 
     const {
