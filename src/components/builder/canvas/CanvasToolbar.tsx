@@ -11,6 +11,7 @@ interface CanvasToolbarProps {
     canExport: boolean;
     onClearImage: () => void;
     isProcessing?: boolean;
+    isExporting?: boolean;
 }
 
 export const CanvasToolbar = ({
@@ -22,7 +23,8 @@ export const CanvasToolbar = ({
     onExport,
     canExport,
     onClearImage,
-    isProcessing
+    isProcessing,
+    isExporting
 }: CanvasToolbarProps) => {
     return (
         <>
@@ -54,16 +56,20 @@ export const CanvasToolbar = ({
 
                 <button
                     onClick={onExport}
-                    disabled={!canExport}
+                    disabled={!canExport || isExporting}
                     className={clsx(
-                        "p-2 hover:bg-green-900/50 hover:text-green-400 rounded transition-colors",
-                        canExport
+                        "p-2 hover:bg-green-900/50 hover:text-green-400 rounded transition-colors relative",
+                        (canExport && !isExporting)
                             ? "text-green-400"
                             : "text-zinc-600 cursor-not-allowed"
                     )}
                     title="Download Litematica Schematic"
                 >
-                    <Download size={18} />
+                    {isExporting ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent"></div>
+                    ) : (
+                        <Download size={18} />
+                    )}
                 </button>
 
                 <button onClick={onClearImage} className="p-2 hover:bg-red-900/50 hover:text-red-400 rounded text-zinc-300 ml-2">

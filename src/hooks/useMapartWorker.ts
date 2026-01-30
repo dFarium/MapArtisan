@@ -209,10 +209,56 @@ export const useMapartWorker = ({
         initWorker, mapartResolution.width, mapartResolution.height
     ]);
 
+    const [isExporting, setIsExporting] = useState(false);
+
+    // ... existing initialization code ...
+
+    const exportMapart = async (
+        filename: string,
+        metadata: any
+    ) => {
+        if (!sourceImageDataRef.current || !workerApiRef.current || isExporting) return;
+
+        setIsExporting(true);
+        try {
+            const api = workerApiRef.current;
+
+            // We need to pass the CURRENT settings, as the closure might be stale if not careful.
+            // However, since this function is recreated on every render (if not wrapped in useCallback with deps),
+            // or if we rely on refs. For safety, let's assume we pass the latest ref data if needed,
+            // but for now, we use the props passed to the hook.
+
+            // Note: ImageData cannot be transferred, so it will be structured-cloned.
+            // For very large images, this might be slow, but it's occurring in an async function.
+
+            const result = await api.generateMapartExport(
+                sourceImageDataRef.current,
+                selectedPaletteItems,
+                buildMode,
+                filename,
+                metadata,
+                threeDPrecision,
+                useCielab,
+                hybridStrength,
+                independentMaps
+            );
+
+            // Import dynamically to avoid circular dependencies if any, or just standard import
+            const { triggerDownload } = await import('../utils/litematicaExport');
+            triggerDownload(result.blob, result.filename);
+        } catch (err) {
+            console.error("Export failed:", err);
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return {
         isProcessing,
+        isExporting,
         scaledPreviewUrl,
         originalTransformedUrl,
-        mapartResolution
+        mapartResolution,
+        exportMapart
     };
 };

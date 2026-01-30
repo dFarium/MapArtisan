@@ -348,43 +348,107 @@ export function createLitematicaNBT(
     return nbt;
 }
 
+import JSZip from 'jszip';
+
 /**
- * Export and download Litematica file
+ * Generate Litematica export data (Blob)
+ * If map is larger than 128x128, it will be split into multiple files and zipped.
+ * Each section is processed independently to ensure correct "noob lines" (northern padding).
  */
-export function downloadLitematica(
+export async function generateMapartExport(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
     buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
-    // dithering param removed to avoid unused variable warning (intentionally 'none' internally)
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
-): void {
-    // Generate optimized version (now the standard version)
-    const blockStatesOpt = imageDataToBlockStates(
-        imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
-    );
+): Promise<{ blob: Blob; filename: string }> {
+    const { width, height, data } = imageData;
+    const isMultiMap = width > 128 || height > 128;
 
-    // Create NBT without '(Optimized)' suffix since it's the only one
-    const nbtOpt = createLitematicaNBT(blockStatesOpt, {
-        ...metadata,
-        name: metadata.name || 'MapArt',
-        description: metadata.description || 'MapArt created by mapart-creator'
-    });
-    const nbtDataOpt = serializeNBT(nbtOpt);
+    if (!isMultiMap) {
+        // Single Map Case
+        const blockStatesOpt = imageDataToBlockStates(
+            imageData, selectedPaletteItems, buildMode, true,
+            threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+        );
 
-    // Download file
-    const blobOpt = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
-    const urlOpt = URL.createObjectURL(blobOpt);
-    const linkOpt = document.createElement('a');
-    linkOpt.href = urlOpt;
-    linkOpt.download = filename; // Use provided filename directly
-    document.body.appendChild(linkOpt);
-    linkOpt.click();
-    document.body.removeChild(linkOpt);
-    URL.revokeObjectURL(urlOpt);
+        const nbtOpt = createLitematicaNBT(blockStatesOpt, {
+            ...metadata,
+            name: metadata.name || 'MapArt',
+            description: metadata.description || 'MapArt created by mapart-creator'
+        });
+        const nbtDataOpt = serializeNBT(nbtOpt);
+        const blob = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
+
+        return { blob, filename };
+    } else {
+        // Multi Map Case - Split and Zip
+        const zip = new JSZip();
+        const baseName = filename.replace(/\.litematic$/, '');
+        const mapsX = Math.ceil(width / 128);
+        const mapsY = Math.ceil(height / 128);
+
+        for (let y = 0; y < mapsY; y++) {
+            for (let x = 0; x < mapsX; x++) {
+                // Extract section image data
+                const sectionWidth = 128;
+                const sectionHeight = 128; // Always 128x128 for map parts
+                const sectionData = new Uint8ClampedArray(sectionWidth * sectionHeight * 4);
+
+                for (let sy = 0; sy < sectionHeight; sy++) {
+                    for (let sx = 0; sx < sectionWidth; sx++) {
+                        const globalX = x * 128 + sx;
+                        const globalY = y * 128 + sy;
+
+                        if (globalX < width && globalY < height) {
+                            const sourceIdx = (globalY * width + globalX) * 4;
+                            const targetIdx = (sy * sectionWidth + sx) * 4;
+                            sectionData[targetIdx] = data[sourceIdx];
+                            sectionData[targetIdx + 1] = data[sourceIdx + 1];
+                            sectionData[targetIdx + 2] = data[sourceIdx + 2];
+                            sectionData[targetIdx + 3] = data[sourceIdx + 3];
+                        }
+                    }
+                }
+
+                const sectionImageData = new ImageData(sectionData, sectionWidth, sectionHeight);
+
+                // Process independently to get correct noob lines for this section
+                const blockStates = imageDataToBlockStates(
+                    sectionImageData, selectedPaletteItems, buildMode, true,
+                    threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+                );
+
+                const sectionNbt = createLitematicaNBT(blockStates, {
+                    ...metadata,
+                    name: `${metadata.name || 'MapArt'} (${x},${y})`,
+                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by mapart-creator'}`
+                });
+
+                const sectionBuffer = serializeNBT(sectionNbt);
+                zip.file(`${baseName}_${x}_${y}.litematic`, sectionBuffer);
+            }
+        }
+
+        const zipContent = await zip.generateAsync({ type: 'blob' });
+        return { blob: zipContent, filename: `${baseName}_package.zip` };
+    }
+}
+
+/**
+ * Trigger browser download for a Blob
+ */
+export function triggerDownload(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
