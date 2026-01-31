@@ -238,6 +238,7 @@ export const useMapartWorker = ({
                 filename,
                 metadata,
                 threeDPrecision,
+                dithering as DitheringMode,
                 useCielab,
                 hybridStrength,
                 independentMaps

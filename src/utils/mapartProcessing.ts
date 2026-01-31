@@ -1,5 +1,5 @@
-import paletteData from '../data/palette_1_21_11.json';
-import { MAPART } from './constants';
+import paletteData from '../data/palette_1_21_11.json' with { type: 'json' };
+import { MAPART } from './constants.ts';
 
 // Types based on palette structure
 export interface RGB {
@@ -24,7 +24,7 @@ export interface ColorCandidate {
     blockId: string;
 }
 
-export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
+export type BuildMode = '2d' | '3d_valley';
 
 const MAX_HEIGHT_PENALTY = MAPART.MAX_HEIGHT_PENALTY;
 
@@ -59,6 +59,7 @@ export interface LAB {
 export interface MapartStats {
     minHeight: number;
     maxHeight: number;
+    heightMap?: Int32Array; // Optional full height map for analysis
 }
 
 /**
@@ -263,6 +264,89 @@ function calculateLocalVariance(
 }
 
 // ============================================================================
+// Smart Drop Optimization (Ported from Python)
+// ============================================================================
+
+/**
+ * Optimizes the height profile of a column to minimize the total height range.
+ * Uses a "Smart Drop" strategy that capitalizes on shadow blocks (tone -1)
+ * to drop deeper when safe, recovering height for future climbs.
+ */
+export function optimizeColumnHeights(tonos: number[]): { min: number; max: number; path: number[] } {
+    // 1. Reference (Classic Approach)
+    const ref = [0];
+    for (const t of tonos) {
+        if (t === 1) ref.push(ref[ref.length - 1] + 1);
+        else if (t === 0) ref.push(ref[ref.length - 1]);
+        else if (t === -1) ref.push(ref[ref.length - 1] - 1);
+    }
+
+    // 2. Suffix Min (Future Lookahead)
+    const n = ref.length;
+    const minFuturo = new Int32Array(n);
+    let currentMin = Infinity;
+    for (let i = n - 1; i >= 0; i--) {
+        if (ref[i] < currentMin) currentMin = ref[i];
+        minFuturo[i] = currentMin;
+    }
+
+    // 3. Smart Drop Construction
+    const path: number[] = []; // Starting at 0 (implicit, strictly not needed for output length=tonos.length)
+    let currentOpt = 0;
+    let maxOpt = 0;
+    let minOpt = 0;
+
+    // We generate the path corresponding to each tone.
+    // Note: The Python script returned the *heights*. The 'path' array here will store the height AFTER each block.
+    // But wait, the loop iterates `tonos`.
+    for (let i = 0; i < tonos.length; i++) {
+        const t = tonos[i];
+        if (t === -1) {
+            // Check safe drop target
+            // ref[i+1] is the classic height after this step
+            // minFuturo[i+1] is the lowest point the classic path ever reaches from here onwards
+            const alturaSegura = ref[i + 1] - minFuturo[i + 1];
+
+            // If we can drop deeper than just -1 (currentOpt - 1), do it.
+            // We want to be as low as possible (since we are forced to go UP later).
+            // But we can't go so low that we can't climb back up?
+            // Actually, the logic is: "If we drop to X, will we ever be forced to go lower than X later solely due to the pattern?"
+            // ref[i+1] - minFuturo[i+1] calculates the "margin" we have above the future minimum.
+            // Wait, let's trace:
+            // ref starts at 0.
+            // If ref goes 0 -> 1 -> 2 -> 1 -> 0.
+            // minFuturo at index 0 (val 0) is 0.
+            // minFuturo at index 1 (val 1) is 0.
+            // minFuturo at index 2 (val 2) is 0.
+
+            // Python logic: `altura_segura = ref[i+1] - min_futuro[i+1]`
+            // `if altura_segura < current_opt: current_opt = altura_segura`
+            // `else: current_opt -= 1`
+
+            // This suggests we jump DOWN to `altura_segura` if it's lower than performing a standard step.
+            // Basically, reset to the lowest possible safe baseline.
+
+            if (alturaSegura < currentOpt) {
+                currentOpt = alturaSegura;
+            } else {
+                currentOpt -= 1;
+            }
+        } else if (t === 1) {
+            currentOpt += 1;
+        }
+        // If t == 0, currentOpt stays same.
+
+        path.push(currentOpt);
+
+        if (currentOpt > maxOpt) maxOpt = currentOpt;
+        if (currentOpt < minOpt) minOpt = currentOpt;
+    }
+
+    return { min: minOpt, max: maxOpt, path };
+}
+
+
+// ============================================================================
 // Color Candidate Functions
 // ============================================================================
 
@@ -414,7 +498,8 @@ export function processMapart(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true,
     hybridStrength: number = 50,
-    independentMaps: boolean = false
+    independentMaps: boolean = false,
+    optimizeHeight: boolean = false // New parameter for "Safe Reset" strategy
 ): { imageData: ImageData; stats: MapartStats } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
@@ -471,153 +556,15 @@ export function processMapart(
 
 
 
-    if (buildMode === '3d_valley_lossy') {
-        // Column-by-column processing for height tracking
-        for (let x = 0; x < width; x++) {
-            let currentHeight = 0;
-            // Independent Maps: Reset error buffer for this column if it's a map boundary
-            // Note: Horizontal error shouldn't bleed across maps if they are independent
-            // Since we process column by column, bleeding only happens via dither matrix.
-            // Resetting floatBuffer neighbors at boundary is complex in col-mode.
-            // For now, we focus on HEIGHT reset.
+    // 3d_valley_lossy removed. Using standard path.
+    {
+        // Standard Processing (2D or 3D Valley)
 
-            for (let y = 0; y < height; y++) {
-                // Height Reset at Map Boundaries
-                if (independentMaps && y > 0 && y % 128 === 0) {
-                    currentHeight = 0;
-                }
+        // Tone Map for Smart Drop Optimization phase (initialized to 0)
+        // Values: 1 (High), -1 (Low), 0 (Normal)
+        // We use Int8Array for memory efficiency.
+        const toneMap = new Int8Array(width * height);
 
-                let r = floatBuffer[y][x * 3];
-                let g = floatBuffer[y][x * 3 + 1];
-                let b = floatBuffer[y][x * 3 + 2];
-
-                const target: RGB = {
-                    r: Math.max(0, Math.min(255, r)),
-                    g: Math.max(0, Math.min(255, g)),
-                    b: Math.max(0, Math.min(255, b))
-                };
-
-                let bestIndex = -1;
-
-                if (dithering === 'ordered' || dithering === 'ordered-8x8') {
-                    // Ordered dithering: choose between two closest based on threshold
-                    const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab);
-                    const is8x8 = dithering === 'ordered-8x8';
-                    const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
-                    const maxThreshold = is8x8 ? 65 : 17;
-
-                    // Only use second color if it's valid and ratio meets threshold
-                    if (twoClosest.second.distance > 0) {
-                        const ratio = (twoClosest.first.distance * maxThreshold) / twoClosest.second.distance;
-                        bestIndex = ratio > threshold ? twoClosest.second.index : twoClosest.first.index;
-                    } else {
-                        bestIndex = twoClosest.first.index;
-                    }
-                } else {
-                    // Find best with height constraints
-                    const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
-                    let bestScore = Infinity;
-
-                    for (let i = 0; i < candidates.length; i++) {
-                        const candidate = candidates[i];
-
-                        if (candidate.brightness === 'low' && currentHeight <= 0) {
-                            continue;
-                        }
-
-                        let colorDist: number;
-                        if (useCielab) {
-                            colorDist = deltaE(targetLab, candidateLabs[i]);
-                        } else {
-                            colorDist = Math.sqrt(colorDistanceSq(target, candidate.rgb));
-                        }
-
-                        let heightCost = 0;
-                        if (candidate.brightness === 'high' || candidate.brightness === 'low') {
-                            heightCost = heightPenalty;
-                        }
-
-                        const score = colorDist + heightCost;
-                        if (score < bestScore) {
-                            bestScore = score;
-                            bestIndex = i;
-                        }
-                    }
-                }
-
-                if (bestIndex >= 0) {
-                    const best = candidates[bestIndex];
-                    const idx = (y * width + x) * 4;
-                    output[idx] = best.rgb.r;
-                    output[idx + 1] = best.rgb.g;
-                    output[idx + 2] = best.rgb.b;
-
-                    // Error diffusion (column-adapted)
-                    if (isErrorDiffusion) {
-                        let errorScale = baseErrorScale;
-
-                        if (isHybrid) {
-                            // Calculate local variance for Hybrid mode
-                            const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
-
-                            // Adaptive strength based on user setting
-                            // hybridStrength 0 -> minScale 1.0 (No noise reduction)
-                            // hybridStrength 100 -> minScale 0.0 (Max logic scaling)
-                            const userFactor = 1.0 - (hybridStrength / 100);
-
-                            // Map variance 0..500 to scale 0..1
-                            // Low variance (flat) -> scale approaches 0 (less noise)
-                            // High variance (complex) -> scale approaches 1 (more detail)
-                            let dynamicScale = Math.min(1.0, Math.max(0, variance / 50));
-
-                            // Apply user strength: Ensure we never go below userFactor
-                            // If user sets 0% strength (userFactor 1.0), scale stays at 1.0
-                            errorScale = Math.max(userFactor, dynamicScale);
-                        }
-
-                        const errR = (r - best.rgb.r) * errorScale;
-                        const errG = (g - best.rgb.g) * errorScale;
-                        const errB = (b - best.rgb.b) * errorScale;
-                        const divisor = ditherMatrix.divisor;
-                        const matrix = ditherMatrix.matrix;
-
-                        // Distribute error based on matrix (clamp to 0-255 like Uint8ClampedArray)
-                        for (let row = 0; row < matrix.length; row++) {
-                            for (let col = 0; col < matrix[row].length; col++) {
-                                const weight = matrix[row][col];
-                                if (weight === 0) continue;
-
-                                const nx = x + (col - 2);
-                                const ny = y + row;
-
-                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                    // Independent Maps: Prevent error from bleeding into the next map vertical chunk
-                                    if (independentMaps) {
-                                        const currentMapIndex = Math.floor(y / 128);
-                                        const nextMapIndex = Math.floor(ny / 128);
-                                        if (currentMapIndex !== nextMapIndex) continue;
-                                    }
-
-                                    floatBuffer[ny][nx * 3] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3] + errR * weight / divisor));
-                                    floatBuffer[ny][nx * 3 + 1] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 1] + errG * weight / divisor));
-                                    floatBuffer[ny][nx * 3 + 2] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 2] + errB * weight / divisor));
-                                }
-                            }
-                        }
-                    }
-
-                    // Update height
-                    if (best.brightness === 'high') currentHeight++;
-                    else if (best.brightness === 'low') currentHeight--;
-
-                    // Update stats
-                    if (currentHeight > overallMax) overallMax = currentHeight;
-                    if (currentHeight < overallMin) overallMin = currentHeight;
-                }
-            }
-        }
-    } else {
-        // 2D or standard 3D: row-by-row processing
         for (let y = 0; y < height; y++) {
             // Independent Maps: Reset column heights at row boundary
             if (independentMaps && y > 0 && y % 128 === 0) {
@@ -629,6 +576,7 @@ export function processMapart(
 
             for (let x = 0; x < width; x++) {
                 let r = floatBuffer[y][x * 3];
+
                 let g = floatBuffer[y][x * 3 + 1];
                 let b = floatBuffer[y][x * 3 + 2];
 
@@ -664,6 +612,14 @@ export function processMapart(
                 output[idx] = best.rgb.r;
                 output[idx + 1] = best.rgb.g;
                 output[idx + 2] = best.rgb.b;
+
+                // Save Tone decision for Phase 2
+                if (buildMode === '3d_valley') {
+                    let tone = 0;
+                    if (best.brightness === 'high') tone = 1;
+                    else if (best.brightness === 'low') tone = -1;
+                    toneMap[y * width + x] = tone; // Store in row-major order
+                }
 
                 // Update height stats (standard/2d modes)
                 if (best.brightness === 'high') colHeights[x]++;
@@ -753,17 +709,58 @@ export function processMapart(
                 }
             }
         }
+
+        // ============================================================================
+        // Phase 2: Height Optimization (Smart Drop) for 3D Valley
+        // ============================================================================
+        // If we are in 3d_valley mode, we now optimize the columns and recalculate stats.
+        if (buildMode === '3d_valley') {
+            overallMin = 0;
+            overallMax = 0;
+
+            // Process each column
+            for (let x = 0; x < width; x++) {
+                const columnTones: number[] = [];
+                for (let y = 0; y < height; y++) {
+                    columnTones.push(toneMap[y * width + x]); // Corrected indexing
+                }
+
+                // Apply Smart Drop
+                const { min, max, path } = optimizeColumnHeights(columnTones);
+
+                // Update global stats
+                if (min < overallMin) overallMin = min;
+                if (max > overallMax) overallMax = max;
+
+                // Update the final height of this column (last element of path)
+                // This mimics the 'colHeights' behavior expected by the stats object
+                if (path.length > 0) {
+                    colHeights[x] = path[path.length - 1];
+                } else {
+                    colHeights[x] = 0;
+                }
+            }
+        }
     }
 
+    // Capture full height map for analysis if needed (optional optimization?)
+    // For now, let's just return the column heights array which tracks the final elevation of each column.
+    // Actually, for true 3D valley mode, we want to know the height at every pixel?
+    // No, standard mapart is built column by column (Z-axis is image Y).
+    // The "height" is the Y-level (elevation).
+    // In "3d_valley_lossy", we process column by column. The `currentHeight` variable tracks the elevation.
+    // We should capture this profile.
+
+    // Let's attach the final column elevations to stats.
     return {
         imageData: new ImageData(output, width, height),
-        stats: { minHeight: overallMin, maxHeight: overallMax }
+        stats: {
+            minHeight: overallMin,
+            maxHeight: overallMax,
+            heightMap: colHeights // This tracks the final elevation of the South-most block of each column
+        }
     };
 }
-
-// ============================================================================
-// Auto-Detection Logic
-// ============================================================================
 
 export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMode; strength: number } {
     const { width, height, data } = imageData;
@@ -800,45 +797,29 @@ export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMod
                 localVar += (r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2;
             }
 
-            const pixelVariance = localVar / 4;
-            totalVariance += pixelVariance;
-
-            if (pixelVariance < 50) flatSamples++;
-
+            const avgLocalVar = localVar / 4;
+            totalVariance += avgLocalVar;
+            if (avgLocalVar < 100) flatSamples++;
             samples++;
         }
     }
 
     const avgVariance = samples > 0 ? totalVariance / samples : 0;
-    const flatPercentage = samples > 0 ? (flatSamples / samples) * 100 : 0;
+    const flatRatio = samples > 0 ? flatSamples / samples : 0;
 
-    // Heuristics:
-    // Very low variance (< 50) -> Flat image / Vector art -> 'none' or very low hybrid
-    // High variance -> Photo / Complex -> 'hybrid'
+    // Heuristics
+    // High variance -> Photo/Complex -> Dithering needed (Stucki/Floyd)
+    // Low variance -> Graphic/Logo -> No dithering or simple
+    // Mixed -> Hybrid
 
-    console.log(`[AutoDetect] avgVar: ${avgVariance.toFixed(0)}, flat%: ${flatPercentage.toFixed(1)}%`);
-
-    if (flatPercentage > 60) {
+    if (flatRatio > 0.8) {
+        // Mostly flat (cartoon/logo)
         return { mode: 'none', strength: 0 };
-    }
-
-    if (avgVariance < 20) {
-        return { mode: 'none', strength: 0 };
+    } else if (avgVariance < 500) {
+        // Moderate complexity
+        return { mode: 'hybrid', strength: 50 };
     } else {
-        // Map variance to suggested strength
-        // 20 variance -> 0% strength (almost flat)
-        // 500 variance -> 50% strength
-        // 2000+ variance -> 100% strength
-
-        let strength = 50;
-        if (avgVariance < 100) strength = 20;
-        else if (avgVariance < 500) strength = 40;
-        else if (avgVariance < 1000) strength = 60;
-        else if (avgVariance < 2000) strength = 80;
-        else strength = 100;
-
-        return { mode: 'hybrid', strength };
+        // High complexity (photo)
+        return { mode: 'stucki', strength: 100 };
     }
 }
-
-

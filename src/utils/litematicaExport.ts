@@ -1,6 +1,6 @@
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
 import type { BrightnessLevel, PaletteColor, DitheringMode } from './mapartProcessing';
-import { processMapart } from './mapartProcessing';
+import { processMapart, optimizeColumnHeights } from './mapartProcessing';
 import * as bitArray from './litematicaBitArray';
 import paletteData from '../data/palette_1_21_11.json';
 
@@ -28,7 +28,7 @@ export interface LitematicaMetadata {
 export function imageDataToBlockStates(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
-    buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
+    buildMode: '2d' | '3d_valley',
     applyOptimization: boolean = true,
     threeDPrecision: number = 0,
     dithering: DitheringMode = 'none',
@@ -45,7 +45,8 @@ export function imageDataToBlockStates(
         dithering,
         useCielab,
         hybridStrength,
-        independentMaps
+        independentMaps,
+        true // Enable optimizeHeight (Safe Reset) for export
     );
 
     const { width, height, data } = processedImageData;
@@ -76,9 +77,18 @@ export function imageDataToBlockStates(
     // Process each column (X axis in Minecraft)
     for (let x = 0; x < width; x++) {
         const currentColumnBlocks: BlockWithCoords[] = [];
+
+        // Temporary storage for calculated block positions before optimization
+        const rawMapBlocks: { blockId: string; y: number; z: number }[] = [];
+
+        // Track current height relative to the column start
         let currentHeight = 0;
 
-        // Noobline Y is set based on the first block's brightness
+        // Track tones for Smart Drop Optimization
+        // 0: Normal, 1: High, -1: Low
+        const columnTones = new Int8Array(height).fill(0);
+
+        // Determine noobline Y relative to the start (virtual Y=0) based on first block
         let nooblineY = 0;
 
         // Process each row (Y in image -> Z in Minecraft)
@@ -92,62 +102,112 @@ export function imageDataToBlockStates(
             const colorInfo = rgbToColor.get(key);
             if (!colorInfo) continue;
 
+
             // Set noobline height based on first block's brightness
+            // Noobline is the reference point (virtual Y=0) for the first block
             if (y === 0) {
-                nooblineY = colorInfo.brightness === 'high' ? -1
-                    : colorInfo.brightness === 'low' ? 1 : 0;
+                // We keep nooblineY at 0 relative to the start
             }
 
-            let blockY: number;
-
-            if (is2D) {
-                // 2D: all blocks at Y=0
-                blockY = 0;
-            } else {
+            // Calculate height
+            if (!is2D) {
                 // Adjust height based on brightness (compared to north block)
-                // high = lighter = higher, low = darker = lower
-                if (colorInfo.brightness === 'high') currentHeight++;
-                else if (colorInfo.brightness === 'low') currentHeight--;
-
-                blockY = currentHeight;
+                if (colorInfo.brightness === 'high') {
+                    currentHeight++;
+                    columnTones[y] = 1;
+                } else if (colorInfo.brightness === 'low') {
+                    currentHeight--;
+                    columnTones[y] = -1;
+                }
             }
+            // If is2D, currentHeight remains 0
 
-            // Add main block at z=y+1 (offset for noobline at z=0)
-            currentColumnBlocks.push({
+            // Store raw block position
+            rawMapBlocks.push({
                 blockId: colorInfo.blockId,
-                x,
-                y: blockY,
+                y: currentHeight,
                 z: y + 1,
             });
+        }
 
-            // Add support block below for 3D modes
-            if (!is2D && blockY !== 0) {
+        // Apply Smart Drop Optimization for 3D Valley
+        if (!is2D && applyOptimization && buildMode === '3d_valley') {
+            // Convert TypedArray to normal array for the function (or update function type, but array is fine)
+            // optimizeColumnHeights takes number[]
+            const tonesArray = Array.from(columnTones);
+            const { path } = optimizeColumnHeights(tonesArray);
+
+            // Update rawMapBlocks heights
+            for (const block of rawMapBlocks) {
+                // block.z is 1-based (y+1). path is 0-based.
+                const index = block.z - 1;
+                if (index >= 0 && index < path.length) {
+                    block.y = path[index];
+                }
+            }
+        }
+
+        // --- Optimization / Grounding Logic ---
+        // We want the lowest MAP block of the column to align with Y=0.
+        // We calculate the shift needed and apply it to all blocks + noobline.
+
+        let shiftY = 0;
+        if (!is2D && applyOptimization && rawMapBlocks.length > 0) {
+            // Need to include Noobline (Y=0) in the min calculation?
+            // Actually, if Noobline is part of the physical structure, its base should also be considered?
+            // "Each column to touch the ground".
+            // If Noobline is at 0 and Map starts at 1. Min is 0. Shift 0. Noobline at 0. Map at 1. Correct.
+            // If Noobline is at 0 and Map starts at -1. Min is -1. Shift +1. Noobline at 1. Map at 0. Correct.
+            // So we take min of (MapBlocks U {Noobline}).
+
+            const minMapY = Math.min(...rawMapBlocks.map(b => b.y));
+            const minOverallY = Math.min(minMapY, nooblineY); // nooblineY is always 0 here
+
+            shiftY = -minOverallY;
+        }
+
+        // Add shifted map blocks and generate supports
+        for (const rawBlock of rawMapBlocks) {
+            const finalY = rawBlock.y + shiftY;
+
+            // Add Map Block
+            currentColumnBlocks.push({
+                blockId: rawBlock.blockId,
+                x: x,
+                y: finalY,
+                z: rawBlock.z
+            });
+
+            // Add Support Block
+            // In 3D mode, if the block is above the ground (Y > 0), it needs a support at Y-1.
+            // Blocks at Y=0 sit on the floor and don't need artificial support.
+            if (!is2D && finalY > 0) {
                 currentColumnBlocks.push({
                     blockId: 'minecraft:stone',
-                    x,
-                    y: blockY - 1,
-                    z: y + 1,
+                    x: x,
+                    y: finalY - 1,
+                    z: rawBlock.z
                 });
             }
         }
 
-        // Add noobline at z=0 (north padding block)
+        // Add Noobline (also shifted) at Z=0
+        const finalNooblineY = is2D ? 0 : (nooblineY + shiftY);
         currentColumnBlocks.push({
-            blockId: 'minecraft:stone',
-            x,
-            y: is2D ? 0 : nooblineY,
+            blockId: 'minecraft:cobblestone',
+            x: x,
+            y: finalNooblineY,
             z: 0,
         });
 
-        // For 3D modes: center column around Y=0 to minimize absolute height
-        if (!is2D && currentColumnBlocks.length > 0 && applyOptimization) {
-            const columnMinY = Math.min(...currentColumnBlocks.map(b => b.y));
-            const columnMaxY = Math.max(...currentColumnBlocks.map(b => b.y));
-            const midpoint = Math.floor((columnMinY + columnMaxY) / 2);
-
-            for (const block of currentColumnBlocks) {
-                block.y -= midpoint;
-            }
+        // Add Support for Noobline if elevated
+        if (!is2D && finalNooblineY > 0) {
+            currentColumnBlocks.push({
+                blockId: 'minecraft:stone',
+                x: x,
+                y: finalNooblineY - 1,
+                z: 0,
+            });
         }
 
         columnBlocks.set(x, currentColumnBlocks);
@@ -358,10 +418,11 @@ import JSZip from 'jszip';
 export async function generateMapartExport(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
-    buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
+    buildMode: '2d' | '3d_valley',
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
+    dithering: DitheringMode = 'none', // Added dithering parameter
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
@@ -373,7 +434,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -420,7 +481,7 @@ export async function generateMapartExport(
                 // Process independently to get correct noob lines for this section
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, 'none', useCielab, hybridStrength, independentMaps
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {

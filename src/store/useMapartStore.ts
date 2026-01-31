@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { MapartStats } from '../utils/mapartProcessing';
 
-export type BuildMode = '2d' | '3d_valley' | '3d_valley_lossy';
+export type BuildMode = '2d' | '3d_valley';
 export type BlockSupport = 'all' | 'needed' | 'survival';
 export type ImageFitMode = 'adjust' | 'crop';
 

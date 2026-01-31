@@ -328,7 +328,7 @@ export const ControlPanel = () => {
                             <Layers size={14} /> Placement Logic
                         </label>
                         <div className="flex flex-col gap-2">
-                            {(['2d', '3d_valley', '3d_valley_lossy'] as BuildMode[]).map((mode) => (
+                            {(['2d', '3d_valley'] as BuildMode[]).map((mode) => (
                                 <label key={mode} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${buildMode === mode
                                     ? 'bg-blue-600/10 border-blue-600 text-blue-100 ring-1 ring-blue-600/50'
                                     : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700'
@@ -345,8 +345,9 @@ export const ControlPanel = () => {
                             ))}
                         </div>
 
-                        {/* 3D Precision Slider - Only for 3D Lossy mode */}
-                        {buildMode === '3d_valley_lossy' && (
+
+                        {/* 3D Precision Slider - Only for 3D modes */}
+                        {buildMode === '3d_valley' && (
                             <div className="mt-4 p-3 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
                                 <PrecisionSlider
                                     label="3D Precision"
