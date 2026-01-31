@@ -26,7 +26,11 @@ import { CollapsibleSection } from '../ui/CollapsibleSection';
 
 
 
-export const ControlPanel = () => {
+interface ControlPanelProps {
+    onOpenMaterials: () => void;
+}
+
+export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
     const context = useMapart();
     const {
         paletteVersion, setPaletteVersion,
@@ -89,6 +93,13 @@ export const ControlPanel = () => {
                     PARAMETERS
                 </h2>
                 <div className="flex items-center gap-2">
+                    <button
+                        onClick={onOpenMaterials}
+                        className="p-2 text-zinc-500 hover:bg-zinc-800 hover:text-emerald-400 rounded-md transition-all"
+                        title="Material List"
+                    >
+                        <Box size={20} />
+                    </button>
                     <button
                         onClick={() => console.log('Mapart Configuration:', context)}
                         className="p-2 text-zinc-500 hover:bg-zinc-800 hover:text-amber-400 rounded-md transition-all"

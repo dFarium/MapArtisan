@@ -1,5 +1,6 @@
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
-import type { BrightnessLevel, PaletteColor } from './mapartProcessing';
+import type { PaletteColor } from './mapartProcessing';
+import type { BrightnessLevel } from '../types/mapart';
 import paletteData from '../data/palette_1_21_11.json';
 
 // Minecraft version (1.21.4 / 1.21.11)

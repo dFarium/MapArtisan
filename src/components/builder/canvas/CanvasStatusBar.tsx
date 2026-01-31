@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import type { GridDimensions } from '../../../store/useMapartStore';
-import type { MapartStats } from '../../../utils/mapartProcessing';
+import type { MapartStats } from '../../../types/mapart';
 
 interface CanvasStatusBarProps {
     mapartResolution: { width: number; height: number };

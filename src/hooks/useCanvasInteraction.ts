@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export const useCanvasInteraction = (uploadedImage: File | null) => {
+export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boolean = false) => {
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -15,10 +15,10 @@ export const useCanvasInteraction = (uploadedImage: File | null) => {
     }, [uploadedImage, scale]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!uploadedImage || e.button !== 0) return; // Only left click
+        if (!uploadedImage || e.button !== 0 || isPainting) return; // Only left click, disable if painting
         setIsDragging(true);
         setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-    }, [uploadedImage, position]);
+    }, [uploadedImage, position, isPainting]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!isDragging) return;

@@ -2,8 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import { createCanvas, loadImage, ImageData as CanvasImageData } from 'canvas';
-import { processMapart } from '../src/utils/mapartProcessing.ts';
-import type { MapartStats } from '../src/utils/mapartProcessing.ts';
+import { processMapart } from '../src/utils/mapartProcessing';
+import type { MapartStats } from '../src/types/mapart';
 import paletteData from '../src/data/palette_1_21_11.json' with { type: 'json' };
 
 // Polyfill ImageData for Node environment

@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { rgbToLab, type RGB } from '../mapartProcessing';
+import { rgbToLab } from '../mapartProcessing';
+import type { RGB } from '../../types/mapart';
 
 describe('Mapart Processing Utils', () => {
     describe('rgbToLab', () => {
-        it('should convert pure black to correct LAB', () => {
+        it('converts black correctly', () => {
             const rgb: RGB = { r: 0, g: 0, b: 0 };
             const lab = rgbToLab(rgb);
             // Black algorithm results in 0.5 due to offset

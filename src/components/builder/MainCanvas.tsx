@@ -1,19 +1,28 @@
 import { useState, useRef } from 'react';
 import { useMapart } from '../../context/MapartContext';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
-import { useMapartWorker } from '../../hooks/useMapartWorker';
+import { type useMapartWorker } from '../../hooks/useMapartWorker';
 import { CanvasStatusBar } from './canvas/CanvasStatusBar';
 import { CanvasToolbar } from './canvas/CanvasToolbar';
 import { ImageUploader } from './canvas/ImageUploader';
+import { ManualEditsOverlay } from './canvas/ManualEditsOverlay';
 
-export const MainCanvas = () => {
+interface MainCanvasProps {
+    workerState: ReturnType<typeof useMapartWorker>;
+}
+
+export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const {
         uploadedImage, setUploadedImage, previewUrl, gridDimensions,
-        imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength,
-        setMapartStats, mapartStats, independentMaps, imageSettings
+        // imageFitMode, cropSettings, buildMode, 
+        selectedPaletteItems,
+        // threeDPrecision, dithering, useCielab, hybridStrength,
+        // setMapartStats, independentMaps, imageSettings 
+        // We only need the ones used for rendering/UI, logic is in workerState
+        mapartStats
     } = useMapart();
 
-    // Custom Hooks
+    // Use passed worker state
     const {
         isProcessing,
         scaledPreviewUrl,
@@ -21,22 +30,11 @@ export const MainCanvas = () => {
         mapartResolution,
         isExporting,
         exportMapart
-    } = useMapartWorker({
-        uploadedImage,
-        previewUrl,
-        gridDimensions,
-        imageFitMode,
-        cropSettings,
-        buildMode,
-        selectedPaletteItems,
-        threeDPrecision,
-        dithering,
-        useCielab,
-        hybridStrength,
-        independentMaps,
-        setMapartStats,
-        imageSettings
-    });
+    } = workerState;
+
+    const isPainting = useMapart(s => s.isPainting);
+    const brushBlock = useMapart(s => s.brushBlock);
+    const setManualEdit = useMapart(s => s.setManualEdit);
 
     const {
         scale,
@@ -47,7 +45,33 @@ export const MainCanvas = () => {
         handleMouseDown,
         handleMouseMove,
         handleMouseUp
-    } = useCanvasInteraction(uploadedImage);
+    } = useCanvasInteraction(uploadedImage, isPainting);
+
+    // Painting Handler
+    const handlePaint = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isPainting || !uploadedImage || !brushBlock) return;
+
+        // Get click position relative to the image
+        // We use nativeEvent.offsetX/Y which handles the scaling of the container gracefully 
+        // as long as the event target is the image/overlay itself appropriately sized.
+
+        // Note: Mapart resolution (width) is strictly `128 * grid * 128`.
+        // e.nativeEvent.offsetX should be close to pixel index.
+        const pixelX = Math.floor(e.nativeEvent.offsetX);
+        const pixelY = Math.floor(e.nativeEvent.offsetY);
+
+        if (pixelX >= 0 && pixelX < mapartResolution.width && pixelY >= 0 && pixelY < mapartResolution.height) {
+            const index = pixelY * mapartResolution.width + pixelX;
+            setManualEdit(index, brushBlock);
+        }
+    };
+
+    // Function to handle mouse move for painting (drag-paint)
+    const handlePaintMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.buttons === 1) { // Left mouse button held
+            handlePaint(e);
+        }
+    }
 
     // UI State
     const [showPreview, setShowPreview] = useState(true);
@@ -130,6 +154,27 @@ export const MainCanvas = () => {
                             {/* Mapart Preview */}
                             {showPreview && scaledPreviewUrl && (
                                 <div className="relative">
+                                    {/* Painting Overlay and Visual Feedback */}
+                                    {isPainting && (
+                                        <>
+                                            <div
+                                                className="absolute inset-0 cursor-crosshair z-20"
+                                                onMouseDown={handlePaint}
+                                                onMouseMove={handlePaintMove}
+                                                style={{
+                                                    width: mapartResolution.width,
+                                                    height: mapartResolution.height,
+                                                }}
+                                            />
+                                            {/* We render manual edits on top to ensure instant feedback even if preview is updating */}
+                                            <div className="absolute inset-0 z-10 pointer-events-none">
+                                                <ManualEditsOverlay
+                                                    width={mapartResolution.width}
+                                                    height={mapartResolution.height}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-green-500 font-semibold">Mapart Preview</div>
                                     <img
                                         src={scaledPreviewUrl}

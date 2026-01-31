@@ -1,14 +1,6 @@
-import paletteData from '../data/palette_1_21_11.json' with { type: 'json' };
+import paletteData from '../data/palette_1_21_11.json';
 import { MAPART } from './constants.ts';
-
-// Types based on palette structure
-export interface RGB {
-    r: number;
-    g: number;
-    b: number;
-}
-
-export type BrightnessLevel = 'lowest' | 'low' | 'normal' | 'high';
+import type { RGB, BrightnessLevel, MapartStats } from '../types/mapart';
 
 export interface PaletteColor {
     colorID: number;
@@ -26,7 +18,6 @@ export interface ColorCandidate {
 
 export type BuildMode = '2d' | '3d_valley';
 
-const MAX_HEIGHT_PENALTY = MAPART.MAX_HEIGHT_PENALTY;
 
 // ============================================================================
 // Caching System
@@ -54,12 +45,6 @@ export interface LAB {
     L: number;
     a: number;
     b: number;
-}
-
-export interface MapartStats {
-    minHeight: number;
-    maxHeight: number;
-    heightMap?: Int32Array; // Optional full height map for analysis
 }
 
 /**
@@ -405,7 +390,8 @@ function findClosestColorIndex(
     candidates: ColorCandidate[],
     candidateLabs: LAB[],
     useCielab: boolean,
-    skipCache: boolean = false
+    skipCache: boolean = false,
+    heightPenalty: number = 0
 ): ColorMatchResult {
     const key = rgbToBinary(target);
 
@@ -432,6 +418,12 @@ function findClosestColorIndex(
             dist = colorDistanceSq(target, candidates[i].rgb);
         }
 
+        // Apply 3D Precision Penalty
+        // If block is not flat (normal) and we have a penalty, add it to distance.
+        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
+            dist += heightPenalty;
+        }
+
         if (dist < bestDist) {
             bestDist = dist;
             bestIndex = i;
@@ -451,7 +443,8 @@ function findTwoClosestColors(
     target: RGB,
     candidates: ColorCandidate[],
     candidateLabs: LAB[],
-    useCielab: boolean
+    useCielab: boolean,
+    heightPenalty: number = 0
 ): { first: ColorMatchResult; second: ColorMatchResult } {
     const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
 
@@ -467,6 +460,11 @@ function findTwoClosestColors(
             dist = labDistanceSq(targetLab, candidateLabs[i]);
         } else {
             dist = colorDistanceSq(target, candidates[i].rgb);
+        }
+
+        // Apply 3D Precision Penalty
+        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
+            dist += heightPenalty;
         }
 
         if (dist < bestDist) {
@@ -499,12 +497,20 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    optimizeHeight: boolean = false // New parameter for "Safe Reset" strategy
-): { imageData: ImageData; stats: MapartStats } {
+    _optimizeHeight: boolean = false
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
-        return { imageData, stats: { minHeight: 0, maxHeight: 0 } };
+        return {
+            imageData,
+            stats: {
+                minHeight: 0,
+                maxHeight: 0,
+                heightMap: new Int32Array(imageData.width).fill(0)
+            },
+            toneMap: new Int8Array(imageData.width * imageData.height)
+        };
     }
 
     // Clear color cache for fresh processing
@@ -526,14 +532,22 @@ export function processMapart(
 
     const output = new Uint8ClampedArray(data);
 
-    // Height penalty for 3D lossy
+    // Height penalty for 3D Precision Slider
+    // 100% Precision = 0 Penalty (Free to use High/Low blocks)
+    // 0% Precision = Max Penalty (Avoid High/Low blocks -> 2D)
     const normalizedPrecision = threeDPrecision / 100;
-    let heightPenalty: number;
-    if (threeDPrecision === 0) {
-        heightPenalty = MAX_HEIGHT_PENALTY;
-    } else {
-        const PRACTICAL_MAX = useCielab ? 50 : 5000;
-        heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
+    let heightPenalty = 0;
+
+    // Only apply penalty if we are in 3D mode. In 2D mode, we filter candidates anyway or penalty doesn't matter (since 2D only uses normal blocks usually? Actually specific 2D mode logic handles filtering).
+    // Actually getValidColors filters based on mode.
+    // If buildMode is '3d_valley', we have High/Normal/Low candidates.
+    if (buildMode === '3d_valley') {
+        if (threeDPrecision < 100) {
+            const PRACTICAL_MAX = useCielab ? 10000 : 200000; // Large enough to outweigh color difference
+            heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
+            // Make 0% absolute refusal
+            if (threeDPrecision === 0) heightPenalty = Infinity;
+        }
     }
 
     // Pre-compute LAB values for candidates
@@ -556,14 +570,14 @@ export function processMapart(
 
 
 
+    // Tone Map for Smart Drop Optimization phase (initialized to 0)
+    // Values: 1 (High), -1 (Low), 0 (Normal)
+    // We use Int8Array for memory efficiency.
+    const toneMap = new Int8Array(width * height);
+
     // 3d_valley_lossy removed. Using standard path.
     {
         // Standard Processing (2D or 3D Valley)
-
-        // Tone Map for Smart Drop Optimization phase (initialized to 0)
-        // Values: 1 (High), -1 (Low), 0 (Normal)
-        // We use Int8Array for memory efficiency.
-        const toneMap = new Int8Array(width * height);
 
         for (let y = 0; y < height; y++) {
             // Independent Maps: Reset column heights at row boundary
@@ -575,8 +589,9 @@ export function processMapart(
             }
 
             for (let x = 0; x < width; x++) {
-                let r = floatBuffer[y][x * 3];
 
+
+                let r = floatBuffer[y][x * 3];
                 let g = floatBuffer[y][x * 3 + 1];
                 let b = floatBuffer[y][x * 3 + 2];
 
@@ -586,11 +601,14 @@ export function processMapart(
                     b: Math.max(0, Math.min(255, b))
                 };
 
+                let bestRGB: RGB;
+                let bestBrightness: BrightnessLevel;
+
                 let bestIndex: number;
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering with two-color selection
-                    const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab);
+                    const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab, heightPenalty);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
                     const maxThreshold = is8x8 ? 65 : 17;
@@ -603,27 +621,31 @@ export function processMapart(
                     }
                 } else {
                     // Skip cache during error diffusion since accumulated error makes each pixel unique
-                    const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion);
+                    // Using findClosestColorIndex with penalty
+                    const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion, heightPenalty);
                     bestIndex = result.index;
                 }
 
                 const best = candidates[bestIndex];
+                bestRGB = best.rgb;
+                bestBrightness = best.brightness;
+
                 const idx = (y * width + x) * 4;
-                output[idx] = best.rgb.r;
-                output[idx + 1] = best.rgb.g;
-                output[idx + 2] = best.rgb.b;
+                output[idx] = bestRGB.r;
+                output[idx + 1] = bestRGB.g;
+                output[idx + 2] = bestRGB.b;
 
                 // Save Tone decision for Phase 2
                 if (buildMode === '3d_valley') {
                     let tone = 0;
-                    if (best.brightness === 'high') tone = 1;
-                    else if (best.brightness === 'low') tone = -1;
+                    if (bestBrightness === 'high') tone = 1;
+                    else if (bestBrightness === 'low') tone = -1;
                     toneMap[y * width + x] = tone; // Store in row-major order
                 }
 
                 // Update height stats (standard/2d modes)
-                if (best.brightness === 'high') colHeights[x]++;
-                else if (best.brightness === 'low') colHeights[x]--;
+                if (bestBrightness === 'high') colHeights[x]++;
+                else if (bestBrightness === 'low') colHeights[x]--;
 
                 if (colHeights[x] > overallMax) overallMax = colHeights[x];
                 if (colHeights[x] < overallMin) overallMin = colHeights[x];
@@ -638,7 +660,7 @@ export function processMapart(
                         const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
 
                         // Calculate quantization error (how far is the chosen color from the original?)
-                        const quantErrorSq = (r - best.rgb.r) ** 2 + (g - best.rgb.g) ** 2 + (b - best.rgb.b) ** 2;
+                        const quantErrorSq = (r - bestRGB.r) ** 2 + (g - bestRGB.g) ** 2 + (b - bestRGB.b) ** 2;
 
                         // User-controlled thresholds based on hybridStrength (0-100)
                         // hybridStrength=0: Absolute noise reduction (minScale=0.0) -> Solid colors
@@ -676,9 +698,9 @@ export function processMapart(
                         }
                     }
 
-                    const errR = (r - best.rgb.r) * errorScale;
-                    const errG = (g - best.rgb.g) * errorScale;
-                    const errB = (b - best.rgb.b) * errorScale;
+                    const errR = (r - bestRGB.r) * errorScale;
+                    const errG = (g - bestRGB.g) * errorScale;
+                    const errB = (b - bestRGB.b) * errorScale;
                     const activeMatrix = isHybrid ? fsMatrix : ditherMatrix;
                     const divisor = activeMatrix.divisor;
                     const matrix = activeMatrix.matrix;
@@ -709,6 +731,7 @@ export function processMapart(
                 }
             }
         }
+
 
         // ============================================================================
         // Phase 2: Height Optimization (Smart Drop) for 3D Valley
@@ -757,8 +780,104 @@ export function processMapart(
         stats: {
             minHeight: overallMin,
             maxHeight: overallMax,
-            heightMap: colHeights // This tracks the final elevation of the South-most block of each column
+            heightMap: colHeights
+        },
+        toneMap
+    };
+}
+
+// ============================================================================
+// Manual Edits Application
+// ============================================================================
+
+import type { ManualEdit } from '../types/mapart';
+
+export function calculateStatsFromToneMap(width: number, height: number, toneMap: Int8Array, buildMode: BuildMode): MapartStats {
+    let overallMin = 0;
+    let overallMax = 0;
+    const colHeights = new Int32Array(width).fill(0);
+
+    if (buildMode === '3d_valley') {
+        // Process each column
+        for (let x = 0; x < width; x++) {
+            const columnTones: number[] = [];
+            for (let y = 0; y < height; y++) {
+                columnTones.push(toneMap[y * width + x]);
+            }
+
+            // Apply Smart Drop
+            const { min, max, path } = optimizeColumnHeights(columnTones);
+
+            if (min < overallMin) overallMin = min;
+            if (max > overallMax) overallMax = max;
+            if (path.length > 0) {
+                colHeights[x] = path[path.length - 1];
+            }
         }
+    } else {
+        // For 2D, we just track relative height changes if any
+        for (let x = 0; x < width; x++) {
+            let h = 0;
+            for (let y = 0; y < height; y++) {
+                const tone = toneMap[y * width + x];
+                if (tone === 1) h++;
+                else if (tone === -1) h--;
+
+                if (h > overallMax) overallMax = h;
+                if (h < overallMin) overallMin = h;
+            }
+            colHeights[x] = h;
+        }
+    }
+
+    return {
+        minHeight: overallMin,
+        maxHeight: overallMax,
+        heightMap: colHeights
+    };
+}
+
+export function applyManualEdits(
+    baseImageData: ImageData,
+    baseToneMap: Int8Array,
+    manualEdits: Record<number, ManualEdit>,
+    buildMode: BuildMode
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
+    const { width, height } = baseImageData;
+    const totalPixels = width * height;
+
+    // Clone data to avoid mutating base
+    const newOutput = new Uint8ClampedArray(baseImageData.data);
+    const newToneMap = new Int8Array(baseToneMap);
+
+    // Apply edits
+    for (const [key, edit] of Object.entries(manualEdits)) {
+        const index = Number(key);
+        if (index < 0 || index >= totalPixels) continue;
+
+        // Apply Color
+        const idx = index * 4;
+        newOutput[idx] = edit.rgb.r;
+        newOutput[idx + 1] = edit.rgb.g;
+        newOutput[idx + 2] = edit.rgb.b;
+        newOutput[idx + 3] = 255; // Ensure alpha is full
+
+        // Apply Tone
+        // We need to convert brightness to tone integer
+        let tone = 0;
+        if (edit.brightness === 'high') tone = 1;
+        else if (edit.brightness === 'low') tone = -1;
+
+        newToneMap[index] = tone; // Overwrite tone
+    }
+
+    // Recalculate Stats
+    const stats = calculateStatsFromToneMap(width, height, newToneMap, buildMode);
+
+    return {
+        imageData: new ImageData(newOutput, width, height),
+        stats,
+        toneMap: newToneMap
     };
 }
 

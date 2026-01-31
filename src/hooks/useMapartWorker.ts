@@ -2,7 +2,8 @@ import { wrap, type Remote } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, BuildMode, GridDimensions, ImageSettings } from '../store/useMapartStore';
-import { type DitheringMode, type MapartStats } from '../utils/mapartProcessing';
+import type { DitheringMode } from '../utils/mapartProcessing';
+import type { MapartStats, BrightnessLevel, RGB } from '../types/mapart';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -19,6 +20,7 @@ interface UseMapartWorkerProps {
     independentMaps: boolean;
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
+    manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
 }
 
 export const useMapartWorker = ({
@@ -34,7 +36,8 @@ export const useMapartWorker = ({
     hybridStrength,
     independentMaps,
     setMapartStats,
-    imageSettings
+    imageSettings,
+    manualEdits
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -75,8 +78,10 @@ export const useMapartWorker = ({
             return;
         }
 
+        console.log('[useMapartWorker] Prepare Image effect triggered', { previewUrl });
         const img = new Image();
         img.onload = async () => {
+            console.log('[useMapartWorker] Image loaded', { width: img.width, height: img.height });
             const canvas = document.createElement('canvas');
             canvas.width = mapartResolution.width;
             canvas.height = mapartResolution.height;
@@ -156,17 +161,13 @@ export const useMapartWorker = ({
         img.src = previewUrl;
     }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings]);
 
-    // 2. Process Mapart
+    // 2a. Heavy Processing (Settings Change)
     useEffect(() => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return;
 
+        console.log('[useMapartWorker] Starting heavy processing...');
         const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
         if (!hasSelection) return;
-
-        if (isProcessing) {
-            console.debug("Cancelling stale processing task...");
-            initWorker();
-        }
 
         setIsProcessing(true);
 
@@ -175,7 +176,8 @@ export const useMapartWorker = ({
                 const api = workerApiRef.current;
                 if (!api) return;
 
-                const { imageData: processedData, stats } = await api.processMapart(
+                // this call caches the base result in the worker
+                await api.processMapart(
                     sourceImageDataRef.current!,
                     buildMode,
                     selectedPaletteItems,
@@ -185,6 +187,9 @@ export const useMapartWorker = ({
                     hybridStrength,
                     independentMaps
                 );
+
+                // Apply current edits to that new base
+                const { imageData: processedData, stats } = await api.applyEdits(manualEdits);
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -196,7 +201,7 @@ export const useMapartWorker = ({
                     setMapartStats(stats);
                 }
             } catch (err) {
-                // Ignore errors
+                console.error("Heavy processing failed", err);
             } finally {
                 setIsProcessing(false);
             }
@@ -207,11 +212,70 @@ export const useMapartWorker = ({
         sourceImageVersion,
         buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
         initWorker, mapartResolution.width, mapartResolution.height
+        // manualEdits EXCLUDED
     ]);
+
+    // 2b. Light Processing (Manual Edits)
+    useEffect(() => {
+        if (!sourceImageDataRef.current || !workerApiRef.current) return;
+
+        // Don't run if processing heavy? No, we might want to apply edits anyway, 
+        // but let's avoid race if possible. Actually worker queue handles it.
+
+        // Skip if no edits and we assume heavy proc handled clean state?
+        // No, because if we clear edits, we need to revert to base.
+
+        const apply = async () => {
+            try {
+                const api = workerApiRef.current;
+                if (!api) return;
+
+                const { imageData: processedData, stats } = await api.applyEdits(manualEdits);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = mapartResolution.width;
+                canvas.height = mapartResolution.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.putImageData(processedData, 0, 0);
+                    setScaledPreviewUrl(canvas.toDataURL('image/png'));
+                    setMapartStats(stats);
+                }
+            } catch (err) {
+                // This might fail if processMapart hasn't run yet (e.g. init).
+                // We can ignore or handle.
+            }
+        };
+
+        apply();
+    }, [manualEdits, mapartResolution.width, mapartResolution.height]);
 
     const [isExporting, setIsExporting] = useState(false);
 
     // ... existing initialization code ...
+
+    const calculateMaterials = async () => {
+        if (!sourceImageDataRef.current || !workerApiRef.current) return null;
+
+        try {
+            const api = workerApiRef.current;
+            const counts = await api.calculateMaterialCounts(
+                sourceImageDataRef.current,
+                selectedPaletteItems,
+                buildMode,
+                threeDPrecision,
+                dithering as DitheringMode,
+                useCielab,
+                hybridStrength,
+                independentMaps,
+                manualEdits // Pass manual edits
+            );
+            return counts;
+        } catch (err) {
+            console.error("Material calculation failed:", err);
+            return null;
+        }
+    };
 
     const exportMapart = async (
         filename: string,
@@ -241,7 +305,8 @@ export const useMapartWorker = ({
                 dithering as DitheringMode,
                 useCielab,
                 hybridStrength,
-                independentMaps
+                independentMaps,
+                manualEdits // Pass manual edits
             );
 
             // Import dynamically to avoid circular dependencies if any, or just standard import
@@ -260,6 +325,7 @@ export const useMapartWorker = ({
         scaledPreviewUrl,
         originalTransformedUrl,
         mapartResolution,
-        exportMapart
+        exportMapart,
+        calculateMaterials
     };
 };

@@ -1,6 +1,7 @@
+import type { PaletteColor, DitheringMode } from './mapartProcessing';
+import type { BrightnessLevel, RGB } from '../types/mapart';
+import { processMapart, optimizeColumnHeights, applyManualEdits } from './mapartProcessing';
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
-import type { BrightnessLevel, PaletteColor, DitheringMode } from './mapartProcessing';
-import { processMapart, optimizeColumnHeights } from './mapartProcessing';
 import * as bitArray from './litematicaBitArray';
 import paletteData from '../data/palette_1_21_11.json';
 
@@ -34,10 +35,12 @@ export function imageDataToBlockStates(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true,
     hybridStrength: number = 50,
-    independentMaps: boolean = false
+    independentMaps: boolean = false,
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
-    const { imageData: processedImageData } = processMapart(
+    // Phase 1: Base Processing
+    const { imageData: baseImageData, toneMap: baseToneMap } = processMapart(
         imageData,
         buildMode,
         selectedPaletteItems,
@@ -48,6 +51,15 @@ export function imageDataToBlockStates(
         independentMaps,
         true // Enable optimizeHeight (Safe Reset) for export
     );
+
+    // Phase 2: Apply Manual Edits
+    let processedImageData = baseImageData;
+    // We don't strictly need updated toneMap/stats here as logic derives tone from rgb match below,
+    // but applyManualEdits gives us the correct pixel colors.
+    if (manualEdits && Object.keys(manualEdits).length > 0) {
+        const res = applyManualEdits(baseImageData, baseToneMap, manualEdits, buildMode);
+        processedImageData = res.imageData;
+    }
 
     const { width, height, data } = processedImageData;
     const blockStates: BlockWithCoords[] = [];
@@ -253,7 +265,8 @@ export function createLitematicaNBT(
         const key = block.properties
             ? `${block.blockId}[${Object.entries(block.properties)
                 .map(([k, v]) => `${k}=${v}`)
-                .join(',')}]`
+                .join(',')
+            }]`
             : block.blockId;
 
         if (!paletteMap.has(key)) {
@@ -281,7 +294,8 @@ export function createLitematicaNBT(
         const blockKey = block.properties
             ? `${block.blockId}[${Object.entries(block.properties)
                 .map(([k, v]) => `${k}=${v}`)
-                .join(',')}]`
+                .join(',')
+            }]`
             : block.blockId;
 
         const paletteIdx = paletteMap.get(blockKey) ?? 0;
@@ -422,10 +436,11 @@ export async function generateMapartExport(
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
-    dithering: DitheringMode = 'none', // Added dithering parameter
+    dithering: DitheringMode = 'none',
     useCielab: boolean = true,
     hybridStrength: number = 50,
-    independentMaps: boolean = false
+    independentMaps: boolean = false,
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
     const isMultiMap = width > 128 || height > 128;
@@ -434,7 +449,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -460,6 +475,9 @@ export async function generateMapartExport(
                 const sectionHeight = 128; // Always 128x128 for map parts
                 const sectionData = new Uint8ClampedArray(sectionWidth * sectionHeight * 4);
 
+                // We also need to slice manualEdits for this section
+                const sectionManualEdits: typeof manualEdits = {};
+
                 for (let sy = 0; sy < sectionHeight; sy++) {
                     for (let sx = 0; sx < sectionWidth; sx++) {
                         const globalX = x * 128 + sx;
@@ -472,6 +490,13 @@ export async function generateMapartExport(
                             sectionData[targetIdx + 1] = data[sourceIdx + 1];
                             sectionData[targetIdx + 2] = data[sourceIdx + 2];
                             sectionData[targetIdx + 3] = data[sourceIdx + 3];
+
+                            // Copy manual edit if exists
+                            const globalPixelIdx = globalY * width + globalX;
+                            if (manualEdits && manualEdits[globalPixelIdx]) {
+                                const localPixelIdx = sy * sectionWidth + sx;
+                                sectionManualEdits[localPixelIdx] = manualEdits[globalPixelIdx];
+                            }
                         }
                     }
                 }
@@ -481,13 +506,13 @@ export async function generateMapartExport(
                 // Process independently to get correct noob lines for this section
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {
                     ...metadata,
                     name: `${metadata.name || 'MapArt'} (${x},${y})`,
-                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by mapart-creator'}`
+                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by mapart-creator'} `
                 });
 
                 const sectionBuffer = serializeNBT(sectionNbt);
@@ -496,7 +521,7 @@ export async function generateMapartExport(
         }
 
         const zipContent = await zip.generateAsync({ type: 'blob' });
-        return { blob: zipContent, filename: `${baseName}_package.zip` };
+        return { blob: zipContent, filename: `${baseName} _package.zip` };
     }
 }
 
@@ -512,4 +537,33 @@ export function triggerDownload(blob: Blob, filename: string) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+}
+
+/**
+ * Calculate total materials needed
+ */
+export function calculateMaterialCounts(
+    imageData: ImageData,
+    selectedPaletteItems: Record<number, string | null>,
+    buildMode: '2d' | '3d_valley',
+    threeDPrecision: number = 0,
+    dithering: DitheringMode = 'none',
+    useCielab: boolean = true,
+    hybridStrength: number = 50,
+    independentMaps: boolean = false,
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
+): Record<string, number> {
+    const blockStates = imageDataToBlockStates(
+        imageData, selectedPaletteItems, buildMode, true,
+        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
+    );
+
+    const counts: Record<string, number> = {};
+
+    for (const block of blockStates) {
+        if (block.blockId === 'minecraft:air') continue;
+        counts[block.blockId] = (counts[block.blockId] || 0) + 1;
+    }
+
+    return counts;
 }
