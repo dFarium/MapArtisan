@@ -28,7 +28,8 @@ const api = {
         dithering: DitheringMode = 'none',
         useCielab: boolean = true,
         hybridStrength: number = 50,
-        independentMaps: boolean = false
+        independentMaps: boolean = false,
+        transparencySettings: { enabled: boolean; color: string } = { enabled: false, color: '#000000' }
     ) => {
         const result = processMapart(
             imageData,
@@ -39,10 +40,7 @@ const api = {
             useCielab,
             hybridStrength,
             independentMaps,
-            false // _optimizeHeight (not needed for preview generally, or strictly yes for stats? "Safe Reset" affects stats?)
-            // Actually processMapart defaults `_optimizeHeight` to false in signature but logic uses it?
-            // Wait, viewing `processMapart` signature shows `_optimizeHeight` param.
-            // In preview we usually want standard behavior.
+            transparencySettings
         );
 
         lastBaseResult = {

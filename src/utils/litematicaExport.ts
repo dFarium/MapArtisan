@@ -36,7 +36,8 @@ export function imageDataToBlockStates(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
+    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     // Phase 1: Base Processing
@@ -49,6 +50,7 @@ export function imageDataToBlockStates(
         useCielab,
         hybridStrength,
         independentMaps,
+        transparencySettings,
         true // Enable optimizeHeight (Safe Reset) for export
     );
 
@@ -109,6 +111,11 @@ export function imageDataToBlockStates(
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
+            const a = data[idx + 3];
+
+            // If Alpha is transparent (Air), skip block placement
+            if (a < 128) continue;
+
             const key = (r << 16) | (g << 8) | b;
 
             const colorInfo = rgbToColor.get(key);
@@ -440,7 +447,8 @@ export async function generateMapartExport(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
+    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
     const isMultiMap = width > 128 || height > 128;
@@ -449,7 +457,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, transparencySettings
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -506,7 +514,7 @@ export async function generateMapartExport(
                 // Process independently to get correct noob lines for this section
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, transparencySettings
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {
@@ -551,11 +559,12 @@ export function calculateMaterialCounts(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
+    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
 ): Record<string, number> {
     const blockStates = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
+        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, transparencySettings
     );
 
     const counts: Record<string, number> = {};

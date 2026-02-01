@@ -1,4 +1,4 @@
-import { X, RefreshCw, Paintbrush, ChevronDown, Pipette } from 'lucide-react';
+import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Eraser, Moon, Minus, Sun } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
 import type { BrightnessLevel } from '../../types/mapart';
 import paletteData from '../../data/palette_1_21_11.json';
@@ -105,10 +105,98 @@ export const PixelEditor = () => {
                 </div>
             </div>
 
+
             <BrushSelector
                 isOpen={isBrushSelectorOpen}
                 onClose={() => setIsBrushSelectorOpen(false)}
             />
+
+            {/* Brightness Controls */}
+            {
+                brushBlock && (
+                    <div className="flex items-center gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
+                        <button
+                            onClick={() => updateBrightness('low')}
+                            className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'low'
+                                ? 'bg-zinc-800 text-blue-400'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                            title="Low (Depth)"
+                        >
+                            <Moon size={12} />
+                        </button>
+                        <button
+                            onClick={() => updateBrightness('normal')}
+                            className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'normal'
+                                ? 'bg-zinc-800 text-zinc-100'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                            title="Normal (Flat)"
+                        >
+                            <Minus size={12} />
+                        </button>
+                        <button
+                            onClick={() => updateBrightness('high')}
+                            className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'high'
+                                ? 'bg-zinc-800 text-amber-400'
+                                : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                            title="High (Peak)"
+                        >
+                            <Sun size={12} />
+                        </button>
+                    </div>
+                )
+            }
+
+
+            {/* Tools */}
+            <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                <button
+                    onClick={() => {
+                        setIsPicking(false);
+                        setIsPainting(true); // Ensure painting mode is active
+                        // If we were erasing, switch back to normal brush block or keep current?
+                        // Actually, Eraser is just a brush with AIR.
+                        // But if we want a dedicated tool button:
+                        if (brushBlock?.blockId === 'minecraft:air') {
+                            // Restore default red on switch? No, keep it simple.
+                        }
+                    }}
+                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking && brushBlock?.blockId !== 'minecraft:air')
+                        ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
+                        : 'text-zinc-400 hover:bg-zinc-800'
+                        }`}
+                >
+                    <Paintbrush size={14} /> Brush
+                </button>
+                <button
+                    onClick={() => {
+                        setBrushBlock({
+                            blockId: 'minecraft:air',
+                            brightness: 'normal',
+                            rgb: { r: 0, g: 0, b: 0 }
+                        });
+                        setIsPainting(true);
+                        setIsPicking(false);
+                    }}
+                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking && brushBlock?.blockId === 'minecraft:air')
+                        ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
+                        : 'text-zinc-400 hover:bg-zinc-800'
+                        }`}
+                >
+                    <Eraser size={14} /> Eraser
+                </button>
+                <button
+                    onClick={() => setIsPicking(!isPicking)}
+                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${isPicking
+                        ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
+                        : 'text-zinc-400 hover:bg-zinc-800'
+                        }`}
+                >
+                    <Pipette size={14} /> Picker
+                </button>
+            </div>
 
             {/* Brightness Controls */}
             <div className="flex bg-zinc-950 rounded border border-zinc-800 p-0.5">
@@ -164,6 +252,6 @@ export const PixelEditor = () => {
             >
                 <X size={14} />
             </button>
-        </div>
+        </div >
     );
 };

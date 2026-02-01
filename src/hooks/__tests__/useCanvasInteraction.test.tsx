@@ -1,3 +1,4 @@
+
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
@@ -6,55 +7,78 @@ describe('useCanvasInteraction', () => {
     const mockFile = new File([''], 'test.png', { type: 'image/png' });
 
     it('should initialize with default values', () => {
-        const { result } = renderHook(() => useCanvasInteraction(mockFile));
-        expect(result.current.scale).toBe(1);
-        expect(result.current.position).toEqual({ x: 0, y: 0 });
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as any, { width: 100, height: 100 }));
+        expect(result.current.scale).toBe(0.9);
+        expect(result.current.position).toEqual({ x: 5, y: 5 });
         expect(result.current.isDragging).toBe(false);
     });
 
     it('should not respond to events if no image is uploaded', () => {
-        const { result } = renderHook(() => useCanvasInteraction(null));
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(null, false, mockRef as any, { width: 100, height: 100 }));
 
         act(() => {
             // @ts-ignore - Mocking event
             result.current.handleWheel({ preventDefault: vi.fn(), deltaY: -100 });
         });
-        expect(result.current.scale).toBe(1); // Should stay 1
+        expect(result.current.scale).toBe(1);
     });
 
     it('should handle wheel zoom', () => {
-        const { result } = renderHook(() => useCanvasInteraction(mockFile));
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as any, { width: 100, height: 100 }));
         const preventDefault = vi.fn();
 
         act(() => {
             // @ts-ignore
-            result.current.handleWheel({ preventDefault, deltaY: -200 } as React.WheelEvent);
+            result.current.handleWheel({
+                preventDefault,
+                deltaY: -200,
+                clientX: 50,
+                clientY: 50,
+                currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } as any
+            } as React.WheelEvent);
         });
 
         expect(preventDefault).toHaveBeenCalled();
-        expect(result.current.scale).toBeGreaterThan(1);
+        expect(result.current.scale).toBeGreaterThan(0.9);
     });
 
     it('should clamp zoom scale', () => {
-        const { result } = renderHook(() => useCanvasInteraction(mockFile));
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as any, { width: 100, height: 100 }));
 
         // Try to zoom way out
         act(() => {
             // @ts-ignore
-            result.current.handleWheel({ preventDefault: () => { }, deltaY: 10000 });
+            result.current.handleWheel({
+                preventDefault: () => { },
+                deltaY: 10000,
+                clientX: 50,
+                clientY: 50,
+                currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } as any
+            });
         });
         expect(result.current.scale).toBe(0.1);
 
         // Try to zoom way in
         act(() => {
             // @ts-ignore
-            result.current.handleWheel({ preventDefault: () => { }, deltaY: -10000 });
+            result.current.handleWheel({
+                preventDefault: () => { },
+                deltaY: -300000,
+                clientX: 50,
+                clientY: 50,
+                currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } as any
+            });
         });
-        expect(result.current.scale).toBe(5);
+        expect(result.current.scale).toBe(25);
     });
 
     it('should handle dragging logic', () => {
-        const { result } = renderHook(() => useCanvasInteraction(mockFile));
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as any, { width: 100, height: 100 }));
 
         // Mouse Down
         act(() => {
@@ -62,14 +86,15 @@ describe('useCanvasInteraction', () => {
             result.current.handleMouseDown({ button: 0, clientX: 100, clientY: 100 });
         });
         expect(result.current.isDragging).toBe(true);
-        expect(result.current.position).toEqual({ x: 0, y: 0 }); // Drag start, position doesn't change yet
+        expect(result.current.position).toEqual({ x: 5, y: 5 });
 
         // Mouse Move
         act(() => {
             // @ts-ignore
             result.current.handleMouseMove({ clientX: 150, clientY: 150 });
         });
-        expect(result.current.position).toEqual({ x: 50, y: 50 });
+        // 150 - 100 = 50 delta. Pos = 5 + 50 = 55
+        expect(result.current.position).toEqual({ x: 55, y: 55 });
 
         // Mouse Up
         act(() => {
@@ -79,20 +104,30 @@ describe('useCanvasInteraction', () => {
     });
 
     it('should reset when image changes', () => {
-        const { result, rerender } = renderHook(({ img }: { img: File | null }) => useCanvasInteraction(img), {
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result, rerender } = renderHook(({ img }: { img: File | null }) => useCanvasInteraction(img, false, mockRef as any, { width: 100, height: 100 }), {
             initialProps: { img: mockFile }
         });
 
+        // Initial check
+        expect(result.current.scale).toBe(0.9);
+
         act(() => {
             // @ts-ignore
-            result.current.handleWheel({ preventDefault: () => { }, deltaY: -200 }); // Zoom in
+            result.current.handleWheel({
+                preventDefault: () => { },
+                deltaY: -200,
+                clientX: 50,
+                clientY: 50,
+                currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } as any
+            }); // Zoom in
         });
-        expect(result.current.scale).not.toBe(1);
+        expect(result.current.scale).not.toBe(0.9);
 
-        // Change prop (simulate new upload - referencing same file object might not trigger effect if dep is same, but here we pass new prop)
+        // Change prop 
         rerender({ img: new File([''], 'new.png') });
 
-        // Wait for effect? Standard useEffect runs after render.
-        expect(result.current.scale).toBe(1);
+        // Should reset to fit scale
+        expect(result.current.scale).toBe(0.9);
     });
 });

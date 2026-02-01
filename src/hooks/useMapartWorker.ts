@@ -21,7 +21,9 @@ interface UseMapartWorkerProps {
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
+    transparency: { enabled: boolean; color: string };
 }
+
 
 export const useMapartWorker = ({
     previewUrl,
@@ -37,7 +39,8 @@ export const useMapartWorker = ({
     independentMaps,
     setMapartStats,
     imageSettings,
-    manualEdits
+    manualEdits,
+    transparency
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -190,7 +193,8 @@ export const useMapartWorker = ({
                     dithering as DitheringMode,
                     useCielab,
                     hybridStrength,
-                    independentMaps
+                    independentMaps,
+                    transparency
                 );
 
                 if (!active) return;
@@ -231,7 +235,7 @@ export const useMapartWorker = ({
         };
     }, [
         sourceImageVersion,
-        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
+        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, transparency,
         initWorker, mapartResolution.width, mapartResolution.height
         // manualEdits EXCLUDED
     ]);
@@ -289,7 +293,9 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits // Pass manual edits
+
+                manualEdits, // Pass manual edits
+                transparency
             );
             return counts;
         } catch (err) {
@@ -327,7 +333,9 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits // Pass manual edits
+
+                manualEdits, // Pass manual edits
+                transparency
             );
 
             // Import dynamically to avoid circular dependencies if any, or just standard import

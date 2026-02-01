@@ -65,7 +65,7 @@ describe('PaletteGroup', () => {
         expect(screen.getByTitle('white_wool')).toBeDefined();
         expect(screen.getByTitle('white_concrete')).toBeDefined();
         // The unselect button and image both have the title, so we check if at least one exists
-        expect(screen.getAllByTitle('Unselect').length).toBeGreaterThan(0);
+        expect(screen.getAllByTitle('Unselect (Auto)').length).toBeGreaterThan(0);
     });
 
     it('calls onToggleBlock when a block is clicked', () => {

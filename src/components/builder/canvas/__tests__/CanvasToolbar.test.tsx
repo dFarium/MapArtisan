@@ -17,7 +17,9 @@ describe('CanvasToolbar', () => {
         onExport,
         canExport: true,
         onClearImage,
-        isProcessing: false
+        isProcessing: false,
+        onDownloadPreview: vi.fn(),
+        canDownloadPreview: true
     };
 
     it('renders zoom controls and handles clicks', () => {

@@ -497,6 +497,7 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
+    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' },
     _optimizeHeight: boolean = false
 ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[] } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
@@ -520,15 +521,46 @@ export function processMapart(
 
     const { width, height, data } = imageData;
 
+    // Parse transparency color if enabled
+    let transR = 255, transG = 255, transB = 255;
+    if (transparencySettings.enabled) {
+        const hex = transparencySettings.color.replace('#', '');
+        transR = parseInt(hex.substring(0, 2), 16);
+        transG = parseInt(hex.substring(2, 4), 16);
+        transB = parseInt(hex.substring(4, 6), 16);
+    }
+
     // Create float buffer for error diffusion
     const floatBuffer: number[][] = [];
     for (let i = 0; i < height; i++) {
         floatBuffer[i] = [];
         for (let j = 0; j < width; j++) {
             const idx = (i * width + j) * 4;
-            floatBuffer[i][j * 3] = data[idx];
-            floatBuffer[i][j * 3 + 1] = data[idx + 1];
-            floatBuffer[i][j * 3 + 2] = data[idx + 2];
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const a = data[idx + 3];
+
+            if (a < 128) {
+                if (transparencySettings.enabled) {
+                    // Replace with mask color
+                    floatBuffer[i][j * 3] = transR;
+                    floatBuffer[i][j * 3 + 1] = transG;
+                    floatBuffer[i][j * 3 + 2] = transB;
+                } else {
+                    // Mark as transparent (we use a special marker or just 0,0,0 and handle it in loop)
+                    // We'll handle this inside the main loop by checking original alpha again or by flagging it here.
+                    // For error diffusion consistency, if it's AIR, we probably shouldn't diffuse error FROM it or TO it?
+                    // Simpler: Just set to 0. We will check alpha in loop.
+                    floatBuffer[i][j * 3] = 0;
+                    floatBuffer[i][j * 3 + 1] = 0;
+                    floatBuffer[i][j * 3 + 2] = 0;
+                }
+            } else {
+                floatBuffer[i][j * 3] = r;
+                floatBuffer[i][j * 3 + 1] = g;
+                floatBuffer[i][j * 3 + 2] = b;
+            }
         }
     }
 
@@ -595,6 +627,22 @@ export function processMapart(
 
             for (let x = 0; x < width; x++) {
 
+
+                // Check for transparency (AIR) case
+                // We re-check original alpha because floatBuffer might have been modified for mask
+                const sourceIdx = (y * width + x) * 4;
+                const sourceAlpha = data[sourceIdx + 3];
+
+                // If transparency disabled (native transparency) and alpha is low, skip
+                if (!transparencySettings.enabled && sourceAlpha < 128) {
+                    output[sourceIdx] = 0;
+                    output[sourceIdx + 1] = 0;
+                    output[sourceIdx + 2] = 0;
+                    output[sourceIdx + 3] = 0;
+                    blockIndices[y * width + x] = -1; // Special index for Air
+                    toneMap[y * width + x] = 0; // No tone
+                    continue;
+                }
 
                 let r = floatBuffer[y][x * 3];
                 let g = floatBuffer[y][x * 3 + 1];
@@ -867,6 +915,16 @@ export function applyManualEdits(
 
         // Apply Color
         const idx = index * 4;
+
+        if (edit.blockId === 'minecraft:air') {
+            newOutput[idx] = 0;
+            newOutput[idx + 1] = 0;
+            newOutput[idx + 2] = 0;
+            newOutput[idx + 3] = 0;
+            newToneMap[index] = 0;
+            continue;
+        }
+
         newOutput[idx] = edit.rgb.r;
         newOutput[idx + 1] = edit.rgb.g;
         newOutput[idx + 2] = edit.rgb.b;
