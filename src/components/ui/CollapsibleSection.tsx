@@ -6,30 +6,43 @@ interface CollapsibleSectionProps {
     icon: ReactNode;
     children: ReactNode;
     defaultOpen?: boolean;
+    isOpen?: boolean;
+    onToggle?: () => void;
 }
 
 export const CollapsibleSection = ({
     title,
     icon,
     children,
-    defaultOpen = true
+    defaultOpen = true,
+    isOpen: controlledIsOpen,
+    onToggle
 }: CollapsibleSectionProps) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
+    const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
+
+    const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+    const handleToggle = () => {
+        if (onToggle) {
+            onToggle();
+        } else {
+            setInternalIsOpen(!isOpen);
+        }
+    };
 
     return (
-        <div className="border-b border-zinc-800 pb-5 last:border-0 last:pb-0">
+        <div className="border-b border-zinc-800 pb-2 last:border-0 last:pb-0">
             <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between text-zinc-400 font-bold uppercase tracking-widest hover:text-zinc-100 transition-colors py-2"
+                onClick={handleToggle}
+                className="w-full flex items-center justify-between text-zinc-400 font-bold uppercase tracking-widest hover:text-zinc-100 transition-colors py-1.5"
             >
-                <span className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-2 text-[11px]">
                     {icon}
                     {title}
                 </span>
-                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {isOpen && (
-                <div className="mt-3 space-y-5 px-1">
+                <div className="mt-1 space-y-3 px-1">
                     {children}
                 </div>
             )}
