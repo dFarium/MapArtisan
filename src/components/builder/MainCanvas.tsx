@@ -33,6 +33,18 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
     const isPainting = useMapart(s => s.isPainting);
 
+    const containerRef = useRef<HTMLDivElement>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
+
+    // UI State (Moved up for calc)
+    const [showPreview, setShowPreview] = useState(true);
+
+    // Calculate total layout dimensions for centering
+    // We assume both will be shown if showPreview is true
+    // Gap: 16px (gap-4)
+    const contentWidth = showPreview ? (mapartResolution.width * 2 + 16) : mapartResolution.width;
+    const contentHeight = mapartResolution.height;
+
     const {
         scale,
         setScale,
@@ -42,7 +54,12 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         handleMouseDown: handleCanvasMouseDown,
         handleMouseMove: handleCanvasMouseMove,
         handleMouseUp
-    } = useCanvasInteraction(uploadedImage, isPainting);
+    } = useCanvasInteraction(
+        uploadedImage,
+        isPainting,
+        containerRef as any,
+        { width: contentWidth, height: contentHeight }
+    );
 
     // Context Menu prevent
     const handleContextMenu = (e: React.MouseEvent) => {
@@ -51,10 +68,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         }
     };
 
-    // UI State
-    const [showPreview, setShowPreview] = useState(true);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const imageRef = useRef<HTMLImageElement>(null);
+
+
 
     const handleExportSchematic = () => {
         if (!scaledPreviewUrl || isExporting) return;

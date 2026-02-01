@@ -1,6 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, type RefObject } from 'react';
 
-export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boolean = false) => {
+export const useCanvasInteraction = (
+    uploadedImage: File | null,
+    isPainting: boolean = false,
+    containerRef?: RefObject<HTMLElement>,
+    imageDimensions?: { width: number; height: number }
+) => {
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
@@ -58,13 +63,62 @@ export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boo
         setIsDragging(false);
     }, []);
 
-    // Reset when image changes
+    // Reset or Center when image changes
+    const [hasInteracted, setHasInteracted] = useState(false);
+    // Better to use a Ref for previous image to detect "new image upload" vs "dimension change"
+    const prevImageRef = useRef<File | null>(null);
+
+    const handleWheelWithInteraction = useCallback((e: React.WheelEvent) => {
+        setHasInteracted(true);
+        handleWheel(e);
+    }, [handleWheel]);
+
+    const handleMouseDownWithInteraction = useCallback((e: React.MouseEvent) => {
+        if (!uploadedImage || e.button !== 0) return;
+        // Check conditions before setting interacted
+        if (!isPainting || e.ctrlKey) {
+            setHasInteracted(true);
+        }
+        handleMouseDown(e);
+    }, [handleMouseDown, uploadedImage, isPainting]);
+
+    // Reset or Center when image changes
     useEffect(() => {
         if (uploadedImage) {
-            setScale(1);
-            setPosition({ x: 0, y: 0 });
+            const isNewImage = uploadedImage !== prevImageRef.current;
+
+            // If it's a new image, always reset interaction flag and center
+            if (isNewImage) {
+                prevImageRef.current = uploadedImage;
+                setHasInteracted(false);
+            }
+
+            // Perform Centering if:
+            // 1. New Image
+            // 2. OR Dimensions changed AND User hasn't interacted yet (e.g. preview appeared)
+            if ((isNewImage || !hasInteracted) && containerRef?.current && imageDimensions) {
+                const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
+                const { width: imgWidth, height: imgHeight } = imageDimensions;
+
+                if (containerWidth && containerHeight && imgWidth && imgHeight) {
+                    const padding = 0.9;
+                    const scaleX = (containerWidth * padding) / imgWidth;
+                    const scaleY = (containerHeight * padding) / imgHeight;
+                    const fitScale = Math.min(scaleX, scaleY);
+
+                    const newX = (containerWidth - (imgWidth * fitScale)) / 2;
+                    const newY = (containerHeight - (imgHeight * fitScale)) / 2;
+
+                    setScale(fitScale);
+                    setPosition({ x: newX, y: newY });
+                } else if (isNewImage) {
+                    // Fallbacks for new image only
+                    setScale(1);
+                    setPosition({ x: 0, y: 0 });
+                }
+            }
         }
-    }, [uploadedImage]);
+    }, [uploadedImage, imageDimensions?.width, imageDimensions?.height, hasInteracted]);
 
     // Global mouse up to catch drags outside
     useEffect(() => {
@@ -80,8 +134,8 @@ export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boo
         setScale,
         position,
         isDragging,
-        handleWheel,
-        handleMouseDown,
+        handleWheel: handleWheelWithInteraction,
+        handleMouseDown: handleMouseDownWithInteraction,
         handleMouseMove,
         handleMouseUp
     };
