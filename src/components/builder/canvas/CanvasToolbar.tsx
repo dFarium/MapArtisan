@@ -1,4 +1,5 @@
-import { ZoomIn, ZoomOut, Move, Grid3X3, Download, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, Move, Grid3X3, Download, X, ImageDown } from 'lucide-react';
+
 import { clsx } from 'clsx';
 import { PixelEditor } from '../PixelEditor';
 
@@ -13,6 +14,8 @@ interface CanvasToolbarProps {
     onClearImage: () => void;
     isProcessing?: boolean;
     isExporting?: boolean;
+    onDownloadPreview: () => void;
+    canDownloadPreview: boolean;
 }
 
 export const CanvasToolbar = ({
@@ -25,7 +28,9 @@ export const CanvasToolbar = ({
     canExport,
     onClearImage,
     isProcessing,
-    isExporting
+    isExporting,
+    onDownloadPreview,
+    canDownloadPreview
 }: CanvasToolbarProps) => {
     return (
         <>
@@ -56,6 +61,18 @@ export const CanvasToolbar = ({
                     </button>
 
                     <div className="w-px h-6 bg-zinc-700 mx-1" />
+
+                    <button
+                        onClick={onDownloadPreview}
+                        disabled={!canDownloadPreview}
+                        className={clsx(
+                            "p-2 hover:bg-blue-900/50 hover:text-blue-400 rounded transition-colors",
+                            canDownloadPreview ? "text-blue-400" : "text-zinc-600 cursor-not-allowed"
+                        )}
+                        title="Save Preview as PNG"
+                    >
+                        <ImageDown size={18} />
+                    </button>
 
                     <button
                         onClick={onExport}

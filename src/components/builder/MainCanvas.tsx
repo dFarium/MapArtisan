@@ -84,6 +84,16 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         );
     };
 
+    const handleDownloadPreview = () => {
+        if (!scaledPreviewUrl) return;
+        const link = document.createElement('a');
+        link.href = scaledPreviewUrl;
+        link.download = `mapart_preview_${gridDimensions.x}x${gridDimensions.y}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
 
     return (
@@ -106,6 +116,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         onClearImage={() => setUploadedImage(null)}
                         isProcessing={isProcessing}
                         isExporting={isExporting}
+                        onDownloadPreview={handleDownloadPreview}
+                        canDownloadPreview={!!scaledPreviewUrl}
                     />
 
                     <CanvasStatusBar
