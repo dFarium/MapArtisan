@@ -1,4 +1,5 @@
-import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Eraser, Moon, Minus, Sun } from 'lucide-react';
+import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun } from 'lucide-react';
+
 import { useMapart } from '../../context/MapartContext';
 import type { BrightnessLevel } from '../../types/mapart';
 import paletteData from '../../data/palette_1_21_11.json';
@@ -45,8 +46,6 @@ export const PixelEditor = () => {
             (brushBlock.blockId === 'minecraft:stone' && true) // Naive fallback if stone is generic
         );
 
-        // Better way: brushBlock should store colorID maybe? 
-        // Or we just search.
         if (colorInfo) {
             setBrushBlock({
                 ...brushBlock,
@@ -62,9 +61,6 @@ export const PixelEditor = () => {
 
     return (
         <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2">
-
-            {/* Paint/Erase Toggle (Implicit: Selecting 'None' block effectively erases if we implement it, 
-                BUT for now 'Erase' implies removing the manual edit entry) */}
 
             {/* Current Brush Display */}
             <div
@@ -117,11 +113,12 @@ export const PixelEditor = () => {
                     <div className="flex items-center gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
                         <button
                             onClick={() => updateBrightness('low')}
+                            disabled={buildMode === '2d'}
                             className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'low'
                                 ? 'bg-zinc-800 text-blue-400'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                                : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                 }`}
-                            title="Low (Depth)"
+                            title={buildMode === '2d' ? "Not available in 2D mode" : "Low (Depth)"}
                         >
                             <Moon size={12} />
                         </button>
@@ -137,11 +134,12 @@ export const PixelEditor = () => {
                         </button>
                         <button
                             onClick={() => updateBrightness('high')}
+                            disabled={buildMode === '2d'}
                             className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'high'
                                 ? 'bg-zinc-800 text-amber-400'
-                                : 'text-zinc-500 hover:text-zinc-300'
+                                : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                 }`}
-                            title="High (Peak)"
+                            title={buildMode === '2d' ? "Not available in 2D mode" : "High (Peak)"}
                         >
                             <Sun size={12} />
                         </button>
@@ -155,37 +153,14 @@ export const PixelEditor = () => {
                 <button
                     onClick={() => {
                         setIsPicking(false);
-                        setIsPainting(true); // Ensure painting mode is active
-                        // If we were erasing, switch back to normal brush block or keep current?
-                        // Actually, Eraser is just a brush with AIR.
-                        // But if we want a dedicated tool button:
-                        if (brushBlock?.blockId === 'minecraft:air') {
-                            // Restore default red on switch? No, keep it simple.
-                        }
+                        setIsPainting(true);
                     }}
-                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking && brushBlock?.blockId !== 'minecraft:air')
+                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking)
                         ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
                         : 'text-zinc-400 hover:bg-zinc-800'
                         }`}
                 >
                     <Paintbrush size={14} /> Brush
-                </button>
-                <button
-                    onClick={() => {
-                        setBrushBlock({
-                            blockId: 'minecraft:air',
-                            brightness: 'normal',
-                            rgb: { r: 0, g: 0, b: 0 }
-                        });
-                        setIsPainting(true);
-                        setIsPicking(false);
-                    }}
-                    className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking && brushBlock?.blockId === 'minecraft:air')
-                        ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
-                        : 'text-zinc-400 hover:bg-zinc-800'
-                        }`}
-                >
-                    <Eraser size={14} /> Eraser
                 </button>
                 <button
                     onClick={() => setIsPicking(!isPicking)}
@@ -197,42 +172,6 @@ export const PixelEditor = () => {
                     <Pipette size={14} /> Picker
                 </button>
             </div>
-
-            {/* Brightness Controls */}
-            <div className="flex bg-zinc-950 rounded border border-zinc-800 p-0.5">
-                {(['low', 'normal', 'high'] as const).map(b => {
-                    const is2D = buildMode === '2d';
-                    const isDisabled = !brushBlock || (is2D && b !== 'normal');
-
-                    return (
-                        <button
-                            key={b}
-                            onClick={() => updateBrightness(b)}
-                            disabled={isDisabled}
-                            className={`
-                                px-2 py-1 text-[10px] rounded-sm transition-colors uppercase font-medium
-                                ${brushBlock?.brightness === b
-                                    ? 'bg-blue-600/20 text-blue-400'
-                                    : (isDisabled ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')}
-                            `}
-                            title={is2D && b !== 'normal' ? 'Not available in 2D mode' : b}
-                        >
-                            {b[0]}
-                        </button>
-                    );
-                })}
-            </div>
-
-            <div className="h-6 w-px bg-zinc-800 mx-1" />
-
-            {/* Picker Tool */}
-            <button
-                onClick={() => setIsPicking(!isPicking)}
-                className={`p-1.5 rounded transition-colors ${isPicking ? 'bg-blue-600 text-white' : 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200'}`}
-                title="Color Picker (Eye Dropper)"
-            >
-                <Pipette size={14} />
-            </button>
 
             {/* Clear Edits */}
             <button

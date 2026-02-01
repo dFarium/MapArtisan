@@ -16,11 +16,6 @@ export interface GridDimensions {
     y: number;
 }
 
-export interface TransparencySettings {
-    enabled: boolean;
-    color: string;
-}
-
 export interface CropSettings {
     zoom: number;
     offsetX: number;
@@ -40,7 +35,6 @@ export interface MapartState {
     buildMode: BuildMode;
     blockSupport: BlockSupport;
     dithering: string;
-    transparency: TransparencySettings;
     uploadedImage: File | null;
     previewUrl: string | null;
     imageFitMode: ImageFitMode;
@@ -63,7 +57,6 @@ export interface MapartState {
     setBuildMode: (mode: BuildMode) => void;
     setBlockSupport: (support: BlockSupport) => void;
     setDithering: (dithering: string) => void;
-    setTransparency: (settings: Partial<TransparencySettings>) => void;
     setUploadedImage: (file: File | null) => void;
     setImageFitMode: (mode: ImageFitMode) => void;
     setCropSettings: (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => void;
@@ -91,7 +84,6 @@ export const useMapartStore = create<MapartState>((set) => ({
     buildMode: '3d_valley',
     blockSupport: 'all',
     dithering: 'floyd-steinberg',
-    transparency: { enabled: true, color: '#ffffff' },
     uploadedImage: null,
     previewUrl: null,
     imageFitMode: 'adjust',
@@ -123,7 +115,6 @@ export const useMapartStore = create<MapartState>((set) => ({
         dithering,
         manualEdits: {} // Clear manual edits on dithering change
     }),
-    setTransparency: (settings) => set((state) => ({ transparency: { ...state.transparency, ...settings } })),
     setUploadedImage: (file) => set((state) => {
         if (state.previewUrl) {
             URL.revokeObjectURL(state.previewUrl);

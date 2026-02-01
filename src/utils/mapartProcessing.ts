@@ -282,35 +282,11 @@ export function optimizeColumnHeights(tonos: number[]): { min: number; max: numb
     let minOpt = 0;
 
     // We generate the path corresponding to each tone.
-    // Note: The Python script returned the *heights*. The 'path' array here will store the height AFTER each block.
-    // But wait, the loop iterates `tonos`.
     for (let i = 0; i < tonos.length; i++) {
         const t = tonos[i];
         if (t === -1) {
             // Check safe drop target
-            // ref[i+1] is the classic height after this step
-            // minFuturo[i+1] is the lowest point the classic path ever reaches from here onwards
             const alturaSegura = ref[i + 1] - minFuturo[i + 1];
-
-            // If we can drop deeper than just -1 (currentOpt - 1), do it.
-            // We want to be as low as possible (since we are forced to go UP later).
-            // But we can't go so low that we can't climb back up?
-            // Actually, the logic is: "If we drop to X, will we ever be forced to go lower than X later solely due to the pattern?"
-            // ref[i+1] - minFuturo[i+1] calculates the "margin" we have above the future minimum.
-            // Wait, let's trace:
-            // ref starts at 0.
-            // If ref goes 0 -> 1 -> 2 -> 1 -> 0.
-            // minFuturo at index 0 (val 0) is 0.
-            // minFuturo at index 1 (val 1) is 0.
-            // minFuturo at index 2 (val 2) is 0.
-
-            // Python logic: `altura_segura = ref[i+1] - min_futuro[i+1]`
-            // `if altura_segura < current_opt: current_opt = altura_segura`
-            // `else: current_opt -= 1`
-
-            // This suggests we jump DOWN to `altura_segura` if it's lower than performing a standard step.
-            // Basically, reset to the lowest possible safe baseline.
-
             if (alturaSegura < currentOpt) {
                 currentOpt = alturaSegura;
             } else {
@@ -497,7 +473,6 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' },
     _optimizeHeight: boolean = false
 ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[] } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
@@ -521,15 +496,6 @@ export function processMapart(
 
     const { width, height, data } = imageData;
 
-    // Parse transparency color if enabled
-    let transR = 255, transG = 255, transB = 255;
-    if (transparencySettings.enabled) {
-        const hex = transparencySettings.color.replace('#', '');
-        transR = parseInt(hex.substring(0, 2), 16);
-        transG = parseInt(hex.substring(2, 4), 16);
-        transB = parseInt(hex.substring(4, 6), 16);
-    }
-
     // Create float buffer for error diffusion
     const floatBuffer: number[][] = [];
     for (let i = 0; i < height; i++) {
@@ -539,45 +505,25 @@ export function processMapart(
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
-            const a = data[idx + 3];
+            // Alpha ignored
 
-            if (a < 128) {
-                if (transparencySettings.enabled) {
-                    // Replace with mask color
-                    floatBuffer[i][j * 3] = transR;
-                    floatBuffer[i][j * 3 + 1] = transG;
-                    floatBuffer[i][j * 3 + 2] = transB;
-                } else {
-                    // Mark as transparent (we use a special marker or just 0,0,0 and handle it in loop)
-                    // We'll handle this inside the main loop by checking original alpha again or by flagging it here.
-                    // For error diffusion consistency, if it's AIR, we probably shouldn't diffuse error FROM it or TO it?
-                    // Simpler: Just set to 0. We will check alpha in loop.
-                    floatBuffer[i][j * 3] = 0;
-                    floatBuffer[i][j * 3 + 1] = 0;
-                    floatBuffer[i][j * 3 + 2] = 0;
-                }
-            } else {
-                floatBuffer[i][j * 3] = r;
-                floatBuffer[i][j * 3 + 1] = g;
-                floatBuffer[i][j * 3 + 2] = b;
-            }
+            // Just load RGB, ignore Alpha
+            // If alpha is 0, RGB is usually 0,0,0
+            floatBuffer[i][j * 3] = r;
+            floatBuffer[i][j * 3 + 1] = g;
+            floatBuffer[i][j * 3 + 2] = b;
         }
     }
 
     const output = new Uint8ClampedArray(data);
 
     // Height penalty for 3D Precision Slider
-    // 100% Precision = 0 Penalty (Free to use High/Low blocks)
-    // 0% Precision = Max Penalty (Avoid High/Low blocks -> 2D)
     const normalizedPrecision = threeDPrecision / 100;
     let heightPenalty = 0;
 
-    // Only apply penalty if we are in 3D mode. In 2D mode, we filter candidates anyway or penalty doesn't matter (since 2D only uses normal blocks usually? Actually specific 2D mode logic handles filtering).
-    // Actually getValidColors filters based on mode.
-    // If buildMode is '3d_valley', we have High/Normal/Low candidates.
     if (buildMode === '3d_valley') {
         if (threeDPrecision < 100) {
-            const PRACTICAL_MAX = useCielab ? 10000 : 200000; // Large enough to outweigh color difference
+            const PRACTICAL_MAX = useCielab ? 10000 : 200000;
             heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
             // Make 0% absolute refusal
             if (threeDPrecision === 0) heightPenalty = Infinity;
@@ -593,8 +539,6 @@ export function processMapart(
     const colHeights = new Int32Array(width).fill(0);
 
     // Get dither matrix if using error diffusion
-    // 'adaptive' mode uses Floyd-Steinberg with reduced error propagation
-    // 'hybrid' mode uses Floyd-Steinberg with variance-based error scaling
     const effectiveDithering = (dithering === 'adaptive' || dithering === 'hybrid') ? 'floyd-steinberg' : dithering;
     const ditherMatrix = DITHER_MATRICES[effectiveDithering];
     const isErrorDiffusion = ditherMatrix !== undefined || dithering === 'hybrid';
@@ -602,47 +546,23 @@ export function processMapart(
     const isHybrid = dithering === 'hybrid';
     const fsMatrix = DITHER_MATRICES['floyd-steinberg']; // For hybrid mode
 
-
-
-    // Tone Map for Smart Drop Optimization phase (initialized to 0)
-    // Values: 1 (High), -1 (Low), 0 (Normal)
-    // We use Int8Array for memory efficiency.
+    // Tone Map for Smart Drop Optimization phase
     const toneMap = new Int8Array(width * height);
 
     // Block Indices Map (for Picker)
     const blockIndices = new Int32Array(width * height);
 
-    // 3d_valley_lossy removed. Using standard path.
     {
-        // Standard Processing (2D or 3D Valley)
-
+        // Standard Processing
         for (let y = 0; y < height; y++) {
             // Independent Maps: Reset column heights at row boundary
             if (independentMaps && y > 0 && y % 128 === 0) {
                 colHeights.fill(0);
-                // Also, preventing error diffusion across y-boundary (vertical bleeding)
-                // involves clearing the relevant parts of floatBuffer or just accepting it.
-                // Height reset is the critical part.
             }
 
             for (let x = 0; x < width; x++) {
 
-
-                // Check for transparency (AIR) case
-                // We re-check original alpha because floatBuffer might have been modified for mask
-                const sourceIdx = (y * width + x) * 4;
-                const sourceAlpha = data[sourceIdx + 3];
-
-                // If transparency disabled (native transparency) and alpha is low, skip
-                if (!transparencySettings.enabled && sourceAlpha < 128) {
-                    output[sourceIdx] = 0;
-                    output[sourceIdx + 1] = 0;
-                    output[sourceIdx + 2] = 0;
-                    output[sourceIdx + 3] = 0;
-                    blockIndices[y * width + x] = -1; // Special index for Air
-                    toneMap[y * width + x] = 0; // No tone
-                    continue;
-                }
+                // (Alpha handling removed, processing all pixels)
 
                 let r = floatBuffer[y][x * 3];
                 let g = floatBuffer[y][x * 3 + 1];
@@ -656,11 +576,10 @@ export function processMapart(
 
                 let bestRGB: RGB;
                 let bestBrightness: BrightnessLevel;
-
                 let bestIndex: number;
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
-                    // Ordered dithering with two-color selection
+                    // Ordered dithering
                     const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab, heightPenalty);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
@@ -673,8 +592,7 @@ export function processMapart(
                         bestIndex = twoClosest.first.index;
                     }
                 } else {
-                    // Skip cache during error diffusion since accumulated error makes each pixel unique
-                    // Using findClosestColorIndex with penalty
+                    // Error diffusion / None
                     const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion, heightPenalty);
                     bestIndex = result.index;
                 }
@@ -687,6 +605,7 @@ export function processMapart(
                 output[idx] = bestRGB.r;
                 output[idx + 1] = bestRGB.g;
                 output[idx + 2] = bestRGB.b;
+                output[idx + 3] = 255; // Force opacity
 
                 // Save Block Index
                 blockIndices[y * width + x] = bestIndex;
@@ -706,49 +625,28 @@ export function processMapart(
                 if (colHeights[x] > overallMax) overallMax = colHeights[x];
                 if (colHeights[x] < overallMin) overallMin = colHeights[x];
 
-                // Error diffusion - use UNCLAMPED values (like mapartcraft) for proper error propagation
+                // Error diffusion
                 if (isErrorDiffusion) {
-                    // Calculate error scale based on mode
                     let errorScale = baseErrorScale;
 
                     if (isHybrid) {
-                        // Hybrid mode: adjust error scale based on local variance AND quantization error
                         const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
-
-                        // Calculate quantization error (how far is the chosen color from the original?)
                         const quantErrorSq = (r - bestRGB.r) ** 2 + (g - bestRGB.g) ** 2 + (b - bestRGB.b) ** 2;
-
-                        // User-controlled thresholds based on hybridStrength (0-100)
-                        // hybridStrength=0: Absolute noise reduction (minScale=0.0) -> Solid colors
-                        // hybridStrength=100: full F-S (minScale=1.0)
                         const minScale = (hybridStrength / 100) * 1.0;
-
-                        // Variance thresholds - INVERTED LOGIC relative to strength
-                        // Low Strength (0) = Aggressive Noise Reduction = EXTREME Thresholds
-                        // High Strength (100) = Max Detail = LOW Thresholds
                         const invStrength = 100 - hybridStrength;
-                        const varianceLow = 50 + (invStrength / 100) * 950;   // Strength 100->50, Strength 0->1000
-                        const varianceHigh = 500 + (invStrength / 100) * 5500; // Strength 100->500, Strength 0->6000
-
-                        // If quantization error is high, use more dithering regardless of variance
-                        // This preserves gradients like the moon detail
-                        // BUT: If hybridStrength is low, we ignore this validly to force posterization (user preference)
-                        const quantErrorThreshold = 1000; // ~sqrt(1000) ≈ 31 per channel difference
+                        const varianceLow = 50 + (invStrength / 100) * 950;
+                        const varianceHigh = 500 + (invStrength / 100) * 5500;
+                        const quantErrorThreshold = 1000;
 
                         if (quantErrorSq > quantErrorThreshold) {
-                            // High quantization error: boost error scale to preserve detail
-                            // Scale boost by hybridStrength: 0% strength -> 0% boost (force solid), 100% strength -> full boost
                             const strengthFactor = hybridStrength / 100;
                             const boostFactor = Math.min(1.0, quantErrorSq / 5000) * strengthFactor;
                             errorScale = minScale + (1.0 - minScale) * boostFactor;
                         } else if (variance < varianceLow) {
-                            // Flat area with good color match: minimal dithering
                             errorScale = minScale;
                         } else if (variance > varianceHigh) {
-                            // Edge/detail: full error diffusion
                             errorScale = 1.0;
                         } else {
-                            // Gradient: interpolate
                             const t = (variance - varianceLow) / (varianceHigh - varianceLow);
                             errorScale = minScale + t * (1.0 - minScale);
                         }
@@ -769,9 +667,7 @@ export function processMapart(
                             const nx = x + (col - 2);
                             const ny = y + row;
 
-                            // Clamp to 0-255 to mimic Uint8ClampedArray behavior
                             if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                // Independent Maps: Prevent error from bleeding into the next map vertical chunk
                                 if (independentMaps) {
                                     const currentMapIndex = Math.floor(y / 128);
                                     const nextMapIndex = Math.floor(ny / 128);
@@ -788,225 +684,167 @@ export function processMapart(
             }
         }
 
-
         // ============================================================================
         // Phase 2: Height Optimization (Smart Drop) for 3D Valley
         // ============================================================================
-        // If we are in 3d_valley mode, we now optimize the columns and recalculate stats.
         if (buildMode === '3d_valley') {
             overallMin = 0;
             overallMax = 0;
 
             // Process each column
             for (let x = 0; x < width; x++) {
-                const columnTones: number[] = [];
+                const columnTones = [];
                 for (let y = 0; y < height; y++) {
-                    columnTones.push(toneMap[y * width + x]); // Corrected indexing
+                    columnTones.push(toneMap[y * width + x]); // Extract tone from flat array
                 }
 
-                // Apply Smart Drop
-                const { min, max, path } = optimizeColumnHeights(columnTones);
+                // Split into chunks if independentMaps
+                if (independentMaps) {
+                    const numChunks = Math.ceil(height / 128);
+                    for (let c = 0; c < numChunks; c++) {
+                        const startY = c * 128;
+                        const endY = Math.min((c + 1) * 128, height);
+                        const chunkTones = columnTones.slice(startY, endY);
 
-                // Update global stats
-                if (min < overallMin) overallMin = min;
-                if (max > overallMax) overallMax = max;
+                        // Optimize this chunk
+                        const { min, max } = optimizeColumnHeights(chunkTones);
 
-                // Update the final height of this column (last element of path)
-                // This mimics the 'colHeights' behavior expected by the stats object
-                if (path.length > 0) {
-                    colHeights[x] = path[path.length - 1];
+                        // We track global min/max just to give user an idea, but per-map export handles actual placement
+                        // Wait, mapartStats assumes global stats. 
+                        // If we are independent, stats per map differ. 
+                        // But we want "worst case" or "total range"? 
+                        // Let's just track the range of this chunk.
+                        // Accumulate min/max relative to 0?
+                        // optimizeColumnHeights results are relative to start of column.
+                        if (min < overallMin) overallMin = min;
+                        if (max > overallMax) overallMax = max;
+                    }
                 } else {
-                    colHeights[x] = 0;
+                    // Full column optimization
+                    const { min, max } = optimizeColumnHeights(columnTones);
+                    if (min < overallMin) overallMin = min;
+                    if (max > overallMax) overallMax = max;
                 }
             }
         }
     }
 
-    // Capture full height map for analysis if needed (optional optimization?)
-    // For now, let's just return the column heights array which tracks the final elevation of each column.
-    // Actually, for true 3D valley mode, we want to know the height at every pixel?
-    // No, standard mapart is built column by column (Z-axis is image Y).
-    // The "height" is the Y-level (elevation).
-    // In "3d_valley_lossy", we process column by column. The `currentHeight` variable tracks the elevation.
-    // We should capture this profile.
-
-    // Let's attach the final column elevations to stats.
     return {
         imageData: new ImageData(output, width, height),
         stats: {
             minHeight: overallMin,
             maxHeight: overallMax,
-            heightMap: colHeights
+            heightMap: colHeights // This is legacy/2d stats, 3d uses optimizing logic above
         },
         toneMap,
-        blockIndices: new Int32Array(blockIndices), // blockIndices needs to be defined/filled in loop
+        blockIndices,
         candidates
     };
 }
 
-// ============================================================================
-// Manual Edits Application
-// ============================================================================
-
-import type { ManualEdit } from '../types/mapart';
-
-export function calculateStatsFromToneMap(width: number, height: number, toneMap: Int8Array, buildMode: BuildMode): MapartStats {
-    let overallMin = 0;
-    let overallMax = 0;
-    const colHeights = new Int32Array(width).fill(0);
-
-    if (buildMode === '3d_valley') {
-        // Process each column
-        for (let x = 0; x < width; x++) {
-            const columnTones: number[] = [];
-            for (let y = 0; y < height; y++) {
-                columnTones.push(toneMap[y * width + x]);
-            }
-
-            // Apply Smart Drop
-            const { min, max, path } = optimizeColumnHeights(columnTones);
-
-            if (min < overallMin) overallMin = min;
-            if (max > overallMax) overallMax = max;
-            if (path.length > 0) {
-                colHeights[x] = path[path.length - 1];
-            }
-        }
-    } else {
-        // For 2D, we just track relative height changes if any
-        for (let x = 0; x < width; x++) {
-            let h = 0;
-            for (let y = 0; y < height; y++) {
-                const tone = toneMap[y * width + x];
-                if (tone === 1) h++;
-                else if (tone === -1) h--;
-
-                if (h > overallMax) overallMax = h;
-                if (h < overallMin) overallMin = h;
-            }
-            colHeights[x] = h;
-        }
-    }
-
-    return {
-        minHeight: overallMin,
-        maxHeight: overallMax,
-        heightMap: colHeights
-    };
-}
-
+/**
+ * Applies manual edits to the existing image data and updates stats.
+ * This is a lighter operation than full reprocessing.
+ */
 export function applyManualEdits(
     baseImageData: ImageData,
     baseToneMap: Int8Array,
-    manualEdits: Record<number, ManualEdit>,
+    manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     buildMode: BuildMode
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
-    const { width, height } = baseImageData;
-    const totalPixels = width * height;
+): { imageData: ImageData; stats: MapartStats } {
+    const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
-    const newOutput = new Uint8ClampedArray(baseImageData.data);
-    const newToneMap = new Int8Array(baseToneMap);
+    const newData = new Uint8ClampedArray(data);
+    const newToneMap = new Int8Array(baseToneMap); // Copy tone map
 
     // Apply edits
-    for (const [key, edit] of Object.entries(manualEdits)) {
-        const index = Number(key);
-        if (index < 0 || index >= totalPixels) continue;
+    for (const [indexStr, edit] of Object.entries(manualEdits)) {
+        const index = Number(indexStr);
+        const x = index % width;
+        const y = Math.floor(index / width);
 
-        // Apply Color
+        if (x >= width || y >= height) continue;
+
         const idx = index * 4;
+        newData[idx] = edit.rgb.r;
+        newData[idx + 1] = edit.rgb.g;
+        newData[idx + 2] = edit.rgb.b;
+        newData[idx + 3] = 255;
 
-        if (edit.blockId === 'minecraft:air') {
-            newOutput[idx] = 0;
-            newOutput[idx + 1] = 0;
-            newOutput[idx + 2] = 0;
-            newOutput[idx + 3] = 0;
-            newToneMap[index] = 0;
-            continue;
+        // Update Tone Map for this pixel
+        if (buildMode === '3d_valley') {
+            let tone = 0;
+            if (edit.brightness === 'high') tone = 1;
+            else if (edit.brightness === 'low') tone = -1;
+            newToneMap[index] = tone;
         }
-
-        newOutput[idx] = edit.rgb.r;
-        newOutput[idx + 1] = edit.rgb.g;
-        newOutput[idx + 2] = edit.rgb.b;
-        newOutput[idx + 3] = 255; // Ensure alpha is full
-
-        // Apply Tone
-        // We need to convert brightness to tone integer
-        let tone = 0;
-        if (edit.brightness === 'high') tone = 1;
-        else if (edit.brightness === 'low') tone = -1;
-
-        newToneMap[index] = tone; // Overwrite tone
     }
 
-    // Recalculate Stats
-    const stats = calculateStatsFromToneMap(width, height, newToneMap, buildMode);
+    // Recalculate Height Stats (Required because tones changed)
+    let overallMin = 0;
+    let overallMax = 0;
+
+    if (buildMode === '3d_valley') {
+
+        // Optimize each column again with new tones
+        for (let x = 0; x < width; x++) {
+            const columnTones = [];
+            for (let y = 0; y < height; y++) {
+                columnTones.push(newToneMap[y * width + x]);
+            }
+            const { min, max } = optimizeColumnHeights(columnTones);
+            if (min < overallMin) overallMin = min;
+            if (max > overallMax) overallMax = max;
+        }
+    }
 
     return {
-        imageData: new ImageData(newOutput, width, height),
-        stats,
-        toneMap: newToneMap
+        imageData: new ImageData(newData, width, height),
+        stats: {
+            minHeight: overallMin,
+            maxHeight: overallMax,
+            heightMap: new Int32Array(0) // Not used for now
+        }
     };
 }
 
+/**
+ * Suggests a dithering mode based on image characteristics.
+ */
 export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMode; strength: number } {
     const { width, height, data } = imageData;
-    const stride = 10; // Sample every 10th pixel for performance
-    let totalVariance = 0;
+    const pixelCount = width * height;
+
+    // Calculate simple variance of the image
+    let sumGray = 0;
+    let sumGraySq = 0;
+
+    // Sample a subset of pixels for performance
+    const step = Math.max(1, Math.floor(pixelCount / 1000));
     let samples = 0;
-    let flatSamples = 0;
 
-    // Create a temporary float buffer for variance calculation (only for sampled area)
-    // To properly use calculateLocalVariance, we need a buffer. 
-    // Since we can't easily recreate the full buffer efficiently just for sampling without cost,
-    // we'll implement a simplified direct variance check here.
-
-    for (let y = 1; y < height - 1; y += stride) {
-        for (let x = 1; x < width - 1; x += stride) {
-            const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-
-            // Calculate variance with 4 neighbors (up, down, left, right)
-            let localVar = 0;
-            const neighbors = [
-                ((y - 1) * width + x) * 4,
-                ((y + 1) * width + x) * 4,
-                ((y) * width + (x - 1)) * 4,
-                ((y) * width + (x + 1)) * 4
-            ];
-
-            for (const nIdx of neighbors) {
-                const nr = data[nIdx];
-                const ng = data[nIdx + 1];
-                const nb = data[nIdx + 2];
-                localVar += (r - nr) ** 2 + (g - ng) ** 2 + (b - nb) ** 2;
-            }
-
-            const avgLocalVar = localVar / 4;
-            totalVariance += avgLocalVar;
-            if (avgLocalVar < 100) flatSamples++;
-            samples++;
-        }
+    for (let i = 0; i < pixelCount; i += step) {
+        const idx = i * 4;
+        const gray = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        sumGray += gray;
+        sumGraySq += gray * gray;
+        samples++;
     }
 
-    const avgVariance = samples > 0 ? totalVariance / samples : 0;
-    const flatRatio = samples > 0 ? flatSamples / samples : 0;
+    const mean = sumGray / samples;
+    const variance = (sumGraySq / samples) - (mean * mean);
+    const stdDev = Math.sqrt(variance);
 
-    // Heuristics
-    // High variance -> Photo/Complex -> Dithering needed (Stucki/Floyd)
-    // Low variance -> Graphic/Logo -> No dithering or simple
-    // Mixed -> Hybrid
+    // Heuristic:
+    // Low variance -> Flat image (e.g. cartoon) -> ordered dither works well or none
+    // High variance -> Detailed photo -> Hybrid or Adaptive
 
-    if (flatRatio > 0.8) {
-        // Mostly flat (cartoon/logo)
-        return { mode: 'none', strength: 0 };
-    } else if (avgVariance < 500) {
-        // Moderate complexity
-        return { mode: 'hybrid', strength: 50 };
+    if (stdDev < 20) {
+        return { mode: 'ordered', strength: 50 };
+    } else if (stdDev < 50) {
+        return { mode: 'floyd-steinberg', strength: 50 };
     } else {
-        // High complexity (photo)
-        return { mode: 'stucki', strength: 100 };
+        return { mode: 'hybrid', strength: 75 };
     }
 }

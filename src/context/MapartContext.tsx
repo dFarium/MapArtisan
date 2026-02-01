@@ -8,7 +8,7 @@ export type {
     ImageFitMode,
     ImageSettings,
     GridDimensions,
-    TransparencySettings,
+
     CropSettings,
     MapartState
 } from '../store/useMapartStore';

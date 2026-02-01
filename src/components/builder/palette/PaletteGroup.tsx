@@ -41,19 +41,15 @@ export const PaletteGroup = ({
                             const isFlat = selectedBlock?.includes('pressure_plate') || selectedBlock?.includes('carpet') || selectedBlock?.includes('button') || selectedBlock?.includes('weighted_pressure_plate');
 
                             return (
-                                selectedBlock === 'minecraft:air' ? (
-                                    <div className="w-full h-full opacity-50 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC')] bg-[length:10px_10px]" />
-                                ) : (
-                                    <img
-                                        src={selectedBlock ? getTextureUrl(selectedBlock) : "/textures/barrier.png"}
-                                        className={`
+                                <img
+                                    src={selectedBlock ? getTextureUrl(selectedBlock) : "/textures/barrier.png"}
+                                    className={`
                                         w-full object-cover rendering-pixelated
                                         ${isFlat ? 'h-1/4' : isSlab ? 'h-1/2' : 'h-full'}
                                         ${(isFlat || isSlab) ? 'object-contain' : 'object-top'}
                                     `}
-                                        alt={selectedBlock || "None"}
-                                    />
-                                )
+                                    alt={selectedBlock || "None"}
+                                />
                             );
                         })()}
                     </div>
@@ -106,21 +102,7 @@ export const PaletteGroup = ({
                         />
                     </button>
 
-                    {/* "Air" selector (Transparent) */}
-                    <button
-                        onClick={() => onToggleBlock(color.colorID, 'minecraft:air')}
-                        className={`
-                            flex flex-col items-center justify-center !p-0 rounded !w-12 !h-12
-                            border transition-all
-                            ${selectedBlock === 'minecraft:air'
-                                ? 'bg-zinc-800 border-blue-500/50 ring-1 ring-blue-500/20'
-                                : 'bg-zinc-900/30 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700'}
-                        `}
-                        title="Air / Transparency"
-                        style={{ outline: '1px solid var(--block-outline)', outlineOffset: '-1px' }}
-                    >
-                        <div className="w-full h-full opacity-50 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC')] bg-[length:10px_10px]" />
-                    </button>
+                    {/* Removed Air selector */}
 
                     {color.blocks.map((blockObj) => {
                         const block = blockObj.id;

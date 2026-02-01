@@ -18,7 +18,6 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
     const {
         dithering, setDithering,
         hybridStrength, setHybridStrength,
-        transparency, setTransparency,
         useCielab, setUseCielab,
         paletteVersion, setPaletteVersion,
         previewUrl
@@ -112,30 +111,6 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                     </p>
                 </div>
             )}
-
-            {/* Transparency */}
-            <div className="space-y-1 p-2 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
-                <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase">Alpha Masking</span>
-                    <div className="flex items-center gap-3">
-                        {transparency.enabled && (
-                            <input
-                                type="color"
-                                value={transparency.color}
-                                onChange={(e) => setTransparency({ color: e.target.value })}
-                                className="bg-transparent border-none w-5 h-5 cursor-pointer rounded-full overflow-hidden p-0 ring-1 ring-zinc-700"
-                            />
-                        )}
-                        <Checkbox
-                            checked={transparency.enabled}
-                            onCheckedChange={(checked) => setTransparency({ enabled: checked })}
-                        />
-                    </div>
-                </div>
-                <p className="text-[10px] text-zinc-500 font-medium">
-                    {transparency.enabled ? "Replacing transparency with picked" : "Ignoring alpha channel"}
-                </p>
-            </div>
 
             {/* CIELAB Toggle */}
             <div className="space-y-1 p-2 bg-zinc-950/30 rounded-lg border border-zinc-800/50">

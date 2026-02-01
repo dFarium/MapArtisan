@@ -28,8 +28,7 @@ const api = {
         dithering: DitheringMode = 'none',
         useCielab: boolean = true,
         hybridStrength: number = 50,
-        independentMaps: boolean = false,
-        transparencySettings: { enabled: boolean; color: string } = { enabled: false, color: '#000000' }
+        independentMaps: boolean = false
     ) => {
         const result = processMapart(
             imageData,
@@ -39,8 +38,7 @@ const api = {
             dithering,
             useCielab,
             hybridStrength,
-            independentMaps,
-            transparencySettings
+            independentMaps
         );
 
         lastBaseResult = {

@@ -36,8 +36,7 @@ export function imageDataToBlockStates(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
-    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     // Phase 1: Base Processing
@@ -50,7 +49,6 @@ export function imageDataToBlockStates(
         useCielab,
         hybridStrength,
         independentMaps,
-        transparencySettings,
         true // Enable optimizeHeight (Safe Reset) for export
     );
 
@@ -111,10 +109,7 @@ export function imageDataToBlockStates(
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
-            const a = data[idx + 3];
-
-            // If Alpha is transparent (Air), skip block placement
-            if (a < 128) continue;
+            // Alpha ignored (assumed opaque)
 
             const key = (r << 16) | (g << 8) | b;
 
@@ -151,8 +146,7 @@ export function imageDataToBlockStates(
 
         // Apply Smart Drop Optimization for 3D Valley
         if (!is2D && applyOptimization && buildMode === '3d_valley') {
-            // Convert TypedArray to normal array for the function (or update function type, but array is fine)
-            // optimizeColumnHeights takes number[]
+            // Convert TypedArray to normal array for the function
             const tonesArray = Array.from(columnTones);
             const { path } = optimizeColumnHeights(tonesArray);
 
@@ -172,12 +166,6 @@ export function imageDataToBlockStates(
 
         let shiftY = 0;
         if (!is2D && applyOptimization && rawMapBlocks.length > 0) {
-            // Need to include Noobline (Y=0) in the min calculation?
-            // Actually, if Noobline is part of the physical structure, its base should also be considered?
-            // "Each column to touch the ground".
-            // If Noobline is at 0 and Map starts at 1. Min is 0. Shift 0. Noobline at 0. Map at 1. Correct.
-            // If Noobline is at 0 and Map starts at -1. Min is -1. Shift +1. Noobline at 1. Map at 0. Correct.
-            // So we take min of (MapBlocks U {Noobline}).
 
             const minMapY = Math.min(...rawMapBlocks.map(b => b.y));
             const minOverallY = Math.min(minMapY, nooblineY); // nooblineY is always 0 here
@@ -447,8 +435,7 @@ export async function generateMapartExport(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
-    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
     const isMultiMap = width > 128 || height > 128;
@@ -457,7 +444,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, transparencySettings
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -514,7 +501,7 @@ export async function generateMapartExport(
                 // Process independently to get correct noob lines for this section
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, transparencySettings
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {
@@ -559,12 +546,11 @@ export function calculateMaterialCounts(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
-    transparencySettings: { enabled: boolean; color: string } = { enabled: true, color: '#ffffff' }
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
 ): Record<string, number> {
     const blockStates = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, transparencySettings
+        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
     );
 
     const counts: Record<string, number> = {};

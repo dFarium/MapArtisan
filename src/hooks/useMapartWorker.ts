@@ -21,7 +21,6 @@ interface UseMapartWorkerProps {
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
-    transparency: { enabled: boolean; color: string };
 }
 
 
@@ -40,7 +39,6 @@ export const useMapartWorker = ({
     setMapartStats,
     imageSettings,
     manualEdits,
-    transparency
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -137,11 +135,14 @@ export const useMapartWorker = ({
                 const finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
                 const finalOffsetY = (img.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
 
-                ctx.drawImage(
-                    img,
-                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
-                    0, 0, mapartResolution.width, mapartResolution.height
-                );
+                const ctxImg = canvas.getContext('2d');
+                if (ctxImg) {
+                    ctxImg.drawImage(
+                        img,
+                        finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
+                        0, 0, mapartResolution.width, mapartResolution.height
+                    );
+                }
 
                 // High res original logic
                 const highResCanvas = document.createElement('canvas');
@@ -193,8 +194,7 @@ export const useMapartWorker = ({
                     dithering as DitheringMode,
                     useCielab,
                     hybridStrength,
-                    independentMaps,
-                    transparency
+                    independentMaps
                 );
 
                 if (!active) return;
@@ -235,7 +235,7 @@ export const useMapartWorker = ({
         };
     }, [
         sourceImageVersion,
-        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, transparency,
+        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
         initWorker, mapartResolution.width, mapartResolution.height
         // manualEdits EXCLUDED
     ]);
@@ -243,12 +243,6 @@ export const useMapartWorker = ({
     // 2b. Light Processing (Manual Edits)
     useEffect(() => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return;
-
-        // Don't run if processing heavy? No, we might want to apply edits anyway, 
-        // but let's avoid race if possible. Actually worker queue handles it.
-
-        // Skip if no edits and we assume heavy proc handled clean state?
-        // No, because if we clear edits, we need to revert to base.
 
         const apply = async () => {
             try {
@@ -293,9 +287,7 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-
-                manualEdits, // Pass manual edits
-                transparency
+                manualEdits // Pass manual edits
             );
             return counts;
         } catch (err) {
@@ -314,14 +306,6 @@ export const useMapartWorker = ({
         try {
             const api = workerApiRef.current;
 
-            // We need to pass the CURRENT settings, as the closure might be stale if not careful.
-            // However, since this function is recreated on every render (if not wrapped in useCallback with deps),
-            // or if we rely on refs. For safety, let's assume we pass the latest ref data if needed,
-            // but for now, we use the props passed to the hook.
-
-            // Note: ImageData cannot be transferred, so it will be structured-cloned.
-            // For very large images, this might be slow, but it's occurring in an async function.
-
             const result = await api.generateMapartExport(
                 sourceImageDataRef.current,
                 selectedPaletteItems,
@@ -333,9 +317,7 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-
-                manualEdits, // Pass manual edits
-                transparency
+                manualEdits // Pass manual edits
             );
 
             // Import dynamically to avoid circular dependencies if any, or just standard import
