@@ -6,6 +6,8 @@ import { CanvasStatusBar } from './canvas/CanvasStatusBar';
 import { CanvasToolbar } from './canvas/CanvasToolbar';
 import { ImageUploader } from './canvas/ImageUploader';
 import { ManualEditsOverlay } from './canvas/ManualEditsOverlay';
+import { PixelGridOverlay } from './canvas/PixelGridOverlay';
+import { InteractionLayer } from './canvas/InteractionLayer';
 
 interface MainCanvasProps {
     workerState: ReturnType<typeof useMapartWorker>;
@@ -14,11 +16,7 @@ interface MainCanvasProps {
 export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const {
         uploadedImage, setUploadedImage, previewUrl, gridDimensions,
-        // imageFitMode, cropSettings, buildMode, 
         selectedPaletteItems,
-        // threeDPrecision, dithering, useCielab, hybridStrength,
-        // setMapartStats, independentMaps, imageSettings 
-        // We only need the ones used for rendering/UI, logic is in workerState
         mapartStats
     } = useMapart();
 
@@ -33,8 +31,6 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     } = workerState;
 
     const isPainting = useMapart(s => s.isPainting);
-    const brushBlock = useMapart(s => s.brushBlock);
-    const setManualEdit = useMapart(s => s.setManualEdit);
 
     const {
         scale,
@@ -42,36 +38,17 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         position,
         isDragging,
         handleWheel,
-        handleMouseDown,
-        handleMouseMove,
+        handleMouseDown: handleCanvasMouseDown,
+        handleMouseMove: handleCanvasMouseMove,
         handleMouseUp
     } = useCanvasInteraction(uploadedImage, isPainting);
 
-    // Painting Handler
-    const handlePaint = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isPainting || !uploadedImage || !brushBlock) return;
-
-        // Get click position relative to the image
-        // We use nativeEvent.offsetX/Y which handles the scaling of the container gracefully 
-        // as long as the event target is the image/overlay itself appropriately sized.
-
-        // Note: Mapart resolution (width) is strictly `128 * grid * 128`.
-        // e.nativeEvent.offsetX should be close to pixel index.
-        const pixelX = Math.floor(e.nativeEvent.offsetX);
-        const pixelY = Math.floor(e.nativeEvent.offsetY);
-
-        if (pixelX >= 0 && pixelX < mapartResolution.width && pixelY >= 0 && pixelY < mapartResolution.height) {
-            const index = pixelY * mapartResolution.width + pixelX;
-            setManualEdit(index, brushBlock);
+    // Context Menu prevent
+    const handleContextMenu = (e: React.MouseEvent) => {
+        if (isPainting) {
+            e.preventDefault();
         }
     };
-
-    // Function to handle mouse move for painting (drag-paint)
-    const handlePaintMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.buttons === 1) { // Left mouse button held
-            handlePaint(e);
-        }
-    }
 
     // UI State
     const [showPreview, setShowPreview] = useState(true);
@@ -96,8 +73,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     return (
         <div
             className="flex-1 h-full relative bg-zinc-800 overflow-hidden flex flex-col"
-            onMouseMove={handleMouseMove}
+            onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleMouseUp}
+            onContextMenu={handleContextMenu}
         >
             {uploadedImage ? (
                 <>
@@ -125,7 +103,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         ref={containerRef}
                         className="flex-1 flex items-center justify-center overflow-hidden cursor-move bg-zinc-800 bg-[radial-gradient(#333_1px,transparent_1px)] bg-[size:20px_20px]"
                         onWheel={handleWheel}
-                        onMouseDown={handleMouseDown}
+                        onMouseDown={handleCanvasMouseDown}
                     >
                         <div
                             style={{
@@ -141,7 +119,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     ref={imageRef}
                                     src={originalTransformedUrl || previewUrl!}
                                     alt="Original"
-                                    className="max-w-none pointer-events-none select-none border border-zinc-600 rendering-pixelated"
+                                    className="max-w-none pointer-events-none select-none ring-1 ring-zinc-600 rendering-pixelated"
                                     draggable={false}
                                     style={{
                                         width: mapartResolution.width,
@@ -153,33 +131,28 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
                             {/* Mapart Preview */}
                             {showPreview && scaledPreviewUrl && (
-                                <div className="relative">
-                                    {/* Painting Overlay and Visual Feedback */}
-                                    {isPainting && (
-                                        <>
-                                            <div
-                                                className="absolute inset-0 cursor-crosshair z-20"
-                                                onMouseDown={handlePaint}
-                                                onMouseMove={handlePaintMove}
-                                                style={{
-                                                    width: mapartResolution.width,
-                                                    height: mapartResolution.height,
-                                                }}
-                                            />
-                                            {/* We render manual edits on top to ensure instant feedback even if preview is updating */}
-                                            <div className="absolute inset-0 z-10 pointer-events-none">
-                                                <ManualEditsOverlay
-                                                    width={mapartResolution.width}
-                                                    height={mapartResolution.height}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
+                                <div className="relative group">
+
+                                    {/* Interaction Layer (Painting, Hover) - Isolated Render */}
+                                    <InteractionLayer
+                                        width={mapartResolution.width}
+                                        height={mapartResolution.height}
+                                        scale={scale}
+                                    />
+
+                                    {/* Manual Edits Visual Layer */}
+                                    <div className="absolute inset-0 z-20 pointer-events-none">
+                                        <ManualEditsOverlay
+                                            width={mapartResolution.width}
+                                            height={mapartResolution.height}
+                                        />
+                                    </div>
+
                                     <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-green-500 font-semibold">Mapart Preview</div>
                                     <img
                                         src={scaledPreviewUrl}
                                         alt="Mapart Preview"
-                                        className="max-w-none pointer-events-none select-none border border-green-600/50 rendering-pixelated"
+                                        className="max-w-none pointer-events-none select-none ring-1 ring-green-600/50 rendering-pixelated"
                                         draggable={false}
                                         style={{
                                             width: mapartResolution.width,
@@ -187,13 +160,20 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                             imageRendering: 'pixelated'
                                         }}
                                     />
-                                    {/* Grid Overlay */}
+
+                                    {/* Optimized Pixel Grid */}
+                                    <PixelGridOverlay
+                                        scale={scale}
+                                        isVisible={scale > 7 && isPainting}
+                                    />
+
+                                    {/* Chunk Grid Overlay (128x128) */}
                                     <div
-                                        className="absolute inset-0 pointer-events-none"
+                                        className="absolute inset-0 pointer-events-none select-none z-10"
                                         style={{
                                             backgroundImage: `
-                                                linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-                                                linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+                                                linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px),
+                                                linear-gradient(to bottom, rgba(255,255,255,0.2) 1px, transparent 1px)
                                             `,
                                             backgroundSize: `${128}px ${128}px`
                                         }}
@@ -201,7 +181,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
                                     {/* Coordinates Overlay */}
                                     {(gridDimensions.x > 1 || gridDimensions.y > 1) && (
-                                        <div className="absolute inset-0 pointer-events-none">
+                                        <div className="absolute inset-0 pointer-events-none z-10">
                                             {Array.from({ length: gridDimensions.y }).map((_, y) => (
                                                 Array.from({ length: gridDimensions.x }).map((_, x) => (
                                                     <div

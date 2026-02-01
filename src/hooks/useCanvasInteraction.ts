@@ -10,7 +10,7 @@ export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boo
         if (!uploadedImage) return;
         e.preventDefault();
         const delta = e.deltaY * -0.001;
-        const newScale = Math.min(Math.max(0.1, scale + delta), 5);
+        const newScale = Math.min(Math.max(0.1, scale + delta), 25);
         setScale(newScale);
     }, [uploadedImage, scale]);
 
