@@ -10,7 +10,7 @@ import {
 import { ImageSettingsSection } from './control-panel/ImageSettingsSection';
 import { ProcessingSettingsSection } from './control-panel/ProcessingSettingsSection';
 import { ConstructionSettingsSection } from './control-panel/ConstructionSettingsSection';
-import { Button } from '../ui/Button';
+
 
 interface ControlPanelProps {
     onOpenMaterials: () => void;
@@ -33,33 +33,28 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
                     PARAMETERS
                 </h2>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="icon"
+                    <button
                         onClick={onOpenMaterials}
-                        className="text-zinc-500 hover:text-emerald-400"
+                        className="p-1.5 hover:bg-emerald-500/10 text-zinc-500 hover:text-emerald-400 rounded transition-colors"
                         title="Material List"
+                        type="button"
                     >
                         <Box size={20} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
+                    </button>
+                    <button
                         onClick={() => console.log('Mapart Configuration:', context)}
-                        className="text-zinc-500 hover:text-amber-400"
+                        className="p-1.5 hover:bg-amber-500/10 text-zinc-500 hover:text-amber-400 rounded transition-colors"
                         title="Log Profile"
+                        type="button"
                     >
                         <Bug size={20} />
-                    </Button>
-                    <Link to="/about">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-zinc-500 hover:text-blue-400"
-                            title="About"
-                        >
-                            <Info size={20} />
-                        </Button>
+                    </button>
+                    <Link
+                        to="/about"
+                        className="p-1.5 hover:bg-blue-500/10 text-zinc-500 hover:text-blue-400 rounded transition-colors"
+                        title="About"
+                    >
+                        <Info size={20} />
                     </Link>
                 </div>
             </div>

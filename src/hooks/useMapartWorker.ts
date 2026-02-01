@@ -43,6 +43,7 @@ export const useMapartWorker = ({
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
     const sourceImageDataRef = useRef<ImageData | null>(null);
 
+    const isProcessingRef = useRef(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export const useMapartWorker = ({
             type: 'module'
         });
         workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
+        isProcessingRef.current = false;
     }, []);
 
     useEffect(() => {
@@ -169,9 +171,12 @@ export const useMapartWorker = ({
         const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
         if (!hasSelection) return;
 
-        setIsProcessing(true);
+        let active = true;
 
         const process = async () => {
+            isProcessingRef.current = true;
+            setIsProcessing(true);
+
             try {
                 const api = workerApiRef.current;
                 if (!api) return;
@@ -188,8 +193,12 @@ export const useMapartWorker = ({
                     independentMaps
                 );
 
+                if (!active) return;
+
                 // Apply current edits to that new base
                 const { imageData: processedData, stats } = await api.applyEdits(manualEdits);
+
+                if (!active) return;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -201,13 +210,25 @@ export const useMapartWorker = ({
                     setMapartStats(stats);
                 }
             } catch (err) {
-                console.error("Heavy processing failed", err);
+                if (active) console.error("Heavy processing failed", err);
             } finally {
-                setIsProcessing(false);
+                if (active) {
+                    setIsProcessing(false);
+                    isProcessingRef.current = false;
+                }
             }
         };
 
         process();
+
+        return () => {
+            active = false;
+            // Checks if it is currently processing to cancel it
+            if (isProcessingRef.current) {
+                console.log("Cancelling previous processing worker...");
+                initWorker();
+            }
+        };
     }, [
         sourceImageVersion,
         buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
