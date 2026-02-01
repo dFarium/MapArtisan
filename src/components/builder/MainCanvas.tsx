@@ -101,7 +101,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                     {/* Canvas Area */}
                     <div
                         ref={containerRef}
-                        className="flex-1 flex items-center justify-center overflow-hidden cursor-move bg-zinc-800 bg-[radial-gradient(#333_1px,transparent_1px)] bg-[size:20px_20px]"
+                        className="flex-1 overflow-hidden cursor-move bg-zinc-800 bg-[radial-gradient(#333_1px,transparent_1px)] bg-[size:20px_20px]"
                         onWheel={handleWheel}
                         onMouseDown={handleCanvasMouseDown}
                     >
@@ -110,7 +110,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
                                 transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                             }}
-                            className="origin-center shadow-2xl flex gap-4"
+                            className="origin-top-left shadow-2xl flex gap-4 w-fit"
                         >
                             {/* Original Image */}
                             <div className="relative">

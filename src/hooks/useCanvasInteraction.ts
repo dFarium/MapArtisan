@@ -9,10 +9,33 @@ export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boo
     const handleWheel = useCallback((e: React.WheelEvent) => {
         if (!uploadedImage) return;
         e.preventDefault();
-        const delta = e.deltaY * -0.001;
-        const newScale = Math.min(Math.max(0.1, scale + delta), 25);
+
+        // Use multiplicative zoom for better feel at high scales
+        // e.deltaY is usually +/- 100
+        const zoomIntensity = 0.001;
+        const delta = -e.deltaY * zoomIntensity;
+
+        // Exponential-like zoom: scale * (1 + delta)
+        const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 25);
+
+        if (newScale === scale) return;
+
+        // Calculate Mouse Position relative to the container (viewport)
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Current position
+        const px = position.x;
+        const py = position.y;
+
+        // Calculate new position to keep the point under mouse stationary
+        const newX = mouseX - (mouseX - px) * (newScale / scale);
+        const newY = mouseY - (mouseY - py) * (newScale / scale);
+
         setScale(newScale);
-    }, [uploadedImage, scale]);
+        setPosition({ x: newX, y: newY });
+    }, [uploadedImage, scale, position]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         if (!uploadedImage || e.button !== 0) return;
