@@ -15,6 +15,7 @@ export const PixelEditor = () => {
     const setBrushBlock = useMapart(s => s.setBrushBlock);
     const clearManualEdits = useMapart(s => s.clearManualEdits);
     const manualEdits = useMapart(s => s.manualEdits);
+    const buildMode = useMapart(s => s.buildMode);
 
     const [isBrushSelectorOpen, setIsBrushSelectorOpen] = useState(false);
 
@@ -71,19 +72,21 @@ export const PixelEditor = () => {
                 onClick={() => setIsBrushSelectorOpen(true)}
                 title="Change Brush"
             >
-                <div className="w-8 h-8 rounded border border-zinc-700 bg-zinc-800 overflow-hidden relative">
+                <div className="w-10 h-10 rounded border border-zinc-700 bg-zinc-800 overflow-hidden relative shadow-inner shrink-0">
                     {brushBlock ? (
                         <>
+                            <div
+                                className="w-full h-full"
+                                style={{
+                                    backgroundColor: `rgb(${brushBlock.rgb.r}, ${brushBlock.rgb.g}, ${brushBlock.rgb.b})`
+                                }}
+                            />
+                            {/* Texture overlay (subtle) */}
                             <img
                                 src={getTextureUrl(brushBlock.blockId)}
-                                className="w-full h-full object-cover rendering-pixelated"
-                                alt="Brush"
+                                className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
+                                alt="Brush Texture"
                             />
-                            {/* Brightness Indicator */}
-                            <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-tl border-t border-l border-black/20
-                                ${brushBlock.brightness === 'high' ? 'bg-white/80' :
-                                    brushBlock.brightness === 'low' ? 'bg-black/60' : 'bg-transparent'}
-                            `} />
                         </>
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-zinc-600">
@@ -109,21 +112,27 @@ export const PixelEditor = () => {
 
             {/* Brightness Controls */}
             <div className="flex bg-zinc-950 rounded border border-zinc-800 p-0.5">
-                {(['low', 'normal', 'high'] as const).map(b => (
-                    <button
-                        key={b}
-                        onClick={() => updateBrightness(b)}
-                        disabled={!brushBlock}
-                        className={`
-                            px-2 py-1 text-[10px] rounded-sm transition-colors uppercase font-medium
-                            ${brushBlock?.brightness === b
-                                ? 'bg-blue-600/20 text-blue-400'
-                                : 'text-zinc-500 hover:text-zinc-300'}
-                        `}
-                    >
-                        {b[0]}
-                    </button>
-                ))}
+                {(['low', 'normal', 'high'] as const).map(b => {
+                    const is2D = buildMode === '2d';
+                    const isDisabled = !brushBlock || (is2D && b !== 'normal');
+
+                    return (
+                        <button
+                            key={b}
+                            onClick={() => updateBrightness(b)}
+                            disabled={isDisabled}
+                            className={`
+                                px-2 py-1 text-[10px] rounded-sm transition-colors uppercase font-medium
+                                ${brushBlock?.brightness === b
+                                    ? 'bg-blue-600/20 text-blue-400'
+                                    : (isDisabled ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')}
+                            `}
+                            title={is2D && b !== 'normal' ? 'Not available in 2D mode' : b}
+                        >
+                            {b[0]}
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="h-6 w-px bg-zinc-800 mx-1" />

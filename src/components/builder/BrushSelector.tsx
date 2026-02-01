@@ -65,7 +65,7 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
         >
-            <div className={`bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 ${is3D ? 'w-full max-w-4xl' : 'w-full max-w-lg'}`} onClick={(e) => e.stopPropagation()}>
+            <div className="bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
@@ -83,69 +83,53 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
                             <span className="text-sm">Select blocks in the Palette first.</span>
                         </div>
                     ) : (
-                        <div className={`grid ${is3D ? 'grid-cols-2 md:grid-cols-3 gap-4' : 'grid-cols-8 sm:grid-cols-10 gap-2'}`}>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             {activeColors.map((color) => {
-                                // For 3D mode, we show 3 variants (High -> lighter, Normal, Low -> darker)
-                                // High (North), Normal (Flat), Low (South)
+                                const variants: BrightnessLevel[] = ['high', 'normal', 'low'];
 
-                                if (is3D) {
-                                    const variants: BrightnessLevel[] = ['high', 'normal', 'low'];
-
-                                    return (
-                                        <div key={color.colorID} className="bg-zinc-950/30 p-2 rounded-lg border border-zinc-800/50 flex flex-col gap-2">
-                                            <div className="text-xs text-zinc-400 font-medium truncate px-1">
-                                                {selectedPaletteItems[color.colorID]?.replace('minecraft:', '')}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                {variants.map(variant => {
-                                                    const rgb = color.brightnessValues[variant];
-                                                    const isSelected = brushBlock?.rgb.r === rgb.r &&
-                                                        brushBlock?.rgb.g === rgb.g &&
-                                                        brushBlock?.rgb.b === rgb.b;
-
-                                                    return (
-                                                        <div key={variant} className="flex-1 flex flex-col items-center gap-1 group">
-                                                            <button
-                                                                onClick={() => handleSelectColor(color, variant)}
-                                                                className={`
-                                                                    w-full aspect-square rounded shadow-sm transition-all hover:scale-105
-                                                                    ${isSelected ? 'ring-2 ring-white z-10' : 'ring-1 ring-black/20 hover:ring-zinc-500'}
-                                                                `}
-                                                                style={{
-                                                                    backgroundColor: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-                                                                }}
-                                                                title={`${variant} brightness`}
-                                                            />
-                                                            <span className="text-[10px] text-zinc-600 uppercase tracking-tighter group-hover:text-zinc-400 transition-colors">
-                                                                {variant === 'high' ? 'High' : variant === 'low' ? 'Low' : 'Norm'}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
+                                return (
+                                    <div key={color.colorID} className="bg-zinc-950/30 p-2 rounded-lg border border-zinc-800/50 flex flex-col gap-2">
+                                        <div className="text-xs text-zinc-400 font-medium truncate px-1">
+                                            {selectedPaletteItems[color.colorID]?.replace('minecraft:', '')}
                                         </div>
-                                    );
-                                } else {
-                                    // 2D Mode (Flat)
-                                    const isSelected = brushBlock?.rgb.r === color.brightnessValues.normal.r &&
-                                        brushBlock?.rgb.g === color.brightnessValues.normal.g &&
-                                        brushBlock?.rgb.b === color.brightnessValues.normal.b;
+                                        <div className="flex gap-2">
+                                            {variants.map(variant => {
+                                                const rgb = color.brightnessValues[variant];
+                                                const isSelected = brushBlock?.rgb.r === rgb.r &&
+                                                    brushBlock?.rgb.g === rgb.g &&
+                                                    brushBlock?.rgb.b === rgb.b;
 
-                                    return (
-                                        <button
-                                            key={color.colorID}
-                                            onClick={() => handleSelectColor(color, 'normal')}
-                                            className={`
-                                                aspect-square rounded-md shadow-sm transition-transform hover:scale-110
-                                                ${isSelected ? 'ring-2 ring-white scale-110 z-10' : 'ring-1 ring-black/20 hover:ring-zinc-500'}
-                                            `}
-                                            style={{
-                                                backgroundColor: `rgb(${color.brightnessValues.normal.r}, ${color.brightnessValues.normal.g}, ${color.brightnessValues.normal.b})`
-                                            }}
-                                            title={`${color.colorName} (${selectedPaletteItems[color.colorID]?.replace('minecraft:', '')})`}
-                                        />
-                                    );
-                                }
+                                                const isVariantDisabled = !is3D && variant !== 'normal';
+
+                                                return (
+                                                    <div key={variant} className="flex-1 flex flex-col items-center gap-1 group">
+                                                        <button
+                                                            onClick={() => !isVariantDisabled && handleSelectColor(color, variant)}
+                                                            disabled={isVariantDisabled}
+                                                            className={`
+                                                                w-full aspect-square rounded shadow-sm transition-all
+                                                                ${isVariantDisabled
+                                                                    ? 'opacity-20 cursor-not-allowed ring-1 ring-black/10 grayscale'
+                                                                    : 'hover:scale-105'
+                                                                }
+                                                                ${isSelected ? 'ring-2 ring-white z-10' : (isVariantDisabled ? '' : 'ring-1 ring-black/20 hover:ring-zinc-500')}
+                                                            `}
+                                                            style={{
+                                                                backgroundColor: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+                                                            }}
+                                                            title={isVariantDisabled
+                                                                ? 'This shade requires 3D Valley mode (height variation)'
+                                                                : `${variant} brightness`}
+                                                        />
+                                                        <span className={`text-[10px] uppercase tracking-tighter transition-colors ${isVariantDisabled ? 'text-zinc-700' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+                                                            {variant === 'high' ? 'High' : variant === 'low' ? 'Low' : 'Norm'}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
                             })}
                         </div>
                     )}
@@ -153,7 +137,9 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
 
                 {/* Footer hint */}
                 <div className="p-3 bg-zinc-950/50 border-t border-zinc-800 text-xs text-zinc-500 text-center">
-                    {is3D ? 'Select the specific brightness variant you want to paint.' : 'Colors based on your current Palette configuration.'}
+                    {is3D
+                        ? 'Select the specific brightness variant you want to paint.'
+                        : '2D Mode active. Switch to "3D Valley" in settings to enable brightness selection.'}
                 </div>
             </div>
         </div>,

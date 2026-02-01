@@ -88,7 +88,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     paletteVersion: '1.21.11',
     imageSettings: { saturation: 100, brightness: 0, contrast: 0 },
     gridDimensions: { x: 1, y: 1 },
-    buildMode: '2d',
+    buildMode: '3d_valley',
     blockSupport: 'all',
     dithering: 'floyd-steinberg',
     transparency: { enabled: true, color: '#ffffff' },
