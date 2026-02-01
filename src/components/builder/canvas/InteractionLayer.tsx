@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMapart } from '../../../context/MapartContext';
 
 interface InteractionLayerProps {
@@ -68,13 +68,35 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
 
     const handleMouseLeave = () => setHoveredPixel(null);
 
+    // Track Ctrl key for panning override
+    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Control') setIsCtrlPressed(true);
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Control') setIsCtrlPressed(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
+
     if (!isPainting) return null;
+
+    // If Ctrl is pressed, disable pointer events on this layer to allow panning (controlled by parent)
+    // Also hide the reticle so it doesn't look confusing.
+    const isInteractive = !isCtrlPressed;
 
     return (
         <>
             {/* Interactive Surface */}
             <div
-                className="absolute inset-0 cursor-none z-30"
+                className={`absolute inset-0 z-30 ${isInteractive ? 'cursor-none' : 'pointer-events-none'}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -83,7 +105,7 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
             />
 
             {/* 3x3 Reticle Cursor */}
-            {hoveredPixel && (
+            {hoveredPixel && isInteractive && (
                 <div
                     className="absolute z-40 pointer-events-none"
                     style={{

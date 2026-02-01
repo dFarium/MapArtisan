@@ -15,7 +15,10 @@ export const useCanvasInteraction = (uploadedImage: File | null, isPainting: boo
     }, [uploadedImage, scale]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!uploadedImage || e.button !== 0 || isPainting) return; // Only left click, disable if painting
+        if (!uploadedImage || e.button !== 0) return;
+        // Allow drag if NOT painting OR if Ctrl is held (override)
+        if (isPainting && !e.ctrlKey) return;
+
         setIsDragging(true);
         setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }, [uploadedImage, position, isPainting]);
