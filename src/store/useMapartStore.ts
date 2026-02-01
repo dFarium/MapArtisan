@@ -53,6 +53,7 @@ export interface MapartState {
     independentMaps: boolean;
     manualEdits: Record<number, ManualEdit>;
     isPainting: boolean;
+    isPicking: boolean;
     brushBlock: ManualEdit | null;
 
     // Actions
@@ -77,6 +78,7 @@ export interface MapartState {
     deleteManualEdit: (index: number) => void;
     clearManualEdits: () => void;
     setIsPainting: (isPainting: boolean) => void;
+    setIsPicking: (isPicking: boolean) => void;
     setBrushBlock: (block: ManualEdit | null) => void;
 }
 
@@ -102,6 +104,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     independentMaps: true,
     manualEdits: {},
     isPainting: false,
+    isPicking: false,
     brushBlock: null,
 
     // Actions
@@ -164,6 +167,7 @@ export const useMapartStore = create<MapartState>((set) => ({
         return { manualEdits: newEdits };
     }),
     clearManualEdits: () => set({ manualEdits: {} }),
-    setIsPainting: (isPainting) => set({ isPainting }),
+    setIsPainting: (isPainting) => set({ isPainting, isPicking: false }),
+    setIsPicking: (isPicking) => set({ isPicking }),
     setBrushBlock: (block) => set({ brushBlock: block }),
 }));

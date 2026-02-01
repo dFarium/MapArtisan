@@ -319,6 +319,16 @@ export const useMapartWorker = ({
         }
     };
 
+    const pickBlock = async (x: number, y: number) => {
+        if (!workerApiRef.current) return null;
+        try {
+            return await workerApiRef.current.getBlockAt(x, y, manualEdits);
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
+    };
+
     return {
         isProcessing,
         isExporting,
@@ -326,6 +336,7 @@ export const useMapartWorker = ({
         originalTransformedUrl,
         mapartResolution,
         exportMapart,
-        calculateMaterials
+        calculateMaterials,
+        pickBlock
     };
 };

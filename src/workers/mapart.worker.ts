@@ -7,6 +7,8 @@ import type { ManualEdit, MapartStats } from '../types/mapart';
 let lastBaseResult: {
     imageData: ImageData;
     toneMap: Int8Array;
+    blockIndices: Int32Array;
+    candidates: any[]; // Using any to avoid importing ColorCandidate circular dep if confusing, but better to import
     stats: MapartStats;
     width: number;
     height: number;
@@ -46,6 +48,8 @@ const api = {
         lastBaseResult = {
             imageData: result.imageData,
             toneMap: result.toneMap,
+            blockIndices: result.blockIndices,
+            candidates: result.candidates,
             stats: result.stats,
             width: result.imageData.width,
             height: result.imageData.height,
@@ -74,7 +78,41 @@ const api = {
     },
 
     generateMapartExport,
-    calculateMaterialCounts
+    calculateMaterialCounts,
+
+    /**
+     * Get the block information at a specific coordinate.
+     * Checks manual edits first, then falls back to the processed base map.
+     */
+    getBlockAt: (x: number, y: number, manualEdits: Record<number, ManualEdit>) => {
+        if (!lastBaseResult) {
+            console.warn("[Worker] getBlockAt: lastBaseResult is null");
+            return null;
+        }
+
+        const { width, blockIndices, candidates } = lastBaseResult;
+        console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Indices len: ${blockIndices?.length}, Candidates len: ${candidates?.length}`);
+
+        const index = y * width + x;
+
+        // Check manual edits first
+        if (manualEdits[index]) {
+            return manualEdits[index];
+        }
+
+        // Fallback to base
+        const candidateIndex = blockIndices[index];
+        if (candidateIndex >= 0 && candidateIndex < candidates.length) {
+            const c = candidates[candidateIndex];
+            return {
+                blockId: c.blockId,
+                brightness: c.brightness,
+                rgb: c.rgb
+            };
+        }
+
+        return null;
+    }
 };
 
 export type MapartWorkerApi = typeof api;

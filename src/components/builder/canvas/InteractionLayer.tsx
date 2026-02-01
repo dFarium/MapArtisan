@@ -1,15 +1,19 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMapart } from '../../../context/MapartContext';
 
 interface InteractionLayerProps {
     width: number;
     height: number;
     scale: number;
+    onPickBlock?: (x: number, y: number) => Promise<any>;
 }
 
-export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps) => {
+export const InteractionLayer = ({ width, height, scale, onPickBlock }: InteractionLayerProps) => {
     const isPainting = useMapart(s => s.isPainting);
+    const isPicking = useMapart(s => s.isPicking);
+    const setIsPicking = useMapart(s => s.setIsPicking);
     const brushBlock = useMapart(s => s.brushBlock);
+    const setBrushBlock = useMapart(s => s.setBrushBlock);
     const setManualEdit = useMapart(s => s.setManualEdit);
     const deleteManualEdit = useMapart(s => s.deleteManualEdit);
 
@@ -28,6 +32,8 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
         return { pixelX, pixelY };
     };
 
+    const lastPaintedPixelRef = useRef<{ x: number, y: number } | null>(null);
+
     const performPaintAction = useCallback((pixelX: number, pixelY: number, button: number) => {
         if (pixelX >= 0 && pixelX < width && pixelY >= 0 && pixelY < height) {
             const index = pixelY * width + pixelX;
@@ -39,14 +45,45 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
         }
     }, [width, height, brushBlock, setManualEdit, deleteManualEdit]);
 
-    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isPainting) return;
-        if (e.button === 1) { // Middle click prevention/defer
+    // Bresenham's line algorithm for smooth strokes
+    const paintLine = (x0: number, y0: number, x1: number, y1: number, button: number) => {
+        const dx = Math.abs(x1 - x0);
+        const dy = Math.abs(y1 - y0);
+        const sx = (x0 < x1) ? 1 : -1;
+        const sy = (y0 < y1) ? 1 : -1;
+        let err = dx - dy;
+
+        while (true) {
+            performPaintAction(x0, y0, button);
+            if ((x0 === x1) && (y0 === y1)) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x0 += sx; }
+            if (e2 < dx) { err += dx; y0 += sy; }
+        }
+    };
+
+    const handleMouseDown = async (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isPainting && !isPicking) return;
+        if (e.button === 1) {
             e.preventDefault();
             return;
         }
+
         const { pixelX, pixelY } = getPixelCoords(e);
+
+        if (isPicking) {
+            if (onPickBlock) {
+                const block = await onPickBlock(pixelX, pixelY);
+                if (block) {
+                    setBrushBlock(block);
+                    setIsPicking(false);
+                }
+            }
+            return;
+        }
+
         performPaintAction(pixelX, pixelY, e.button);
+        lastPaintedPixelRef.current = { x: pixelX, y: pixelY };
     };
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -61,9 +98,18 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
             setHoveredPixel(null);
         }
 
-        // Drag Paint
-        if (e.buttons === 1) performPaintAction(pixelX, pixelY, 0);
-        else if (e.buttons === 2) performPaintAction(pixelX, pixelY, 2);
+        // Drag Paint with Interpolation
+        if (e.buttons === 1 || e.buttons === 2) {
+            const button = e.buttons === 1 ? 0 : 2;
+            if (lastPaintedPixelRef.current) {
+                paintLine(lastPaintedPixelRef.current.x, lastPaintedPixelRef.current.y, pixelX, pixelY, button);
+            } else {
+                performPaintAction(pixelX, pixelY, button);
+            }
+            lastPaintedPixelRef.current = { x: pixelX, y: pixelY };
+        } else {
+            lastPaintedPixelRef.current = null;
+        }
     };
 
     const handleMouseLeave = () => setHoveredPixel(null);
@@ -86,17 +132,17 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
         };
     }, []);
 
-    if (!isPainting) return null;
-
-    // If Ctrl is pressed, disable pointer events on this layer to allow panning (controlled by parent)
-    // Also hide the reticle so it doesn't look confusing.
     const isInteractive = !isCtrlPressed;
+
+    if (!isPainting && !isPicking) return null;
+
+    const cursorStyle = isPicking ? 'cursor-crosshair' : (isInteractive ? 'cursor-none' : 'pointer-events-none');
 
     return (
         <>
             {/* Interactive Surface */}
             <div
-                className={`absolute inset-0 z-30 ${isInteractive ? 'cursor-none' : 'pointer-events-none'}`}
+                className={`absolute inset-0 z-30 ${cursorStyle}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -105,7 +151,7 @@ export const InteractionLayer = ({ width, height, scale }: InteractionLayerProps
             />
 
             {/* 3x3 Reticle Cursor */}
-            {hoveredPixel && isInteractive && (
+            {hoveredPixel && isInteractive && !isPicking && (
                 <div
                     className="absolute z-40 pointer-events-none"
                     style={{

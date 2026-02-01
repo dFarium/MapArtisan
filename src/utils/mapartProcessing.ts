@@ -498,7 +498,7 @@ export function processMapart(
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     _optimizeHeight: boolean = false
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[] } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -509,7 +509,9 @@ export function processMapart(
                 maxHeight: 0,
                 heightMap: new Int32Array(imageData.width).fill(0)
             },
-            toneMap: new Int8Array(imageData.width * imageData.height)
+            toneMap: new Int8Array(imageData.width * imageData.height),
+            blockIndices: new Int32Array(imageData.width * imageData.height),
+            candidates: []
         };
     }
 
@@ -575,6 +577,9 @@ export function processMapart(
     // We use Int8Array for memory efficiency.
     const toneMap = new Int8Array(width * height);
 
+    // Block Indices Map (for Picker)
+    const blockIndices = new Int32Array(width * height);
+
     // 3d_valley_lossy removed. Using standard path.
     {
         // Standard Processing (2D or 3D Valley)
@@ -634,6 +639,9 @@ export function processMapart(
                 output[idx] = bestRGB.r;
                 output[idx + 1] = bestRGB.g;
                 output[idx + 2] = bestRGB.b;
+
+                // Save Block Index
+                blockIndices[y * width + x] = bestIndex;
 
                 // Save Tone decision for Phase 2
                 if (buildMode === '3d_valley') {
@@ -782,7 +790,9 @@ export function processMapart(
             maxHeight: overallMax,
             heightMap: colHeights
         },
-        toneMap
+        toneMap,
+        blockIndices: new Int32Array(blockIndices), // blockIndices needs to be defined/filled in loop
+        candidates
     };
 }
 

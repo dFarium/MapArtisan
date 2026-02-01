@@ -27,7 +27,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         originalTransformedUrl,
         mapartResolution,
         isExporting,
-        exportMapart
+        exportMapart,
+        pickBlock
     } = workerState;
 
     const isPainting = useMapart(s => s.isPainting);
@@ -138,6 +139,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                         width={mapartResolution.width}
                                         height={mapartResolution.height}
                                         scale={scale}
+                                        onPickBlock={pickBlock}
                                     />
 
                                     {/* Manual Edits Visual Layer */}

@@ -1,4 +1,4 @@
-import { X, RefreshCw, Paintbrush, ChevronDown } from 'lucide-react';
+import { X, RefreshCw, Paintbrush, ChevronDown, Pipette } from 'lucide-react';
 import { useMapart } from '../../context/MapartContext';
 import type { BrightnessLevel } from '../../types/mapart';
 import paletteData from '../../data/palette_1_21_11.json';
@@ -9,6 +9,8 @@ import { useState } from 'react';
 export const PixelEditor = () => {
     const isPainting = useMapart(s => s.isPainting);
     const setIsPainting = useMapart(s => s.setIsPainting);
+    const isPicking = useMapart(s => s.isPicking);
+    const setIsPicking = useMapart(s => s.setIsPicking);
     const brushBlock = useMapart(s => s.brushBlock);
     const setBrushBlock = useMapart(s => s.setBrushBlock);
     const clearManualEdits = useMapart(s => s.clearManualEdits);
@@ -125,6 +127,15 @@ export const PixelEditor = () => {
             </div>
 
             <div className="h-6 w-px bg-zinc-800 mx-1" />
+
+            {/* Picker Tool */}
+            <button
+                onClick={() => setIsPicking(!isPicking)}
+                className={`p-1.5 rounded transition-colors ${isPicking ? 'bg-blue-600 text-white' : 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200'}`}
+                title="Color Picker (Eye Dropper)"
+            >
+                <Pipette size={14} />
+            </button>
 
             {/* Clear Edits */}
             <button
