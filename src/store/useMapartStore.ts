@@ -69,6 +69,7 @@ export interface MapartState {
     setMapartStats: (stats: MapartStats | null) => void;
     setIndependentMaps: (value: boolean) => void;
     setManualEdit: (index: number, data: ManualEdit) => void;
+    applyBatchEdits: (edits: Record<number, ManualEdit>, deletions?: number[]) => void;
     deleteManualEdit: (index: number) => void;
     clearManualEdits: () => void;
     setIsPainting: (isPainting: boolean) => void;
@@ -169,6 +170,15 @@ export const useMapartStore = create<MapartState>((set) => ({
     setManualEdit: (index, data) => set((state) => ({
         manualEdits: { ...state.manualEdits, [index]: data }
     })),
+    applyBatchEdits: (edits, deletions) => set((state) => {
+        const newEdits = { ...state.manualEdits, ...edits };
+        if (deletions) {
+            for (const index of deletions) {
+                delete newEdits[index];
+            }
+        }
+        return { manualEdits: newEdits };
+    }),
     deleteManualEdit: (index) => set((state) => {
         const newEdits = { ...state.manualEdits };
         delete newEdits[index];
