@@ -73,8 +73,64 @@ const api = {
         return { imageData: result.imageData, stats: result.stats };
     },
 
-    generateMapartExport,
-    calculateMaterialCounts,
+    generateMapartExport: async (
+        imageData: ImageData,
+        selectedPaletteItems: Record<number, string | null>,
+        buildMode: BuildMode,
+        filename: string,
+        metadata: any,
+        threeDPrecision: number,
+        dithering: DitheringMode,
+        useCielab: boolean,
+        hybridStrength: number,
+        independentMaps: boolean,
+        manualEdits: Record<number, ManualEdit>,
+        blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+    ) => {
+        return generateMapartExport(
+            imageData,
+            selectedPaletteItems,
+            buildMode,
+            filename,
+            metadata, // metadata
+            threeDPrecision,
+            dithering,
+            useCielab,
+            hybridStrength,
+            independentMaps,
+            manualEdits,
+            blockSupport
+        );
+    },
+
+    /**
+     * Calculates the materials required for the mapart.
+     */
+    calculateMaterialCounts: async (
+        imageData: ImageData,
+        selectedPaletteItems: Record<number, string | null>,
+        buildMode: BuildMode,
+        threeDPrecision: number,
+        dithering: DitheringMode,
+        useCielab: boolean,
+        hybridStrength: number,
+        independentMaps: boolean,
+        manualEdits: Record<number, ManualEdit>,
+        blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+    ) => {
+        return calculateMaterialCounts(
+            imageData,
+            selectedPaletteItems,
+            buildMode,
+            threeDPrecision,
+            dithering,
+            useCielab,
+            hybridStrength,
+            independentMaps,
+            manualEdits,
+            blockSupport
+        );
+    },
 
     /**
      * Get the block information at a specific coordinate.
@@ -87,7 +143,7 @@ const api = {
         }
 
         const { width, blockIndices, candidates } = lastBaseResult;
-        console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Indices len: ${blockIndices?.length}, Candidates len: ${candidates?.length}`);
+        // console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Indices len: ${blockIndices?.length}, Candidates len: ${candidates?.length}`);
 
         const index = y * width + x;
 

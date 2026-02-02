@@ -20,7 +20,7 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
             // Actually, keep it if we want, but better refresh to ensure accuracy.
             setMaterials(null);
         }
-    }, [isOpen]);
+    }, [isOpen, onCalculate]);
 
     const loadMaterials = async () => {
         setIsLoading(true);
@@ -38,6 +38,11 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
             .join(' ');
     };
 
+    const getTextureUrl = (blockId: string) => {
+        const cleanName = blockId.replace('minecraft:', '');
+        return `/textures/${cleanName}.png`;
+    };
+
     const getMaterialRows = () => {
         if (!materials) return [];
         return Object.entries(materials)
@@ -50,9 +55,22 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
                 return (
                     <tr key={id} className="border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition-colors">
                         <td className="py-2 px-3 flex items-center gap-3">
-                            {/* We could add an icon here if we have a mapping or use a sprite sheet */}
-                            <div className="w-6 h-6 bg-zinc-800 rounded flex items-center justify-center text-xs text-zinc-500">
-                                <Box size={14} />
+                            <div
+                                className="w-8 h-8 bg-zinc-800 rounded flex items-center justify-center overflow-hidden border border-zinc-700"
+                                style={{ imageRendering: 'pixelated' }}
+                            >
+                                <img
+                                    src={getTextureUrl(id)}
+                                    alt={formatBlockName(id)}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                        const icon = document.createElement('span');
+                                        icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>';
+                                        e.currentTarget.parentElement?.appendChild(icon);
+                                    }}
+                                />
                             </div>
                             <span className="text-zinc-300 font-medium">{formatBlockName(id)}</span>
                         </td>

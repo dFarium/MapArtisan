@@ -79,8 +79,8 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                     className="h-8 text-xs"
                 >
                     <option value="all">Include Physical Support</option>
-                    <option value="needed">Floating Blocks ONLY</option>
-                    <option value="survival">Survival Resource Efficient</option>
+                    <option value="needed">No Support (Floating)</option>
+                    <option value="gravity">Support Where Needed</option>
                 </Select>
             </div>
         </CollapsibleSection>

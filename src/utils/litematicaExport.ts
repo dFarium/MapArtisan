@@ -36,7 +36,8 @@ export function imageDataToBlockStates(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     // Phase 1: Base Processing
@@ -78,6 +79,45 @@ export function imageDataToBlockStates(
                 brightness: brightness as BrightnessLevel,
                 blockId: blockId
             });
+        }
+    }
+
+    // Identify blocks that need support (gravity or fragile)
+    const gravityBlocks = new Set([
+        'minecraft:sand',
+        'minecraft:red_sand',
+        'minecraft:gravel',
+        'minecraft:dragon_egg',
+        'minecraft:anvil',
+        'minecraft:chipped_anvil',
+        'minecraft:damaged_anvil',
+        'minecraft:white_concrete_powder',
+        'minecraft:orange_concrete_powder',
+        'minecraft:magenta_concrete_powder',
+        'minecraft:light_blue_concrete_powder',
+        'minecraft:yellow_concrete_powder',
+        'minecraft:lime_concrete_powder',
+        'minecraft:pink_concrete_powder',
+        'minecraft:gray_concrete_powder',
+        'minecraft:light_gray_concrete_powder',
+        'minecraft:cyan_concrete_powder',
+        'minecraft:purple_concrete_powder',
+        'minecraft:blue_concrete_powder',
+        'minecraft:brown_concrete_powder',
+        'minecraft:green_concrete_powder',
+        'minecraft:red_concrete_powder',
+        'minecraft:black_concrete_powder',
+        'minecraft:scaffolding',
+        'minecraft:snow', // Gravity affected if layers? No, snow block not gravity.
+        // Add others if needed
+    ]);
+
+    const fragileBlocks = new Set<string>();
+    for (const color of palette) {
+        for (const block of color.blocks) {
+            if (block.needsSupport) {
+                fragileBlocks.add(block.id);
+            }
         }
     }
 
@@ -185,16 +225,31 @@ export function imageDataToBlockStates(
                 z: rawBlock.z
             });
 
-            // Add Support Block
+            // Add Support Block Logic
             // In 3D mode, if the block is above the ground (Y > 0), it needs a support at Y-1.
             // Blocks at Y=0 sit on the floor and don't need artificial support.
             if (!is2D && finalY > 0) {
-                currentColumnBlocks.push({
-                    blockId: 'minecraft:stone',
-                    x: x,
-                    y: finalY - 1,
-                    z: rawBlock.z
-                });
+                let addSupport = false;
+
+                if (blockSupport === 'all') {
+                    addSupport = true;
+                } else if (blockSupport === 'needed') {
+                    addSupport = false;
+                } else if (blockSupport === 'gravity') {
+                    // Check if block is gravity or fragile
+                    const isGravity = gravityBlocks.has(rawBlock.blockId);
+                    const isFragile = fragileBlocks.has(rawBlock.blockId);
+                    addSupport = isGravity || isFragile;
+                }
+
+                if (addSupport) {
+                    currentColumnBlocks.push({
+                        blockId: 'minecraft:stone',
+                        x: x,
+                        y: finalY - 1,
+                        z: rawBlock.z
+                    });
+                }
             }
         }
 
@@ -209,12 +264,28 @@ export function imageDataToBlockStates(
 
         // Add Support for Noobline if elevated
         if (!is2D && finalNooblineY > 0) {
-            currentColumnBlocks.push({
-                blockId: 'minecraft:stone',
-                x: x,
-                y: finalNooblineY - 1,
-                z: 0,
-            });
+            // Noobline is solid (cobblestone), only needs support if 'all' or 'gravity' (it behaves like solid block)
+            // But if it's elevated, it floats. Logic for 'standard' mapart is usually to support everything.
+            // If mode is 'needed' (floating), we don't support it.
+            // If mode is 'gravity', cobblestone doesn't fall, so we DON'T support it unless we want to be safe?
+            // User request was "support where needed". Cobblestone doesn't need support.
+
+            let addNoobSupport = false;
+            if (blockSupport === 'all') {
+                addNoobSupport = true;
+            } else {
+                // For 'needed' and 'gravity', cobblestone (noobline) floats fine.
+                addNoobSupport = false;
+            }
+
+            if (addNoobSupport) {
+                currentColumnBlocks.push({
+                    blockId: 'minecraft:stone',
+                    x: x,
+                    y: finalNooblineY - 1,
+                    z: 0,
+                });
+            }
         }
 
         columnBlocks.set(x, currentColumnBlocks);
@@ -435,7 +506,8 @@ export async function generateMapartExport(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
     const isMultiMap = width > 128 || height > 128;
@@ -444,7 +516,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -501,7 +573,7 @@ export async function generateMapartExport(
                 // Process independently to get correct noob lines for this section
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, blockSupport
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {
@@ -546,11 +618,12 @@ export function calculateMaterialCounts(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
-    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
 ): Record<string, number> {
     const blockStates = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits
+        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport
     );
 
     const counts: Record<string, number> = {};

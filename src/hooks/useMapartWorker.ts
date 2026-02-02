@@ -21,6 +21,7 @@ interface UseMapartWorkerProps {
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
+    blockSupport: 'all' | 'needed' | 'gravity';
 }
 
 
@@ -39,6 +40,7 @@ export const useMapartWorker = ({
     setMapartStats,
     imageSettings,
     manualEdits,
+    blockSupport,
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -273,7 +275,7 @@ export const useMapartWorker = ({
 
     // ... existing initialization code ...
 
-    const calculateMaterials = async () => {
+    const calculateMaterials = useCallback(async () => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return null;
 
         try {
@@ -287,16 +289,17 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits // Pass manual edits
+                manualEdits, // Pass manual edits
+                blockSupport
             );
             return counts;
         } catch (err) {
             console.error("Material calculation failed:", err);
             return null;
         }
-    };
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport]);
 
-    const exportMapart = async (
+    const exportMapart = useCallback(async (
         filename: string,
         metadata: any
     ) => {
@@ -317,7 +320,8 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits // Pass manual edits
+                manualEdits, // Pass manual edits
+                blockSupport
             );
 
             // Import dynamically to avoid circular dependencies if any, or just standard import
@@ -328,7 +332,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, isExporting]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

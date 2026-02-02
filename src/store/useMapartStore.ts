@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { MapartStats, ManualEdit } from '../types/mapart';
 
 export type BuildMode = '2d' | '3d_valley';
-export type BlockSupport = 'all' | 'needed' | 'survival';
+export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
 
 export interface ImageSettings {
