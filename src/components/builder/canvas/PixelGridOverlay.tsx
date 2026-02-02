@@ -11,7 +11,6 @@ export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProp
     const timeoutRef = useRef<number | null>(null);
 
     useEffect(() => {
-        // Clear any pending timeout
         if (timeoutRef.current !== null) {
             clearTimeout(timeoutRef.current);
         }
@@ -38,7 +37,12 @@ export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProp
             width="100%"
             height="100%"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ imageRendering: 'pixelated' }}
+            style={{
+                imageRendering: 'pixelated',
+                willChange: 'contents',
+                contain: 'strict',
+                transform: 'translateZ(0)',
+            }}
         >
             <defs>
                 <pattern
