@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState, useEffect, useRef } from 'react';
 
 interface PixelGridOverlayProps {
     scale: number;
@@ -6,10 +6,30 @@ interface PixelGridOverlayProps {
 }
 
 export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProps) => {
+    // Debounce scale to avoid rapid re-renders during zoom gestures
+    const [debouncedScale, setDebouncedScale] = useState(scale);
+    const timeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        // Clear any pending timeout
+        if (timeoutRef.current !== null) {
+            clearTimeout(timeoutRef.current);
+        }
+
+        // Debounce scale updates by 30ms
+        timeoutRef.current = window.setTimeout(() => {
+            setDebouncedScale(scale);
+        }, 30);
+
+        return () => {
+            if (timeoutRef.current !== null) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, [scale]);
+
     if (!isVisible) return null;
 
-    // We use a pattern to draw the grid.
-    // Stroke width is 1/scale to ensure it is always ~1px on screen.
     const uniqueId = "pixel-grid-pattern";
 
     return (
@@ -18,7 +38,7 @@ export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProp
             width="100%"
             height="100%"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ imageRendering: 'pixelated' }} // Hint for crisp rendering
+            style={{ imageRendering: 'pixelated' }}
         >
             <defs>
                 <pattern
@@ -31,7 +51,7 @@ export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProp
                         d="M 1 0 L 0 0 0 1"
                         fill="none"
                         stroke="white"
-                        strokeWidth={1 / scale}
+                        strokeWidth={1 / debouncedScale}
                         shapeRendering="crispEdges"
                         vectorEffect="non-scaling-stroke"
                     />
@@ -41,6 +61,5 @@ export const PixelGridOverlay = memo(({ scale, isVisible }: PixelGridOverlayProp
         </svg>
     );
 }, (prev, next) => {
-    // Custom comparison
     return prev.scale === next.scale && prev.isVisible === next.isVisible;
 });
