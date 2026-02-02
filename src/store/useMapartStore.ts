@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import type { MapartStats, ManualEdit } from '../types/mapart';
+import type { MapartStats, ManualEdit, BuildMode } from '../types/mapart';
 
-export type BuildMode = '2d' | '3d_valley';
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
 
@@ -49,6 +48,8 @@ export interface MapartState {
     isPainting: boolean;
     isPicking: boolean;
     brushBlock: ManualEdit | null;
+    history: Record<number, ManualEdit>[];
+    historyIndex: number;
 
     // Actions
     setPaletteVersion: (version: string) => void;
@@ -73,6 +74,9 @@ export interface MapartState {
     setIsPainting: (isPainting: boolean) => void;
     setIsPicking: (isPicking: boolean) => void;
     setBrushBlock: (block: ManualEdit | null) => void;
+    addToHistory: () => void;
+    undo: () => void;
+    redo: () => void;
 }
 
 
@@ -99,53 +103,66 @@ export const useMapartStore = create<MapartState>((set) => ({
     isPicking: false,
     brushBlock: null,
 
+    // History
+    history: [{}],
+    historyIndex: 0,
+
     // Actions
     setPaletteVersion: (version) => set({ paletteVersion: version }),
     setImageSettings: (settings) => set((state) => ({
         imageSettings: typeof settings === 'function' ? settings(state.imageSettings) : { ...state.imageSettings, ...settings },
-        manualEdits: {} // Clear manual edits on image setting change
+        manualEdits: {}, // Clear manual edits on image setting change
+        history: [{}], historyIndex: 0
     })),
     setGridDimensions: (dim) => set({ gridDimensions: dim }),
     setBuildMode: (mode) => set({
         buildMode: mode,
-        manualEdits: {} // Clear manual edits on build mode change
+        manualEdits: {}, // Clear manual edits on build mode change
+        history: [{}], historyIndex: 0
     }),
     setBlockSupport: (support) => set({ blockSupport: support }),
     setDithering: (dithering) => set({
         dithering,
-        manualEdits: {} // Clear manual edits on dithering change
+        manualEdits: {}, // Clear manual edits on dithering change
+        history: [{}], historyIndex: 0
     }),
     setUploadedImage: (file) => set((state) => {
         if (state.previewUrl) {
             URL.revokeObjectURL(state.previewUrl);
         }
         const url = file ? URL.createObjectURL(file) : null;
-        return { uploadedImage: file, previewUrl: url, manualEdits: {} };
+        return { uploadedImage: file, previewUrl: url, manualEdits: {}, history: [{}], historyIndex: 0 };
     }),
-    setImageFitMode: (mode) => set({ imageFitMode: mode, manualEdits: {} }), // Clear edits on fit mode change
+    setImageFitMode: (mode) => set({ imageFitMode: mode, manualEdits: {}, history: [{}], historyIndex: 0 }),
     setCropSettings: (settings) => set((state) => ({
         cropSettings: typeof settings === 'function' ? settings(state.cropSettings) : { ...state.cropSettings, ...settings },
-        manualEdits: {} // Clear edits on crop change
+        manualEdits: {}, // Clear edits on crop change
+        history: [{}], historyIndex: 0
     })),
     resetCropSettings: () => set({
         cropSettings: { zoom: 1, offsetX: 0, offsetY: 0 },
-        manualEdits: {}
+        manualEdits: {},
+        history: [{}], historyIndex: 0
     }),
     setSelectedPaletteItems: (items) => set((state) => ({
         selectedPaletteItems: typeof items === 'function' ? items(state.selectedPaletteItems) : items,
-        manualEdits: {} // Clear edits on palette change
+        manualEdits: {}, // Clear edits on palette change
+        history: [{}], historyIndex: 0
     })),
     setThreeDPrecision: (value) => set({
         threeDPrecision: value,
-        manualEdits: {} // Clear edits on precision change
+        manualEdits: {}, // Clear edits on precision change
+        history: [{}], historyIndex: 0
     }),
     setUseCielab: (value) => set({
         useCielab: value,
-        manualEdits: {} // Clear edits on algorithm change
+        manualEdits: {}, // Clear edits on algorithm change
+        history: [{}], historyIndex: 0
     }),
     setHybridStrength: (value) => set({
         hybridStrength: value,
-        manualEdits: {}
+        manualEdits: {},
+        history: [{}], historyIndex: 0
     }),
     setMapartStats: (stats) => set({ mapartStats: stats }),
     setIndependentMaps: (value) => set({ independentMaps: value }),
@@ -157,8 +174,40 @@ export const useMapartStore = create<MapartState>((set) => ({
         delete newEdits[index];
         return { manualEdits: newEdits };
     }),
-    clearManualEdits: () => set({ manualEdits: {} }),
+    clearManualEdits: () => set({ manualEdits: {}, history: [{}], historyIndex: 0 }),
     setIsPainting: (isPainting) => set({ isPainting, isPicking: false }),
     setIsPicking: (isPicking) => set({ isPicking }),
     setBrushBlock: (block) => set({ brushBlock: block }),
+
+    addToHistory: () => set((state) => {
+        const newHistory = state.history.slice(0, state.historyIndex + 1);
+        newHistory.push(state.manualEdits);
+        // Limit history size if needed (e.g. 50)
+        if (newHistory.length > 50) newHistory.shift();
+
+        return {
+            history: newHistory,
+            historyIndex: newHistory.length - 1
+        };
+    }),
+    undo: () => set((state) => {
+        if (state.historyIndex > 0) {
+            const newIndex = state.historyIndex - 1;
+            return {
+                manualEdits: state.history[newIndex],
+                historyIndex: newIndex
+            };
+        }
+        return {};
+    }),
+    redo: () => set((state) => {
+        if (state.historyIndex < state.history.length - 1) {
+            const newIndex = state.historyIndex + 1;
+            return {
+                manualEdits: state.history[newIndex],
+                historyIndex: newIndex
+            };
+        }
+        return {};
+    })
 }));

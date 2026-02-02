@@ -15,5 +15,13 @@ export interface ManualEdit {
 export interface MapartStats {
     minHeight: number;
     maxHeight: number;
-    heightMap: Int32Array;
+    heightMap: Int32Array; // Stores the vertical range (max-min) per column
 }
+// ... existing code ...
+export interface MapartStats {
+    minHeight: number;
+    maxHeight: number;
+    heightMap: Int32Array; // Stores the vertical range (max-min) per column
+}
+
+export type BuildMode = '2d' | '3d_valley' | 'staircase';

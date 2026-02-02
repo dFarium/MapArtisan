@@ -38,9 +38,13 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
         if (pixelX >= 0 && pixelX < width && pixelY >= 0 && pixelY < height) {
             const index = pixelY * width + pixelX;
             if (button === 0) { // Left Click: Paint
-                if (brushBlock) setManualEdit(index, brushBlock);
+                if (brushBlock) {
+                    setManualEdit(index, brushBlock);
+                    hasPaintedRef.current = true;
+                }
             } else if (button === 2) { // Right Click: Erase
                 deleteManualEdit(index);
+                hasPaintedRef.current = true;
             }
         }
     }, [width, height, brushBlock, setManualEdit, deleteManualEdit]);
@@ -114,6 +118,9 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
 
     const handleMouseLeave = () => setHoveredPixel(null);
 
+    const addToHistory = useMapart(s => s.addToHistory);
+    const hasPaintedRef = useRef(false);
+
     // Track Ctrl key for panning override
     const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
@@ -124,13 +131,22 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
         const handleKeyUp = (e: KeyboardEvent) => {
             if (e.key === 'Control') setIsCtrlPressed(false);
         };
+        const handleGlobalMouseUp = () => {
+            if (hasPaintedRef.current) {
+                addToHistory();
+                hasPaintedRef.current = false;
+            }
+        };
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('mouseup', handleGlobalMouseUp);
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('mouseup', handleGlobalMouseUp);
         };
-    }, []);
+    }, [addToHistory]);
 
     const isInteractive = !isCtrlPressed;
 

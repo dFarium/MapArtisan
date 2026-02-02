@@ -1,4 +1,4 @@
-import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun } from 'lucide-react';
+import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
 
 import { useMapart } from '../../context/MapartContext';
 import type { BrightnessLevel } from '../../types/mapart';
@@ -7,7 +7,11 @@ import type { PaletteColor } from '../../types/palette';
 import { BrushSelector } from './BrushSelector';
 import { useState } from 'react';
 
-export const PixelEditor = () => {
+interface PixelEditorProps {
+    disabled?: boolean;
+}
+
+export const PixelEditor = ({ disabled }: PixelEditorProps) => {
     const isPainting = useMapart(s => s.isPainting);
     const setIsPainting = useMapart(s => s.setIsPainting);
     const isPicking = useMapart(s => s.isPicking);
@@ -18,6 +22,11 @@ export const PixelEditor = () => {
     const manualEdits = useMapart(s => s.manualEdits);
     const buildMode = useMapart(s => s.buildMode);
 
+    const undo = useMapart(s => s.undo);
+    const redo = useMapart(s => s.redo);
+    const history = useMapart(s => s.history);
+    const historyIndex = useMapart(s => s.historyIndex);
+
     const [isBrushSelectorOpen, setIsBrushSelectorOpen] = useState(false);
 
     const editCount = Object.keys(manualEdits).length;
@@ -26,8 +35,9 @@ export const PixelEditor = () => {
         return (
             <button
                 onClick={() => setIsPainting(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 text-sm transition-colors"
-                title="Open Pixel Editor"
+                disabled={disabled}
+                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor"}
             >
                 <Paintbrush size={14} />
                 <span>Pixel Editor</span>
@@ -174,14 +184,33 @@ export const PixelEditor = () => {
             </div>
 
             {/* Clear Edits */}
-            <button
-                onClick={clearManualEdits}
-                disabled={editCount === 0}
-                className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
-                title={`Clear ${editCount} edits`}
-            >
-                <RefreshCw size={14} />
-            </button>
+            <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                <button
+                    onClick={undo}
+                    disabled={historyIndex <= 0}
+                    className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    title="Undo"
+                >
+                    <Undo2 size={14} />
+                </button>
+                <button
+                    onClick={redo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                    title="Redo"
+                >
+                    <Redo2 size={14} />
+                </button>
+                <div className='w-px h-5 bg-zinc-800 mx-0.5 self-center' />
+                <button
+                    onClick={clearManualEdits}
+                    disabled={editCount === 0}
+                    className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
+                    title={`Clear ${editCount} edits`}
+                >
+                    <RefreshCw size={14} />
+                </button>
+            </div>
 
             {/* Close / Done */}
             <button

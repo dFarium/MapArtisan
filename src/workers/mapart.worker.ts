@@ -29,7 +29,7 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ) => {
+    ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } => {
         const result = processMapart(
             imageData,
             buildMode,
@@ -52,13 +52,13 @@ const api = {
             buildMode
         };
 
-        return { imageData: result.imageData, stats: result.stats };
+        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap };
     },
 
     /**
      * Light step. Applies manual edits to the cached base result.
      */
-    applyEdits: (manualEdits: Record<number, ManualEdit>) => {
+    applyEdits: (manualEdits: Record<number, ManualEdit>): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } => {
         if (!lastBaseResult) {
             throw new Error("No base mapart processed yet. Call processMapart first.");
         }
@@ -70,7 +70,7 @@ const api = {
             lastBaseResult.buildMode
         );
 
-        return { imageData: result.imageData, stats: result.stats };
+        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap };
     },
 
     generateMapartExport: async (

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 
 // Re-export types from store for compatibility
 export type {
-    BuildMode,
     BlockSupport,
     ImageFitMode,
     ImageSettings,
@@ -12,6 +11,7 @@ export type {
     CropSettings,
     MapartState
 } from '../store/useMapartStore';
+export type { BuildMode } from '../types/mapart';
 
 // Deprecated Provider (No-op)
 export const MapartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

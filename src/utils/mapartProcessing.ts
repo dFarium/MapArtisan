@@ -1,6 +1,6 @@
 import paletteData from '../data/palette_1_21_11.json';
 import { MAPART } from './constants.ts';
-import type { RGB, BrightnessLevel, MapartStats } from '../types/mapart';
+import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../types/mapart';
 
 export interface PaletteColor {
     colorID: number;
@@ -16,7 +16,7 @@ export interface ColorCandidate {
     blockId: string;
 }
 
-export type BuildMode = '2d' | '3d_valley';
+export type { BuildMode };
 
 
 // ============================================================================
@@ -335,6 +335,8 @@ export function getValidColors(
         let levels: BrightnessLevel[];
         if (buildMode === '2d') {
             levels = ['normal'];
+        } else if (buildMode === 'staircase') {
+            levels = ['high'];
         } else {
             levels = ['low', 'normal', 'high'];
         }
@@ -690,6 +692,12 @@ export function processMapart(
         if (buildMode === '3d_valley') {
             overallMin = 0;
             overallMax = 0;
+            // We need to store height map for 3D preview
+            // Since 3D mode can have independent maps, we should probably store the height relative to each column's start
+            // processed by optimizeColumnHeights.
+
+            // Reset colHeights to be used for 3D height map
+            colHeights.fill(0);
 
             // Process each column
             for (let x = 0; x < width; x++) {
@@ -705,25 +713,38 @@ export function processMapart(
                         const startY = c * 128;
                         const endY = Math.min((c + 1) * 128, height);
                         const chunkTones = columnTones.slice(startY, endY);
-
                         // Optimize this chunk
                         const { min, max } = optimizeColumnHeights(chunkTones);
 
-                        // We track global min/max just to give user an idea, but per-map export handles actual placement
-                        // Wait, mapartStats assumes global stats. 
-                        // If we are independent, stats per map differ. 
-                        // But we want "worst case" or "total range"? 
-                        // Let's just track the range of this chunk.
-                        // Accumulate min/max relative to 0?
-                        // optimizeColumnHeights results are relative to start of column.
                         if (min < overallMin) overallMin = min;
                         if (max > overallMax) overallMax = max;
+
+                        // Fill colHeights for 3D preview?
+                        // The path returned is 0-based relative to start of optimization.
+                        // We can't easily represent full 3D terrain with just colHeights (1 value per x).
+                        // 3D terrain needs height per pixel (x,y).
+                        // colHeights in 2D mode is just "how high is the stack".
+                        // in 3D valley, Y change per pixel.
+                        // We need a full 2D array for height map if we want to visualize it properly?
+                        // stats.heightMap is Int32Array(width).
+                        // Let's repurpose it or add a new field if needed.
+                        // For now, let's just store the "max height" of the column in colHeights for the graph?
+                        // Or maybe we don't update colHeights for 3D valley in stats and relying on something else?
+                        // Actually, the current graph expects "Blocks Required" (height range).
+                        // So max - min is the range.
+
+                        const range = max - min;
+                        // For independent maps, we might want the max range of any chunk in the column?
+                        // or just the last one? 
+                        // Let's store the Accumulative Range for standard stats display.
+                        if (range > colHeights[x]) colHeights[x] = range;
                     }
                 } else {
                     // Full column optimization
                     const { min, max } = optimizeColumnHeights(columnTones);
                     if (min < overallMin) overallMin = min;
                     if (max > overallMax) overallMax = max;
+                    colHeights[x] = max - min;
                 }
             }
         }
@@ -734,7 +755,7 @@ export function processMapart(
         stats: {
             minHeight: overallMin,
             maxHeight: overallMax,
-            heightMap: colHeights // This is legacy/2d stats, 3d uses optimizing logic above
+            heightMap: colHeights
         },
         toneMap,
         blockIndices,
@@ -751,7 +772,7 @@ export function applyManualEdits(
     baseToneMap: Int8Array,
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     buildMode: BuildMode
-): { imageData: ImageData; stats: MapartStats } {
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
     const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
@@ -773,7 +794,7 @@ export function applyManualEdits(
         newData[idx + 3] = 255;
 
         // Update Tone Map for this pixel
-        if (buildMode === '3d_valley') {
+        if (buildMode === '3d_valley' || buildMode === 'staircase') {
             let tone = 0;
             if (edit.brightness === 'high') tone = 1;
             else if (edit.brightness === 'low') tone = -1;
@@ -784,8 +805,10 @@ export function applyManualEdits(
     // Recalculate Height Stats (Required because tones changed)
     let overallMin = 0;
     let overallMax = 0;
+    // We need to update the heightMap (colHeights) as well for the graph to update
+    const colHeights = new Int32Array(width).fill(0);
 
-    if (buildMode === '3d_valley') {
+    if (buildMode === '3d_valley' || buildMode === 'staircase') {
 
         // Optimize each column again with new tones
         for (let x = 0; x < width; x++) {
@@ -796,7 +819,15 @@ export function applyManualEdits(
             const { min, max } = optimizeColumnHeights(columnTones);
             if (min < overallMin) overallMin = min;
             if (max > overallMax) overallMax = max;
+            colHeights[x] = max - min;
         }
+    } else {
+        // Re-scan 2D heights if we were in 2D mode (manual edits might change brightness)
+        // But 2D mode manual edits on brightness don't change height (flat).
+        // Actually, if user changes brightness manually, it might imply a block change.
+        // In 2D mode, brightness is forced to 'normal'.
+        // So manual edits shouldn't affect height in 2D really.
+        // But let's be safe and just zero it or keep it consistent.
     }
 
     return {
@@ -804,10 +835,12 @@ export function applyManualEdits(
         stats: {
             minHeight: overallMin,
             maxHeight: overallMax,
-            heightMap: new Int32Array(0) // Not used for now
-        }
+            heightMap: colHeights
+        },
+        toneMap: newToneMap
     };
 }
+
 
 /**
  * Suggests a dithering mode based on image characteristics.

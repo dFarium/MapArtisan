@@ -1,4 +1,4 @@
-import { ZoomIn, ZoomOut, Move, Grid3X3, Download, X, ImageDown } from 'lucide-react';
+import { ZoomIn, ZoomOut, Move, Grid3X3, Download, X, ImageDown, Box } from 'lucide-react';
 
 import { clsx } from 'clsx';
 import { PixelEditor } from '../PixelEditor';
@@ -9,6 +9,8 @@ interface CanvasToolbarProps {
     isDragging: boolean;
     showPreview: boolean;
     setShowPreview: (show: boolean) => void;
+    onToggle3D: () => void;
+    is3DMode: boolean;
     onExport: () => void;
     canExport: boolean;
     onClearImage: () => void;
@@ -16,6 +18,7 @@ interface CanvasToolbarProps {
     isExporting?: boolean;
     onDownloadPreview: () => void;
     canDownloadPreview: boolean;
+    isPainting: boolean;
 }
 
 export const CanvasToolbar = ({
@@ -24,13 +27,16 @@ export const CanvasToolbar = ({
     isDragging,
     showPreview,
     setShowPreview,
+    onToggle3D,
+    is3DMode,
     onExport,
     canExport,
     onClearImage,
     isProcessing,
     isExporting,
     onDownloadPreview,
-    canDownloadPreview
+    canDownloadPreview,
+    isPainting
 }: CanvasToolbarProps) => {
     return (
         <>
@@ -58,6 +64,19 @@ export const CanvasToolbar = ({
                         title="Toggle Mapart Preview"
                     >
                         <Grid3X3 size={18} />
+                    </button>
+
+                    <button
+                        onClick={onToggle3D}
+                        disabled={isPainting}
+                        className={clsx(
+                            "p-2 hover:bg-zinc-700 rounded",
+                            is3DMode ? "text-blue-400 bg-zinc-800" : "text-zinc-300",
+                            isPainting && "opacity-50 cursor-not-allowed text-zinc-600"
+                        )}
+                        title={isPainting ? "Close Pixel Editor first" : "Toggle 3D View"}
+                    >
+                        <Box size={18} />
                     </button>
 
                     <div className="w-px h-6 bg-zinc-700 mx-1" />
@@ -98,7 +117,7 @@ export const CanvasToolbar = ({
                 </div>
 
                 {/* Pixel Editor Controls (Separate block but inline) */}
-                <PixelEditor />
+                <PixelEditor disabled={is3DMode} />
             </div>
 
             {isProcessing && (

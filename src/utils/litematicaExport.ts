@@ -1,5 +1,5 @@
+import type { BuildMode, BrightnessLevel, RGB } from '../types/mapart';
 import type { PaletteColor, DitheringMode } from './mapartProcessing';
-import type { BrightnessLevel, RGB } from '../types/mapart';
 import { processMapart, optimizeColumnHeights, applyManualEdits } from './mapartProcessing';
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
 import * as bitArray from './litematicaBitArray';
@@ -29,7 +29,7 @@ export interface LitematicaMetadata {
 export function imageDataToBlockStates(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
-    buildMode: '2d' | '3d_valley',
+    buildMode: BuildMode,
     applyOptimization: boolean = true,
     threeDPrecision: number = 0,
     dithering: DitheringMode = 'none',
@@ -498,7 +498,7 @@ import JSZip from 'jszip';
 export async function generateMapartExport(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
-    buildMode: '2d' | '3d_valley',
+    buildMode: BuildMode,
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
@@ -612,7 +612,7 @@ export function triggerDownload(blob: Blob, filename: string) {
 export function calculateMaterialCounts(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
-    buildMode: '2d' | '3d_valley',
+    buildMode: BuildMode,
     threeDPrecision: number = 0,
     dithering: DitheringMode = 'none',
     useCielab: boolean = true,

@@ -1,9 +1,9 @@
 import { wrap, type Remote } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
-import type { MapartState, CropSettings, BuildMode, GridDimensions, ImageSettings } from '../store/useMapartStore';
+import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/mapartProcessing';
-import type { MapartStats, BrightnessLevel, RGB } from '../types/mapart';
+import type { MapartStats, BrightnessLevel, RGB, BuildMode } from '../types/mapart';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -50,6 +50,7 @@ export const useMapartWorker = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
+    const [toneMap, setToneMap] = useState<Int8Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
 
     const mapartResolution = {
@@ -202,7 +203,7 @@ export const useMapartWorker = ({
                 if (!active) return;
 
                 // Apply current edits to that new base
-                const { imageData: processedData, stats } = await api.applyEdits(manualEdits);
+                const { imageData: processedData, stats, toneMap: newToneMap } = await api.applyEdits(manualEdits);
 
                 if (!active) return;
 
@@ -214,6 +215,7 @@ export const useMapartWorker = ({
                     ctx.putImageData(processedData, 0, 0);
                     setScaledPreviewUrl(canvas.toDataURL('image/png'));
                     setMapartStats(stats);
+                    setToneMap(newToneMap);
                 }
             } catch (err) {
                 if (active) console.error("Heavy processing failed", err);
@@ -251,7 +253,7 @@ export const useMapartWorker = ({
                 const api = workerApiRef.current;
                 if (!api) return;
 
-                const { imageData: processedData, stats } = await api.applyEdits(manualEdits);
+                const { imageData: processedData, stats, toneMap: newToneMap } = await api.applyEdits(manualEdits);
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -261,6 +263,7 @@ export const useMapartWorker = ({
                     ctx.putImageData(processedData, 0, 0);
                     setScaledPreviewUrl(canvas.toDataURL('image/png'));
                     setMapartStats(stats);
+                    setToneMap(newToneMap);
                 }
             } catch (err) {
                 // This might fail if processMapart hasn't run yet (e.g. init).
@@ -348,6 +351,7 @@ export const useMapartWorker = ({
         isProcessing,
         isExporting,
         scaledPreviewUrl,
+        toneMap,
         originalTransformedUrl,
         mapartResolution,
         exportMapart,

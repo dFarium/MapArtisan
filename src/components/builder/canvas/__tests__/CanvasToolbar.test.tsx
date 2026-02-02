@@ -19,7 +19,10 @@ describe('CanvasToolbar', () => {
         onClearImage,
         isProcessing: false,
         onDownloadPreview: vi.fn(),
-        canDownloadPreview: true
+        canDownloadPreview: true,
+        onToggle3D: vi.fn(),
+        is3DMode: false,
+        isPainting: false
     };
 
     it('renders zoom controls and handles clicks', () => {
