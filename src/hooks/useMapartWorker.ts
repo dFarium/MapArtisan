@@ -49,6 +49,7 @@ export const useMapartWorker = ({
     const isProcessingRef = useRef(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
+    const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
     const [toneMap, setToneMap] = useState<Int8Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
@@ -235,6 +236,7 @@ export const useMapartWorker = ({
                     ctx.putImageData(processedData, 0, 0);
                     const blobUrl = await imageDataToBlobUrl(processedData);
                     setScaledPreviewUrl(blobUrl);
+                    setPreviewImageData(processedData);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
@@ -284,6 +286,7 @@ export const useMapartWorker = ({
                     ctx.putImageData(processedData, 0, 0);
                     const blobUrl = await imageDataToBlobUrl(processedData);
                     setScaledPreviewUrl(blobUrl);
+                    setPreviewImageData(processedData);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
@@ -373,6 +376,7 @@ export const useMapartWorker = ({
         isProcessing,
         isExporting,
         scaledPreviewUrl,
+        previewImageData,
         toneMap,
         originalTransformedUrl,
         mapartResolution,

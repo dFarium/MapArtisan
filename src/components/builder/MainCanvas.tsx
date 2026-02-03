@@ -28,6 +28,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const {
         isProcessing,
         scaledPreviewUrl,
+        previewImageData: workerImageData,
         toneMap,
         originalTransformedUrl,
         mapartResolution,
@@ -36,83 +37,40 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         pickBlock
     } = workerState;
 
-    // We need access to imageData and toneMap for proper 3D preview.
-    // workerState exposes specific things, let's see what we can use.
-    // If workerState doesn't expose imageData, we might need to rely on the previewUrl (which is just an image).
-    // But for 3D heights we need the raw data.
-    // The worker *does* stick the result in `lastBaseResult` inside the worker, but we need it here.
-    // `useMapartWorker` might need to expose the raw ImageData or at least the `stats` (which we have via store).
-    // mapartStats has `heightMap` (Int32Array).
-
-    // We also need the pixel data. `scaledPreviewUrl` is a blob URL.
-    // We can load it into an ImageData object or ImageBitmap.
-
-    // For now, let's assume we can get the necessary data.
-    // The `useMapartWorker` likely needs to return the `rawImageData` if we want to be precise.
-    // Or we can construct it from the image element?
-    // Let's use a ref to the preview image to extract data if needed, or update useMapartWorker to expose it.
-
-    // Actually, `Mapart3DPreview` expects `ImageData`.
-    // Let's create a helper to extracting ImageData from the preview image when 3D mode is toggled?
-    // Or just pass the stats?
-
     const [is3DMode, setIs3DMode] = useState(false);
-    const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
 
-    // Sync preview image data when entering 3D mode
-    // This is a bit hacky but avoids transfering huge data from worker if not needed.
-    // We can read from the canvas or image element.
+    // Debounced ImageData for 3D preview - avoids expensive geometry recalculation during rapid edits
+    const [debounced3DImageData, setDebounced3DImageData] = useState<ImageData | null>(null);
+    const debounce3DRef = useRef<number | null>(null);
 
-    const updatePreviewData = () => {
-        // Create a temporary canvas to read pixel data from the preview URL
-        if (!scaledPreviewUrl) return;
-        const img = new Image();
-        img.src = scaledPreviewUrl;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = mapartResolution.width;
-            canvas.height = mapartResolution.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(img, 0, 0);
-                const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                setPreviewImageData(data);
-            }
-        }
-    };
-
-    // Toggle handler
+    // Toggle handler - immediately show current data when entering 3D mode
     const handleToggle3D = () => {
-        if (!is3DMode) {
-            updatePreviewData();
+        if (!is3DMode && workerImageData) {
+            setDebounced3DImageData(workerImageData);
         }
         setIs3DMode(!is3DMode);
     };
 
-    // Reactivity: If we are in 3D mode, and the preview URL changes (e.g. palette change),
-    // we must update the imageData so the 3D model reflects the new state (e.g. cleared edits).
-    // Debounced to avoid expensive geometry recalculation during rapid edits.
-    const debounce3DRef = useRef<number | null>(null);
-
+    // Debounce updates while in 3D mode
     useEffect(() => {
-        if (is3DMode && scaledPreviewUrl) {
-            // Clear previous timeout
+        if (!is3DMode || !workerImageData) return;
+
+        // Clear previous timeout
+        if (debounce3DRef.current !== null) {
+            clearTimeout(debounce3DRef.current);
+        }
+
+        // Debounce by 150ms
+        debounce3DRef.current = window.setTimeout(() => {
+            setDebounced3DImageData(workerImageData);
+        }, 150);
+
+        return () => {
             if (debounce3DRef.current !== null) {
                 clearTimeout(debounce3DRef.current);
             }
-
-            // Debounce by 150ms
-            debounce3DRef.current = window.setTimeout(() => {
-                updatePreviewData();
-            }, 150);
-
-            return () => {
-                if (debounce3DRef.current !== null) {
-                    clearTimeout(debounce3DRef.current);
-                }
-            };
-        }
-    }, [scaledPreviewUrl, is3DMode]);
+        };
+    }, [workerImageData, is3DMode]);
 
 
     const isPainting = useMapart(s => s.isPainting);
@@ -213,7 +171,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                     {is3DMode ? (
                         <div className="flex-1 relative z-10 w-full h-full">
                             <Mapart3DPreview
-                                imageData={previewImageData}
+                                imageData={debounced3DImageData}
                                 blockSupport={blockSupport}
                                 stats={mapartStats || undefined}
                                 toneMap={toneMap || undefined}
