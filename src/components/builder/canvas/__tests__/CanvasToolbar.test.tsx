@@ -4,7 +4,7 @@ import { CanvasToolbar } from '../CanvasToolbar';
 
 describe('CanvasToolbar', () => {
     const setScale = vi.fn();
-    const setShowPreview = vi.fn();
+    const setShowOriginal = vi.fn();
     const onExport = vi.fn();
     const onClearImage = vi.fn();
 
@@ -12,8 +12,8 @@ describe('CanvasToolbar', () => {
         scale: 1,
         setScale,
         isDragging: false,
-        showPreview: true,
-        setShowPreview,
+        showOriginal: false,
+        setShowOriginal,
         onExport,
         canExport: true,
         onClearImage,
@@ -39,13 +39,12 @@ describe('CanvasToolbar', () => {
         expect(screen.getByText('150%')).toBeDefined();
     });
 
-    it('handles preview toggle', () => {
-        render(<CanvasToolbar {...defaultProps} />);
-        const buttons = screen.getAllByRole('button');
-        const previewBtn = buttons[3]; // Approx index, better to use title if possible
+    it('handles original image toggle', () => {
+        render(<CanvasToolbar {...defaultProps} showOriginal={false} />);
+        const toggleOriginalBtn = screen.getByTitle('Toggle Original Image');
 
-        fireEvent.click(previewBtn);
-        expect(setShowPreview).toHaveBeenCalledWith(false); // Toggles true -> false
+        fireEvent.click(toggleOriginalBtn);
+        expect(setShowOriginal).toHaveBeenCalledWith(true); // Toggles false -> true
     });
 
     it('disables export button when canExport is false', () => {
