@@ -91,9 +91,26 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
     // Reactivity: If we are in 3D mode, and the preview URL changes (e.g. palette change),
     // we must update the imageData so the 3D model reflects the new state (e.g. cleared edits).
+    // Debounced to avoid expensive geometry recalculation during rapid edits.
+    const debounce3DRef = useRef<number | null>(null);
+
     useEffect(() => {
         if (is3DMode && scaledPreviewUrl) {
-            updatePreviewData();
+            // Clear previous timeout
+            if (debounce3DRef.current !== null) {
+                clearTimeout(debounce3DRef.current);
+            }
+
+            // Debounce by 150ms
+            debounce3DRef.current = window.setTimeout(() => {
+                updatePreviewData();
+            }, 150);
+
+            return () => {
+                if (debounce3DRef.current !== null) {
+                    clearTimeout(debounce3DRef.current);
+                }
+            };
         }
     }, [scaledPreviewUrl, is3DMode]);
 
