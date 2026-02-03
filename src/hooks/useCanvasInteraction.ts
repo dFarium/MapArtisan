@@ -21,7 +21,7 @@ export const useCanvasInteraction = (
         const delta = -e.deltaY * zoomIntensity;
 
         // Exponential-like zoom: scale * (1 + delta)
-        const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 25);
+        const newScale = Math.min(Math.max(0.1, scale * (1 + delta)), 50);
 
         if (newScale === scale) return;
 
