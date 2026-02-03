@@ -72,7 +72,7 @@ export const PaletteGroup = ({
                         </span>
                         {isExpanded ? <ChevronUp size={14} className="text-zinc-500" /> : <ChevronDown size={14} className="text-zinc-500" />}
                     </div>
-                    <div className="text-[10px] text-zinc-500 truncate">
+                    <div className="text-xs text-zinc-500 truncate">
                         {color.colorName}
                     </div>
                 </div>

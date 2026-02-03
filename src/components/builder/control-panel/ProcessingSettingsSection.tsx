@@ -69,7 +69,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                         size="sm"
                         onClick={handleAutoDetect}
                         disabled={!previewUrl}
-                        className="h-5 text-[10px] uppercase font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
+                        className="h-5 text-xs uppercase font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
                         title="Auto-detect best settings based on image"
                     >
                         <Sparkles size={10} className="mr-1" /> Auto
@@ -106,7 +106,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                         onChange={setHybridStrength}
                         accentColor="accent-cyan-500"
                     />
-                    <p className="text-[10px] text-zinc-500 mt-1">
+                    <p className="text-xs text-zinc-500 mt-1">
                         0% = Aggressive noise reduction, 100% = More detail
                     </p>
                 </div>
@@ -115,13 +115,13 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             {/* CIELAB Toggle */}
             <div className="space-y-1 p-2 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
                 <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase">CIELAB Color Space</span>
+                    <span className="text-xs text-zinc-400 font-bold uppercase">CIELAB Color Space</span>
                     <Checkbox
                         checked={useCielab}
                         onCheckedChange={setUseCielab}
                     />
                 </div>
-                <p className="text-[10px] text-zinc-500 font-medium">
+                <p className="text-xs text-zinc-500 font-medium">
                     {useCielab ? "Perceptually uniform (Recommended)" : "Faster RGB Distance"}
                 </p>
             </div>

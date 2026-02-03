@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
+import { Move, ZoomIn, Rotate3D } from 'lucide-react';
 import { optimizeColumnHeights } from '../../../utils/mapartProcessing';
 
 interface Mapart3DPreviewProps {
@@ -13,6 +14,14 @@ interface Mapart3DPreviewProps {
 
 export const Mapart3DPreview = ({ imageData, toneMap, blockSupport }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
+
+    const HintItem = ({ icon: Icon, label, bind }: { icon: any, label: string, bind: string }) => (
+        <div className="flex items-center gap-1.5">
+            <Icon size={14} className="text-zinc-400" />
+            <span className="text-zinc-300">{label}:</span>
+            <span className="text-white font-semibold">{bind}</span>
+        </div>
+    );
 
     return (
         <div className="w-full h-full bg-zinc-900 relative">
@@ -27,8 +36,14 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport }: Mapart3DPr
                 <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
             </Canvas>
 
-            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-2 py-1 rounded backdrop-blur-sm pointer-events-none">
-                LMB: Rotate | RMB: Pan | Wheel: Zoom
+            <div className="absolute bottom-4 right-4 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
+                <div className="flex items-center gap-4">
+                    <HintItem icon={Rotate3D} label="Rotate" bind="LMB" />
+                    <div className="w-px h-3 bg-white/20" />
+                    <HintItem icon={Move} label="Pan" bind="RMB" />
+                    <div className="w-px h-3 bg-white/20" />
+                    <HintItem icon={ZoomIn} label="Zoom" bind="Wheel" />
+                </div>
             </div>
         </div>
     );

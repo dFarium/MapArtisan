@@ -32,7 +32,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
             <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                     <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-600 font-semibold uppercase">Maps X</span>
+                        <span className="text-xs text-zinc-600 font-semibold uppercase">Maps X</span>
                         <Input
                             type="number" min="1" max="100"
                             value={gridDimensions.x}
@@ -41,7 +41,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                         />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <span className="text-[10px] text-zinc-600 font-semibold uppercase">Maps Y</span>
+                        <span className="text-xs text-zinc-600 font-semibold uppercase">Maps Y</span>
                         <Input
                             type="number" min="1" max="100"
                             value={gridDimensions.y}
@@ -63,7 +63,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                         variant={imageFitMode === 'adjust' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setImageFitMode('adjust')}
-                        className={cn("flex-1 text-[10px] h-7 font-bold gap-2", imageFitMode !== 'adjust' && "text-zinc-500 hover:text-zinc-300")}
+                        className={cn("flex-1 text-xs h-7 font-bold gap-2", imageFitMode !== 'adjust' && "text-zinc-500 hover:text-zinc-300")}
                     >
                         <Maximize size={12} /> ADJUST
                     </Button>
@@ -71,7 +71,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                         variant={imageFitMode === 'crop' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setImageFitMode('crop')}
-                        className={cn("flex-1 text-[10px] h-7 font-bold gap-2", imageFitMode === 'crop' && "bg-emerald-600 hover:bg-emerald-700", imageFitMode !== 'crop' && "text-zinc-500 hover:text-zinc-300")}
+                        className={cn("flex-1 text-xs h-7 font-bold gap-2", imageFitMode === 'crop' && "bg-emerald-600 hover:bg-emerald-700", imageFitMode !== 'crop' && "text-zinc-500 hover:text-zinc-300")}
                     >
                         <Crop size={12} /> CROP
                     </Button>
@@ -80,7 +80,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                 {imageFitMode === 'crop' && (
                     <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-emerald-500 font-black tracking-widest uppercase">Precision Crop</span>
+                            <span className="text-xs text-emerald-500 font-black tracking-widest uppercase">Precision Crop</span>
                             <button
                                 onClick={resetCropSettings}
                                 className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"

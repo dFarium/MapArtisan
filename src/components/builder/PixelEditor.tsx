@@ -16,10 +16,10 @@ const OpenButton = memo(({ onClick, disabled }: { onClick: () => void, disabled?
     <button
         onClick={onClick}
         disabled={disabled}
-        className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex h-full items-center justify-center gap-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor"}
     >
-        <Paintbrush size={14} />
+        <Paintbrush size={16} />
         <span>Pixel Editor</span>
     </button>
 ));
@@ -137,7 +137,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                                     }`}
                                 title={buildMode === '2d' ? "Not available in 2D mode" : "Low (Depth)"}
                             >
-                                <Moon size={12} />
+                                <Moon size={16} />
                             </button>
                             <button
                                 onClick={() => updateBrightness('normal')}
@@ -147,7 +147,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                                     }`}
                                 title="Normal (Flat)"
                             >
-                                <Minus size={12} />
+                                <Minus size={16} />
                             </button>
                             <button
                                 onClick={() => updateBrightness('high')}
@@ -158,7 +158,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                                     }`}
                                 title={buildMode === '2d' ? "Not available in 2D mode" : "High (Peak)"}
                             >
-                                <Sun size={12} />
+                                <Sun size={16} />
                             </button>
                         </div>
                     )
@@ -177,7 +177,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
                     >
-                        <Paintbrush size={14} /> Brush
+                        <Paintbrush size={16} /> Brush
                     </button>
                     <button
                         onClick={() => setIsPicking(!isPicking)}
@@ -186,7 +186,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
                     >
-                        <Pipette size={14} /> Picker
+                        <Pipette size={16} /> Picker
                     </button>
                 </div>
 
@@ -195,37 +195,37 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                     <button
                         onClick={undo}
                         disabled={historyIndex <= 0}
-                        className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                         title="Undo"
                     >
-                        <Undo2 size={14} />
+                        <Undo2 size={16} />
                     </button>
                     <button
                         onClick={redo}
                         disabled={historyIndex >= history.length - 1}
-                        className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                         title="Redo"
                     >
-                        <Redo2 size={14} />
+                        <Redo2 size={16} />
                     </button>
                     <div className='w-px h-5 bg-zinc-800 mx-0.5 self-center' />
                     <button
                         onClick={clearManualEdits}
                         disabled={editCount === 0}
-                        className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
+                        className="p-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
                         title={`Clear ${editCount} edits`}
                     >
-                        <RefreshCw size={14} />
+                        <RefreshCw size={16} />
                     </button>
                 </div>
 
                 {/* Close / Done */}
                 <button
                     onClick={() => setIsPainting(false)}
-                    className="p-1.5 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+                    className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors"
                     title="Close Editor"
                 >
-                    <X size={14} />
+                    <X size={16} />
                 </button>
             </div>
         </>

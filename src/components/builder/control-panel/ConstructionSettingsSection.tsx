@@ -63,7 +63,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                             onChange={setThreeDPrecision}
                             accentColor="accent-purple-500"
                         />
-                        <p className="text-[10px] text-zinc-500 mt-1">
+                        <p className="text-xs text-zinc-500 mt-1">
                             0% = Flat map, 100% = Full 3D precision
                         </p>
                     </div>

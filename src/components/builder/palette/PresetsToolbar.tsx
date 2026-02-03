@@ -26,19 +26,19 @@ export const PresetsToolbar = ({ presetsHook, onReset }: PresetsToolbarProps) =>
                     <div className="grid grid-cols-3 gap-1.5">
                         <button
                             onClick={() => applyPreset('all')}
-                            className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                            className="!px-1 !py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
                         >
                             All Colors
                         </button>
                         <button
                             onClick={() => applyPreset('basic')}
-                            className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                            className="!px-1 !py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
                         >
                             Basic (16)
                         </button>
                         <button
                             onClick={() => applyPreset('easy')}
-                            className="!px-1 !py-1.5 text-[10px] bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
+                            className="!px-1 !py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300 font-medium whitespace-nowrap"
                         >
                             Easy
                         </button>
@@ -47,12 +47,12 @@ export const PresetsToolbar = ({ presetsHook, onReset }: PresetsToolbarProps) =>
                     {/* Custom Presets */}
                     {customPresets.length > 0 && (
                         <div className="border-t border-zinc-800/50 pt-2 flex flex-col gap-1">
-                            <span className="text-[9px] text-zinc-500 uppercase font-bold px-1">My Presets</span>
+                            <span className="text-xs text-zinc-500 uppercase font-bold px-1">My Presets</span>
                             {customPresets.map((p, i) => (
                                 <div key={i} className="flex items-center gap-1 group/p">
                                     <button
                                         onClick={() => applyPreset('custom', p.selection)}
-                                        className="flex-1 text-left !px-2 !py-1 text-[10px] bg-zinc-900/50 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-zinc-200 truncate"
+                                        className="flex-1 text-left !px-2 !py-1 text-xs bg-zinc-900/50 hover:bg-zinc-800 border-zinc-800 text-zinc-400 hover:text-zinc-200 truncate"
                                     >
                                         {p.name}
                                     </button>
@@ -71,13 +71,13 @@ export const PresetsToolbar = ({ presetsHook, onReset }: PresetsToolbarProps) =>
                     <div className="flex gap-1.5 border-t border-zinc-800/50 pt-2">
                         <button
                             onClick={onReset}
-                            className="flex-1 flex items-center justify-center gap-1 !py-1 text-[10px] bg-red-900/10 hover:bg-red-900/20 border-red-900/30 text-red-500/80 font-medium"
+                            className="flex-1 flex items-center justify-center gap-1 !py-1 text-xs bg-red-900/10 hover:bg-red-900/20 border-red-900/30 text-red-500/80 font-medium"
                         >
                             <RotateCcw size={10} /> Reset
                         </button>
                         <button
                             onClick={saveCurrentAsPreset}
-                            className="flex-[2] flex items-center justify-center gap-1 !py-1 text-[10px] bg-blue-900/20 hover:bg-blue-900/40 border-blue-900/30 text-blue-400 font-bold"
+                            className="flex-[2] flex items-center justify-center gap-1 !py-1 text-xs bg-blue-900/20 hover:bg-blue-900/40 border-blue-900/30 text-blue-400 font-bold"
                         >
                             <Save size={10} /> Save Current
                         </button>

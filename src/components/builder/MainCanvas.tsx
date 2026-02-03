@@ -8,6 +8,7 @@ import { ImageUploader } from './canvas/ImageUploader';
 import { ManualEditsOverlay } from './canvas/ManualEditsOverlay';
 import { PixelGridOverlay } from './canvas/PixelGridOverlay';
 import { InteractionLayer } from './canvas/InteractionLayer';
+import { InteractionHints } from './canvas/InteractionHints';
 
 // ... imports
 import { Mapart3DPreview } from './3d/Mapart3DPreview';
@@ -79,12 +80,12 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const imageRef = useRef<HTMLImageElement>(null);
 
     // UI State (Moved up for calc)
-    const [showPreview, setShowPreview] = useState(true);
+    const [showOriginal, setShowOriginal] = useState(true);
 
     // Calculate total layout dimensions for centering
-    // We assume both will be shown if showPreview is true
+    // We assume both will be shown if showOriginal is true
     // Gap: 16px (gap-4)
-    const contentWidth = showPreview ? (mapartResolution.width * 2 + 16) : mapartResolution.width;
+    const contentWidth = showOriginal ? (mapartResolution.width * 2 + 16) : mapartResolution.width;
     const contentHeight = mapartResolution.height;
 
     const {
@@ -148,8 +149,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         scale={scale}
                         setScale={setScale}
                         isDragging={isDragging}
-                        showPreview={showPreview}
-                        setShowPreview={setShowPreview}
+                        showOriginal={showOriginal}
+                        setShowOriginal={setShowOriginal}
                         onToggle3D={handleToggle3D}
                         is3DMode={is3DMode}
                         onExport={handleExportSchematic}
@@ -199,25 +200,28 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 }}
                                 className="origin-top-left shadow-2xl flex gap-4 w-fit"
                             >
+                                {/* ... content ... */}
                                 {/* Original Image */}
-                                <div className="relative">
-                                    <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
-                                    <img
-                                        ref={imageRef}
-                                        src={originalTransformedUrl || previewUrl!}
-                                        alt="Original"
-                                        className="max-w-none pointer-events-none select-none ring-1 ring-zinc-600 rendering-pixelated"
-                                        draggable={false}
-                                        style={{
-                                            width: mapartResolution.width,
-                                            height: mapartResolution.height,
-                                            imageRendering: 'auto'
-                                        }}
-                                    />
-                                </div>
+                                {showOriginal && (
+                                    <div className="relative">
+                                        <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
+                                        <img
+                                            ref={imageRef}
+                                            src={originalTransformedUrl || previewUrl!}
+                                            alt="Original"
+                                            className="max-w-none pointer-events-none select-none ring-1 ring-zinc-600 rendering-pixelated"
+                                            draggable={false}
+                                            style={{
+                                                width: mapartResolution.width,
+                                                height: mapartResolution.height,
+                                                imageRendering: 'auto'
+                                            }}
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Mapart Preview */}
-                                {showPreview && scaledPreviewUrl && (
+                                {scaledPreviewUrl && (
                                     <div className="relative group">
 
                                         {/* Interaction Layer (Painting, Hover) - Isolated Render */}
@@ -252,7 +256,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                         {/* Optimized Pixel Grid */}
                                         <PixelGridOverlay
                                             scale={scale}
-                                            isVisible={scale > 7 && isPainting}
+                                            isVisible={scale >= 20 && isPainting}
                                         />
 
                                         {/* Chunk Grid Overlay (128x128) */}
@@ -292,6 +296,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Interaction Hints Overlay */}
+                            <InteractionHints />
                         </div>
                     )}
                 </>
