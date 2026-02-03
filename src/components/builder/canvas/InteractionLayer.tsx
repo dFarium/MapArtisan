@@ -235,35 +235,43 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
                 style={{ width, height }}
             />
 
-            {/* 3x3 Reticle Cursor */}
+            {/* 1x1 Cursor with Alignment Guides */}
             {hoveredPixel && isInteractive && !isPicking && (
-                <div
-                    className="absolute z-40 pointer-events-none"
-                    style={{
-                        left: hoveredPixel.x - 1,
-                        top: hoveredPixel.y - 1,
-                        width: 3,
-                        height: 3,
-                    }}
-                >
-                    {/* Inner Target Box (The actual pixel) */}
+                <>
+                    {/* Crosshair Guides */}
                     <div
-                        className="absolute inset-0 m-auto"
+                        className="absolute pointer-events-none z-40"
                         style={{
-                            width: 1,
+                            left: 0,
+                            top: hoveredPixel.y,
+                            width: '100%',
                             height: 1,
-                            boxShadow: `0 0 0 ${1 / scale}px rgba(255, 255, 255, 0.9), 0 0 0 ${2 / scale}px rgba(0, 0, 0, 0.5)`
+                            backgroundColor: 'rgba(255, 255, 255, 0.3)'
+                        }}
+                    />
+                    <div
+                        className="absolute pointer-events-none z-40"
+                        style={{
+                            left: hoveredPixel.x,
+                            top: 0,
+                            width: 1,
+                            height: '100%',
+                            backgroundColor: 'rgba(255, 255, 255, 0.3)'
                         }}
                     />
 
-                    {/* Outer 3x3 Frame (Corners) */}
+                    {/* Active Pixel Cursor (High Contrast 1x1) */}
                     <div
-                        className="absolute inset-0 border border-white/50"
+                        className="absolute z-50 pointer-events-none"
                         style={{
-                            borderWidth: (1 / scale) + 'px'
+                            left: hoveredPixel.x,
+                            top: hoveredPixel.y,
+                            width: 1,
+                            height: 1,
+                            boxShadow: `0 0 0 ${1 / scale}px rgba(255, 255, 255, 1), 0 0 0 ${2 / scale}px rgba(0, 0, 0, 1)`
                         }}
                     />
-                </div>
+                </>
             )}
         </>
     );
