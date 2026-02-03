@@ -16,7 +16,7 @@ const OpenButton = memo(({ onClick, disabled }: { onClick: () => void, disabled?
     <button
         onClick={onClick}
         disabled={disabled}
-        className="flex h-full items-center justify-center gap-2 px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex h-[56px] items-center justify-center gap-2 px-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-zinc-700 text-sm font-medium shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor"}
     >
         <Paintbrush size={16} />

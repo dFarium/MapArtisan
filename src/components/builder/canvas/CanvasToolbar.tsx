@@ -116,7 +116,8 @@ export const CanvasToolbar = ({
                 <PixelEditor disabled={is3DMode} />
             </div>
 
-            <div className="absolute top-4 right-4 z-20">
+            {/* Discard Button (Top Right) */}
+            <div className="absolute top-4 right-4 z-20 h-[56px] flex items-center">
                 <button
                     onClick={onClearImage}
                     className="p-2 bg-zinc-900 border border-red-500/20 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg shadow-lg transition-colors flex items-center justify-center"
@@ -127,7 +128,7 @@ export const CanvasToolbar = ({
             </div>
 
             {isProcessing && (
-                <div className="absolute top-16 right-4 z-30 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-20 right-4 z-30 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-500 border-t-transparent"></div>
                     <span className="text-yellow-500 text-xs font-medium">Processing...</span>
                 </div>
