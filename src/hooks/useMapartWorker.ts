@@ -58,6 +58,26 @@ export const useMapartWorker = ({
         height: 128 * gridDimensions.y
     };
 
+    // Helper: Convert ImageData to Blob URL (async, non-blocking)
+    const imageDataToBlobUrl = async (imageData: ImageData): Promise<string> => {
+        const canvas = document.createElement('canvas');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+        ctx.putImageData(imageData, 0, 0);
+
+        return new Promise((resolve, reject) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(URL.createObjectURL(blob));
+                } else {
+                    reject(new Error('Failed to create blob'));
+                }
+            }, 'image/png');
+        });
+    };
+
     // Initialize worker
     const initWorker = useCallback(() => {
         if (workerRef.current) workerRef.current.terminate();
@@ -213,7 +233,8 @@ export const useMapartWorker = ({
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.putImageData(processedData, 0, 0);
-                    setScaledPreviewUrl(canvas.toDataURL('image/png'));
+                    const blobUrl = await imageDataToBlobUrl(processedData);
+                    setScaledPreviewUrl(blobUrl);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
@@ -261,7 +282,8 @@ export const useMapartWorker = ({
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
                     ctx.putImageData(processedData, 0, 0);
-                    setScaledPreviewUrl(canvas.toDataURL('image/png'));
+                    const blobUrl = await imageDataToBlobUrl(processedData);
+                    setScaledPreviewUrl(blobUrl);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
