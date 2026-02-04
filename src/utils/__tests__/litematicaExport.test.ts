@@ -249,7 +249,7 @@ describe('litematicaExport', () => {
                 description: 'Custom Description'
             });
 
-            const metadata = nbt.value.Metadata.value;
+            const metadata = (nbt.value.Metadata as any).value;
             expect(metadata.Name.value).toBe('Custom Name');
             expect(metadata.Author.value).toBe('Custom Author');
             expect(metadata.Description.value).toBe('Custom Description');
@@ -263,7 +263,7 @@ describe('litematicaExport', () => {
 
             const nbt = createLitematicaNBT(blocks);
 
-            const size = nbt.value.Metadata.value.EnclosingSize.value;
+            const size = (nbt.value.Metadata as any).value.EnclosingSize.value;
             // Dimensions should be max + 1
             expect(size.x.value).toBe(3); // max x is 2, so 2+1=3
             expect(size.y.value).toBe(4); // max y is 3, so 3+1=4
@@ -284,7 +284,7 @@ describe('litematicaExport', () => {
             const nbt = createLitematicaNBT(blocks);
 
             // Palette should include the block with properties
-            const palette = nbt.value.Regions.value.map.value.BlockStatePalette.value.value;
+            const palette = (nbt.value.Regions as any).value.map.value.BlockStatePalette.value.value;
 
             // First should be air, second should be our chest
             expect(palette.length).toBe(2);

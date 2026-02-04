@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { usePalettePresets } from '../../../utils/usePalettePresets';
-import { useToast } from '../../ui/Toast';
+import { useToast } from '../../../context/ToastContext';
 
 interface PresetsToolbarProps {
     presetsHook: ReturnType<typeof usePalettePresets>; // Re-use the hook's return type or pass individual props

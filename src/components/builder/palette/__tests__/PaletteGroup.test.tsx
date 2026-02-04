@@ -14,8 +14,8 @@ const mockColor: PaletteColor = {
         high: { r: 0, g: 0, b: 0 }
     },
     blocks: [
-        { id: 'minecraft:white_wool', needsSupport: false },
-        { id: 'minecraft:white_concrete', needsSupport: false }
+        { id: 'minecraft:white_wool', needsSupport: false, introducedIn: '1.12' },
+        { id: 'minecraft:white_concrete', needsSupport: false, introducedIn: '1.12' }
     ]
 };
 
