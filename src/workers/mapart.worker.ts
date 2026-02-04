@@ -1,5 +1,5 @@
 import { expose } from 'comlink';
-import { processMapart, applyManualEdits, type BuildMode, type DitheringMode } from '../utils/mapartProcessing';
+import { processMapart, applyManualEdits, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
 import type { ManualEdit, MapartStats } from '../types/mapart';
 
@@ -8,7 +8,7 @@ let lastBaseResult: {
     imageData: ImageData;
     toneMap: Int8Array;
     blockIndices: Int32Array;
-    candidates: any[]; // Using any to avoid importing ColorCandidate circular dep if confusing, but better to import
+    candidates: ColorCandidate[];
     stats: MapartStats;
     width: number;
     height: number;
@@ -78,7 +78,7 @@ const api = {
         selectedPaletteItems: Record<number, string | null>,
         buildMode: BuildMode,
         filename: string,
-        metadata: any,
+        metadata: Record<string, unknown>,
         threeDPrecision: number,
         dithering: DitheringMode,
         useCielab: boolean,

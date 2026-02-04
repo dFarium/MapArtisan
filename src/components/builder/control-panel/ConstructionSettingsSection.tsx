@@ -1,5 +1,5 @@
 
-import { useMapart, type BuildMode, type BlockSupport } from '../../../context/MapartContext';
+import { useMapart, type BuildMode, type BlockSupport } from '../../../context/useMapart';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Hammer, Layers, Box } from 'lucide-react';

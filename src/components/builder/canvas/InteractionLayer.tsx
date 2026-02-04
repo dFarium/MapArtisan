@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useMapart } from '../../../context/MapartContext';
+import { useMapart } from '../../../context/useMapart';
 import type { ManualEdit } from '../../../types/mapart';
 
 interface InteractionLayerProps {
     width: number;
     height: number;
     scale: number;
-    onPickBlock?: (x: number, y: number) => Promise<any>;
+    onPickBlock?: (x: number, y: number) => Promise<ManualEdit | null>;
 }
 
 export const InteractionLayer = ({ width, height, scale, onPickBlock }: InteractionLayerProps) => {

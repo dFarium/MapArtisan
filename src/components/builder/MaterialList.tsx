@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, ClipboardList, RefreshCw, Box } from 'lucide-react';
 
 interface MaterialListProps {
@@ -12,22 +11,26 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
     const [materials, setMaterials] = useState<Record<string, number> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        if (isOpen) {
-            loadMaterials();
-        } else {
-            // Reset when closed so next open refreshes? 
-            // Actually, keep it if we want, but better refresh to ensure accuracy.
-            setMaterials(null);
-        }
-    }, [isOpen, onCalculate]);
-
-    const loadMaterials = async () => {
+    const loadMaterials = useCallback(async () => {
         setIsLoading(true);
         const data = await onCalculate();
         setMaterials(data);
         setIsLoading(false);
-    };
+    }, [onCalculate]);
+
+    useEffect(() => {
+        let active = true;
+        if (isOpen) {
+            void Promise.resolve().then(() => {
+                if (active) loadMaterials();
+            });
+        } else {
+            void Promise.resolve().then(() => {
+                if (active) setMaterials(null);
+            });
+        }
+        return () => { active = false; };
+    }, [isOpen, loadMaterials]);
 
     if (!isOpen) return null;
 

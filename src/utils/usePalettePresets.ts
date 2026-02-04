@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import paletteData from '../data/palette.json';
 import { BASIC_COLORS, EASY_KEYWORDS } from '../data/constants';
 import type { PaletteColor } from '../types/palette';
@@ -23,20 +23,18 @@ export const usePalettePresets = (
     setSelectedPaletteItems: (items: Record<number, string | null>) => void,
     targetVersion?: string
 ) => {
-    const [customPresets, setCustomPresets] = useState<Preset[]>([]);
-    const [lastReplacements, setLastReplacements] = useState<BlockReplacement[]>([]);
-
-    // Load custom presets from localStorage on mount
-    useEffect(() => {
+    const [customPresets, setCustomPresets] = useState<Preset[]>(() => {
         const saved = localStorage.getItem('mapart_custom_presets');
         if (saved) {
             try {
-                setCustomPresets(JSON.parse(saved));
+                return JSON.parse(saved);
             } catch (e) {
                 console.error('Failed to parse presets', e);
             }
         }
-    }, []);
+        return [];
+    });
+    const [lastReplacements, setLastReplacements] = useState<BlockReplacement[]>([]);
 
     const saveCustomPresets = (presets: Preset[]) => {
         setCustomPresets(presets);

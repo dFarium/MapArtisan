@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMapart } from '../../context/MapartContext';
+import { useMapart } from '../../context/useMapart';
 import {
     Settings2,
     Box,

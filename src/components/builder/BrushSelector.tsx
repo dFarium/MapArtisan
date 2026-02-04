@@ -2,7 +2,7 @@ import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import paletteData from '../../data/palette.json';
-import { useMapart } from '../../context/MapartContext';
+import { useMapart } from '../../context/useMapart';
 import type { PaletteColor } from '../../types/palette';
 import { type ManualEdit, type BrightnessLevel } from '../../types/mapart';
 import { filterPaletteByVersion, isBlockAvailable } from '../../utils/filterPaletteByVersion';

@@ -1,5 +1,5 @@
-import type { BuildMode, BrightnessLevel, RGB } from '../types/mapart';
-import type { PaletteColor, DitheringMode } from './mapartProcessing';
+import type { BuildMode, BrightnessLevel, RGB, PaletteData } from '../types/mapart';
+import type { DitheringMode } from './mapartProcessing';
 import { processMapart, optimizeColumnHeights, applyManualEdits } from './mapartProcessing';
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
 import * as bitArray from './litematicaBitArray';
@@ -50,8 +50,7 @@ export function imageDataToBlockStates(
         dithering,
         useCielab,
         hybridStrength,
-        independentMaps,
-        true // Enable optimizeHeight (Safe Reset) for export
+        independentMaps
     );
 
     // Phase 2: Apply Manual Edits
@@ -65,7 +64,7 @@ export function imageDataToBlockStates(
 
     const { width, height, data } = processedImageData;
     const blockStates: BlockWithCoords[] = [];
-    const palette = (paletteData as any).colors as PaletteColor[];
+    const palette = (paletteData as unknown as PaletteData).colors;
 
     // Build RGB lookup map - include blockId directly
     const rgbToColor = new Map<number, { colorID: number; brightness: BrightnessLevel; blockId: string }>();
@@ -142,7 +141,7 @@ export function imageDataToBlockStates(
         const columnTones = new Int8Array(height).fill(0);
 
         // Determine noobline Y relative to the start (virtual Y=0) based on first block
-        let nooblineY = 0;
+        const nooblineY = 0;
 
         // Process each row (Y in image -> Z in Minecraft)
         for (let y = 0; y < height; y++) {
@@ -323,7 +322,7 @@ export function createLitematicaNBT(
     const volume = maxX * maxY * maxZ;
 
     // Build palette (AIR first, then unique blocks)
-    const paletteBlocks: any[] = [
+    const paletteBlocks: NBTCompound[] = [
         { Name: { type: TagTypes.STRING, value: 'minecraft:air' } }
     ];
     const paletteMap = new Map<string, number>();
@@ -338,7 +337,7 @@ export function createLitematicaNBT(
             : block.blockId;
 
         if (!paletteMap.has(key)) {
-            const paletteEntry: any = {
+            const paletteEntry: NBTCompound = {
                 Name: { type: TagTypes.STRING, value: block.blockId },
             };
 

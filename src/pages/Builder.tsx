@@ -4,7 +4,7 @@ import { MainCanvas } from '../components/builder/MainCanvas';
 import { ControlPanel } from '../components/builder/ControlPanel';
 import { MaterialList } from '../components/builder/MaterialList';
 import { useMapartWorker } from '../hooks/useMapartWorker';
-import { useMapart } from '../context/MapartContext';
+import { useMapart } from '../context/useMapart';
 
 const Builder: React.FC = () => {
     const [isMaterialListOpen, setIsMaterialListOpen] = useState(false);

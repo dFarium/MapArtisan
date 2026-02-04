@@ -1,13 +1,6 @@
 import paletteData from '../data/palette.json';
 import { MAPART } from './constants.ts';
-import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../types/mapart';
-
-export interface PaletteColor {
-    colorID: number;
-    colorName: string;
-    brightnessValues: Record<BrightnessLevel, RGB>;
-    blocks: { id: string; needsSupport: boolean }[];
-}
+import type { RGB, BrightnessLevel, MapartStats, BuildMode, PaletteColor } from '../types/mapart';
 
 export interface ColorCandidate {
     colorID: number;
@@ -27,7 +20,7 @@ export type { BuildMode };
 const labCache = new Map<number, LAB>();
 
 // Color cache: RGB binary -> best candidate index (cleared per processMapart call)
-let colorCache = new Map<number, number>();
+const colorCache = new Map<number, number>();
 
 function rgbToBinary(rgb: RGB): number {
     return (Math.round(rgb.r) << 16) + (Math.round(rgb.g) << 8) + Math.round(rgb.b);
@@ -474,8 +467,7 @@ export function processMapart(
     dithering: DitheringMode = 'none',
     useCielab: boolean = true,
     hybridStrength: number = 50,
-    independentMaps: boolean = false,
-    _optimizeHeight: boolean = false
+    independentMaps: boolean = false
 ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[] } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
@@ -566,9 +558,9 @@ export function processMapart(
 
                 // (Alpha handling removed, processing all pixels)
 
-                let r = floatBuffer[y][x * 3];
-                let g = floatBuffer[y][x * 3 + 1];
-                let b = floatBuffer[y][x * 3 + 2];
+                const r = floatBuffer[y][x * 3];
+                const g = floatBuffer[y][x * 3 + 1];
+                const b = floatBuffer[y][x * 3 + 2];
 
                 const target: RGB = {
                     r: Math.max(0, Math.min(255, r)),
@@ -576,8 +568,6 @@ export function processMapart(
                     b: Math.max(0, Math.min(255, b))
                 };
 
-                let bestRGB: RGB;
-                let bestBrightness: BrightnessLevel;
                 let bestIndex: number;
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
@@ -600,8 +590,8 @@ export function processMapart(
                 }
 
                 const best = candidates[bestIndex];
-                bestRGB = best.rgb;
-                bestBrightness = best.brightness;
+                const bestRGB = best.rgb;
+                const bestBrightness = best.brightness;
 
                 const idx = (y * width + x) * 4;
                 output[idx] = bestRGB.r;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useMapart } from '../../context/MapartContext';
+import { useMapart } from '../../context/useMapart';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { type useMapartWorker } from '../../hooks/useMapartWorker';
 import { CanvasStatusBar } from './canvas/CanvasStatusBar';
@@ -100,7 +100,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     } = useCanvasInteraction(
         uploadedImage,
         isPainting,
-        containerRef as any,
+        containerRef as React.RefObject<HTMLElement>,
         { width: contentWidth, height: contentHeight }
     );
 

@@ -1,6 +1,5 @@
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
-import type { PaletteColor } from './mapartProcessing';
-import type { BrightnessLevel } from '../types/mapart';
+import type { BrightnessLevel, PaletteData } from '../types/mapart';
 import paletteData from '../data/palette.json';
 
 // Minecraft version (1.21.4 / 1.21.11)
@@ -32,7 +31,7 @@ export function imageDataToBlockStates(
 ): BlockState[] {
     const { width, height, data } = imageData;
     const blockStates: BlockState[] = [];
-    const palette = (paletteData as any).colors as PaletteColor[];
+    const palette = (paletteData as unknown as PaletteData).colors;
 
     // Create RGB to color lookup
     const rgbToColor = new Map<number, { colorID: number; brightness: BrightnessLevel }>();
@@ -114,7 +113,7 @@ export function createSchematicNBT(
 ): NBTRoot {
     // Build palette: unique blocks
     const paletteMap = new Map<string, number>();
-    const paletteBlocks: any[] = [];
+    const paletteBlocks: NBTCompound[] = [];
 
     for (const block of blockStates) {
         const key = block.properties
@@ -124,7 +123,7 @@ export function createSchematicNBT(
             : block.blockId;
 
         if (!paletteMap.has(key)) {
-            const paletteEntry: any = {
+            const paletteEntry: NBTCompound = {
                 Name: {
                     type: TagTypes.STRING,
                     value: block.blockId,
@@ -156,7 +155,7 @@ export function createSchematicNBT(
     const maxZ = Math.max(...blockStates.map((b) => b.z), 0) + 1;
 
     // Create blocks list
-    const blocks: any[] = [];
+    const blocks: NBTCompound[] = [];
     for (const block of blockStates) {
         const key = block.properties
             ? `${block.blockId}[${Object.entries(block.properties)
@@ -196,7 +195,7 @@ export function createSchematicNBT(
                 type: TagTypes.LIST,
                 value: {
                     type: TagTypes.COMPOUND,
-                    value: [],
+                    value: [], // Entities list is empty for now
                 },
             },
             palette: {

@@ -1,5 +1,5 @@
 
-import { useMapart } from '../../../context/MapartContext';
+import { useMapart } from '../../../context/useMapart';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Zap, Droplets, Sparkles, Eye } from 'lucide-react';

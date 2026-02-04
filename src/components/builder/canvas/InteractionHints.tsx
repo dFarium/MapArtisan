@@ -1,17 +1,22 @@
+import { useMapart } from '../../../context/useMapart';
+import { type LucideIcon, Paintbrush, Eraser, Move, ZoomIn } from 'lucide-react';
 
-import { useMapart } from '../../../context/MapartContext';
-import { Paintbrush, Eraser, Move, ZoomIn } from 'lucide-react';
+interface HintItemProps {
+    icon: LucideIcon;
+    label: string;
+    bind: string;
+}
+
+const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
+    <div className="flex items-center gap-1.5">
+        <Icon size={14} className="text-zinc-400" />
+        <span className="text-zinc-300">{label}:</span>
+        <span className="text-white font-semibold">{bind}</span>
+    </div>
+);
 
 export const InteractionHints = () => {
     const isPainting = useMapart(s => s.isPainting);
-
-    const HintItem = ({ icon: Icon, label, bind }: { icon: any, label: string, bind: string }) => (
-        <div className="flex items-center gap-1.5">
-            <Icon size={14} className="text-zinc-400" />
-            <span className="text-zinc-300">{label}:</span>
-            <span className="text-white font-semibold">{bind}</span>
-        </div>
-    );
 
     return (
         <div className="absolute bottom-4 right-4 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">

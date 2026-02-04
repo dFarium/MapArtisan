@@ -16,7 +16,6 @@ export const useCanvasInteraction = (
         e.preventDefault();
 
         // Use multiplicative zoom for better feel at high scales
-        // e.deltaY is usually +/- 100
         const zoomIntensity = 0.001;
         const delta = -e.deltaY * zoomIntensity;
 
@@ -82,43 +81,36 @@ export const useCanvasInteraction = (
         handleMouseDown(e);
     }, [handleMouseDown, uploadedImage, isPainting]);
 
-    // Reset or Center when image changes
+    // Reset interaction flag when image changes
+    // Separation of concerns to avoid sync setState warning in the centering effect
     useEffect(() => {
-        if (uploadedImage) {
-            const isNewImage = uploadedImage !== prevImageRef.current;
+        if (uploadedImage && uploadedImage !== prevImageRef.current) {
+            prevImageRef.current = uploadedImage;
+            void Promise.resolve().then(() => setHasInteracted(false));
+        }
+    }, [uploadedImage]);
 
-            // If it's a new image, always reset interaction flag and center
-            if (isNewImage) {
-                prevImageRef.current = uploadedImage;
-                setHasInteracted(false);
-            }
+    // Perform Centering logic
+    useEffect(() => {
+        // Centering should only run if user hasn't interacted or if image is brand new (and flag was just reset)
+        if (uploadedImage && !hasInteracted && containerRef?.current && imageDimensions) {
+            const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
+            const { width: imgWidth, height: imgHeight } = imageDimensions;
 
-            // Perform Centering if:
-            // 1. New Image
-            // 2. OR Dimensions changed AND User hasn't interacted yet (e.g. preview appeared)
-            if ((isNewImage || !hasInteracted) && containerRef?.current && imageDimensions) {
-                const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
-                const { width: imgWidth, height: imgHeight } = imageDimensions;
+            if (containerWidth && containerHeight && imgWidth && imgHeight) {
+                const padding = 0.9;
+                const scaleX = (containerWidth * padding) / imgWidth;
+                const scaleY = (containerHeight * padding) / imgHeight;
+                const fitScale = Math.min(scaleX, scaleY);
 
-                if (containerWidth && containerHeight && imgWidth && imgHeight) {
-                    const padding = 0.9;
-                    const scaleX = (containerWidth * padding) / imgWidth;
-                    const scaleY = (containerHeight * padding) / imgHeight;
-                    const fitScale = Math.min(scaleX, scaleY);
+                const newX = (containerWidth - (imgWidth * fitScale)) / 2;
+                const newY = (containerHeight - (imgHeight * fitScale)) / 2;
 
-                    const newX = (containerWidth - (imgWidth * fitScale)) / 2;
-                    const newY = (containerHeight - (imgHeight * fitScale)) / 2;
-
-                    setScale(fitScale);
-                    setPosition({ x: newX, y: newY });
-                } else if (isNewImage) {
-                    // Fallbacks for new image only
-                    setScale(1);
-                    setPosition({ x: 0, y: 0 });
-                }
+                setScale(fitScale);
+                setPosition({ x: newX, y: newY });
             }
         }
-    }, [uploadedImage, imageDimensions?.width, imageDimensions?.height, hasInteracted]);
+    }, [uploadedImage, imageDimensions, hasInteracted, containerRef]);
 
     // Global mouse up to catch drags outside
     useEffect(() => {

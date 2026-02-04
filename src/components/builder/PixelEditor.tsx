@@ -1,6 +1,6 @@
 import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
 
-import { useMapart } from '../../context/MapartContext';
+import { useMapart } from '../../context/useMapart';
 import type { BrightnessLevel } from '../../types/mapart';
 import paletteData from '../../data/palette.json';
 import type { PaletteColor } from '../../types/palette';

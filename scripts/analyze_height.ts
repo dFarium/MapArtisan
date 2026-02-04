@@ -3,11 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { createCanvas, loadImage, ImageData as CanvasImageData } from 'canvas';
 import { processMapart } from '../src/utils/mapartProcessing';
-import type { MapartStats } from '../src/types/mapart';
 import paletteData from '../src/data/palette.json' with { type: 'json' };
 
+import { type PaletteData } from '../src/types/mapart';
+
 // Polyfill ImageData for Node environment
-(global as any).ImageData = CanvasImageData;
+(globalThis as unknown as { ImageData: typeof CanvasImageData }).ImageData = CanvasImageData;
 
 async function main() {
     const examplesDir = path.join(process.cwd(), 'examples');
@@ -47,7 +48,7 @@ async function main() {
             // Mock Palette Items (All selected)
             const mockSelectedPalette: Record<number, string | null> = {};
             // Assuming palette 1.21.11 structure
-            (paletteData.colors as any[]).forEach(c => {
+            (paletteData as unknown as PaletteData).colors.forEach(c => {
                 mockSelectedPalette[c.colorID] = c.blocks[0].id; // Pick first block for each color
             });
             console.log(`  Palette loaded: ${Object.keys(mockSelectedPalette).length} colors selected.`);

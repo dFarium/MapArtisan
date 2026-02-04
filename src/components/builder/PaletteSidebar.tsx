@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import paletteData from '../../data/palette.json';
-import { useMapart } from '../../context/MapartContext';
+import { useMapart } from '../../context/useMapart';
 import type { PaletteColor } from '../../types/palette';
 import { usePalettePresets } from '../../utils/usePalettePresets';
 import { PresetsToolbar } from './palette/PresetsToolbar';
@@ -44,16 +44,18 @@ export const PaletteSidebar = () => {
 
 
     // Auto-expand groups when searching
-    // Auto-collapse groups when search bar is empty
-    useEffect(() => {
-        if (searchQuery) {
-            const newExpanded: Record<number, boolean> = {};
-            filteredPalette.forEach(c => newExpanded[c.colorID] = true);
-            setExpandedGroups(prev => ({ ...prev, ...newExpanded }));
-        } else {
-            setExpandedGroups({});
-        }
+    // We handle this by merging the state-driven expanded groups with search-driven ones
+    const searchExpandedGroups = useMemo(() => {
+        if (!searchQuery) return {};
+        const expanded: Record<number, boolean> = {};
+        filteredPalette.forEach(c => expanded[c.colorID] = true);
+        return expanded;
     }, [searchQuery, filteredPalette]);
+
+    const allExpandedGroups = useMemo(() => ({
+        ...expandedGroups,
+        ...searchExpandedGroups
+    }), [expandedGroups, searchExpandedGroups]);
 
     const toggleGroup = (id: number) => {
         setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
@@ -134,7 +136,7 @@ export const PaletteSidebar = () => {
                         <PaletteGroup
                             key={color.colorID}
                             color={color}
-                            isExpanded={!!expandedGroups[color.colorID]}
+                            isExpanded={!!allExpandedGroups[color.colorID]}
                             selectedBlock={selectedPaletteItems[color.colorID]}
                             onToggleGroup={toggleGroup}
                             onToggleBlock={toggleBlockSelection}

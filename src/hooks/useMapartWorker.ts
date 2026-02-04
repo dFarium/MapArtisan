@@ -242,8 +242,8 @@ export const useMapartWorker = ({
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
-            } catch (err) {
-                if (active) console.error("Heavy processing failed", err);
+            } catch (_err) {
+                if (active) console.error("Heavy processing failed", _err);
             } finally {
                 if (active) {
                     setIsProcessing(false);
@@ -265,8 +265,7 @@ export const useMapartWorker = ({
     }, [
         sourceImageVersion,
         buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
-        initWorker, mapartResolution.width, mapartResolution.height
-        // manualEdits EXCLUDED
+        initWorker, mapartResolution.width, mapartResolution.height, setMapartStats, manualEdits
     ]);
 
     // 2b. Light Processing (Manual Edits)
@@ -292,14 +291,14 @@ export const useMapartWorker = ({
                     setMapartStats(stats);
                     setToneMap(newToneMap);
                 }
-            } catch (err) {
+            } catch {
                 // This might fail if processMapart hasn't run yet (e.g. init).
                 // We can ignore or handle.
             }
         };
 
         apply();
-    }, [manualEdits, mapartResolution.width, mapartResolution.height]);
+    }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats]);
 
     const [isExporting, setIsExporting] = useState(false);
 
@@ -331,7 +330,7 @@ export const useMapartWorker = ({
 
     const exportMapart = useCallback(async (
         filename: string,
-        metadata: any
+        metadata: Record<string, unknown>
     ) => {
         if (!sourceImageDataRef.current || !workerApiRef.current || isExporting) return;
 

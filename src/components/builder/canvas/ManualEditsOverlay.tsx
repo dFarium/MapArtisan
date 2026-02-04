@@ -1,5 +1,5 @@
 import { useEffect, useRef, memo } from 'react';
-import { useMapart } from '../../../context/MapartContext';
+import { useMapart } from '../../../context/useMapart';
 
 interface ManualEditsOverlayProps {
     width: number;

@@ -29,19 +29,21 @@ export type NBTValue =
     | number[]
     | [number, number] // For long (two 32-bit ints)
     | Uint8Array
-    | { type: TagType; value: any }
-    | { [key: string]: { type: TagType; value: any } };
+    | Int8Array
+    | Int32Array
+    | NBTCompound
+    | NBTList;
 
 export interface NBTCompound {
     [key: string]: {
         type: TagType;
-        value: any;
+        value: unknown;
     };
 }
 
 export interface NBTList {
     type: TagType;
-    value: any[];
+    value: unknown[];
 }
 
 export interface NBTRoot {
@@ -137,56 +139,59 @@ export class NBTWriter {
      */
     private write(dataType: string, size: number, value: number): void {
         this.accommodate(size);
-        (this.dataView as any)[`set${dataType}`](this.offset, value);
+        (this.dataView as unknown as Record<string, (o: number, v: number) => void>)[`set${dataType}`](this.offset, value);
         this.offset += size;
     }
 
     /**
      * Write data by NBT tag type
      */
-    public writeByType(dataType: TagType, value: any): void {
+    public writeByType(dataType: TagType, value: unknown): void {
         switch (dataType) {
             case TagTypes.END:
                 this.writeByType(TagTypes.BYTE, 0);
                 break;
 
             case TagTypes.BYTE:
-                this.write('Int8', 1, value);
+                this.write('Int8', 1, value as number);
                 break;
 
             case TagTypes.SHORT:
-                this.write('Int16', 2, value);
+                this.write('Int16', 2, value as number);
                 break;
 
             case TagTypes.INT:
-                this.write('Int32', 4, value);
+                this.write('Int32', 4, value as number);
                 break;
 
-            case TagTypes.LONG:
+            case TagTypes.LONG: {
                 // JavaScript doesn't support native 64-bit ints
                 // Pass as array of two 32-bit ints [high, low]
-                this.write('Int32', 4, value[0]);
-                this.write('Int32', 4, value[1]);
+                const longVal = value as [number, number];
+                this.write('Int32', 4, longVal[0]);
+                this.write('Int32', 4, longVal[1]);
                 break;
+            }
 
             case TagTypes.FLOAT:
-                this.write('Float32', 4, value);
+                this.write('Float32', 4, value as number);
                 break;
 
             case TagTypes.DOUBLE:
-                this.write('Float64', 8, value);
+                this.write('Float64', 8, value as number);
                 break;
 
             case TagTypes.BYTE_ARRAY: {
-                this.writeByType(TagTypes.INT, value.length);
-                this.accommodate(value.length);
-                this.arrayView.set(value, this.offset);
-                this.offset += value.length;
+                const arr = value as Uint8Array;
+                this.writeByType(TagTypes.INT, arr.length);
+                this.accommodate(arr.length);
+                this.arrayView.set(arr, this.offset);
+                this.offset += arr.length;
                 break;
             }
 
             case TagTypes.STRING: {
-                const bytes = this.encodeUTF8(value);
+                const bytes = this.encodeUTF8(value as string);
                 this.writeByType(TagTypes.SHORT, bytes.length);
                 this.accommodate(bytes.length);
                 this.arrayView.set(bytes, this.offset);
@@ -195,37 +200,39 @@ export class NBTWriter {
             }
 
             case TagTypes.LIST: {
-                // value is { type: TagTypes, value: array }
-                this.writeByType(TagTypes.BYTE, value.type);
-                this.writeByType(TagTypes.INT, value.value.length);
-                for (const item of value.value) {
-                    this.writeByType(value.type, item);
+                const list = value as NBTList;
+                this.writeByType(TagTypes.BYTE, list.type);
+                this.writeByType(TagTypes.INT, list.value.length);
+                for (const item of list.value) {
+                    this.writeByType(list.type, item);
                 }
                 break;
             }
 
             case TagTypes.COMPOUND: {
-                // value is { key: { type, value }, ... }
-                Object.keys(value).forEach((key) => {
-                    this.writeByType(TagTypes.BYTE, value[key].type);
+                const compound = value as NBTCompound;
+                Object.keys(compound).forEach((key) => {
+                    this.writeByType(TagTypes.BYTE, compound[key].type);
                     this.writeByType(TagTypes.STRING, key);
-                    this.writeByType(value[key].type, value[key].value);
+                    this.writeByType(compound[key].type, compound[key].value);
                 });
                 this.writeByType(TagTypes.END, 0);
                 break;
             }
 
             case TagTypes.INT_ARRAY: {
-                this.writeByType(TagTypes.INT, value.length);
-                for (const item of value) {
+                const arr = value as number[] | Int32Array;
+                this.writeByType(TagTypes.INT, arr.length);
+                for (const item of arr) {
                     this.writeByType(TagTypes.INT, item);
                 }
                 break;
             }
 
             case TagTypes.LONG_ARRAY: {
-                this.writeByType(TagTypes.INT, value.length);
-                for (const item of value) {
+                const arr = value as [number, number][];
+                this.writeByType(TagTypes.INT, arr.length);
+                for (const item of arr) {
                     this.writeByType(TagTypes.LONG, item);
                 }
                 break;

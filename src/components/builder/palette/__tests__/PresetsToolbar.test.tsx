@@ -20,7 +20,8 @@ describe('PresetsToolbar', () => {
     };
 
     it('renders and toggles visibility', () => {
-        render(<PresetsToolbar presetsHook={mockHook as any} onReset={() => { }} />, { wrapper: Wrapper });
+        const h = mockHook as unknown as Parameters<typeof PresetsToolbar>[0]['presetsHook'];
+        render(<PresetsToolbar presetsHook={h} onReset={() => { }} />, { wrapper: Wrapper });
 
         expect(screen.getByText('Presets')).toBeDefined();
         // Content hidden initially
@@ -32,7 +33,8 @@ describe('PresetsToolbar', () => {
     });
 
     it('calls applyPreset with correct args', () => {
-        render(<PresetsToolbar presetsHook={mockHook as any} onReset={() => { }} />, { wrapper: Wrapper });
+        const h = mockHook as unknown as Parameters<typeof PresetsToolbar>[0]['presetsHook'];
+        render(<PresetsToolbar presetsHook={h} onReset={() => { }} />, { wrapper: Wrapper });
         fireEvent.click(screen.getByText('Presets')); // Open
 
         fireEvent.click(screen.getByText('Basic (16)'));
@@ -40,7 +42,8 @@ describe('PresetsToolbar', () => {
     });
 
     it('shows custom presets and allows applying them', () => {
-        render(<PresetsToolbar presetsHook={mockHook as any} onReset={() => { }} />, { wrapper: Wrapper });
+        const h = mockHook as unknown as Parameters<typeof PresetsToolbar>[0]['presetsHook'];
+        render(<PresetsToolbar presetsHook={h} onReset={() => { }} />, { wrapper: Wrapper });
         fireEvent.click(screen.getByText('Presets')); // Open
 
         expect(screen.getByText('My Custom')).toBeDefined();
