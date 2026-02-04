@@ -214,7 +214,7 @@ export function createSchematicNBT(
             },
             author: {
                 type: TagTypes.STRING,
-                value: metadata.author || 'mapart-creator',
+                value: metadata.author || 'MapArtisan',
             },
             DataVersion: {
                 type: TagTypes.INT,

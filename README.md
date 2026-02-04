@@ -1,4 +1,4 @@
-# Mapart Creator
+# MapArtisan
 
 A powerful, web-based tool for creating Minecraft Map Art. Originally inspired by `mapartcraft`, this tool has evolved to focus on a superior user experience and advanced features tailored for modern Minecraft (1.16+).
 

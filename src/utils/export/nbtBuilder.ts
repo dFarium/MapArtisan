@@ -116,13 +116,13 @@ export function createLitematicaNBT(
                     },
                     Description: {
                         type: TagTypes.STRING,
-                        value: metadata.description || 'MapArt created by mapart-creator',
+                        value: metadata.description || 'MapArt created by MapArtisan',
                     },
                     RegionCount: { type: TagTypes.INT, value: 1 },
                     TotalBlocks: { type: TagTypes.INT, value: blockStates.length },
                     Author: {
                         type: TagTypes.STRING,
-                        value: metadata.author || 'mapart-creator',
+                        value: metadata.author || 'MapArtisan',
                     },
                     TotalVolume: { type: TagTypes.INT, value: volume },
                     Name: {

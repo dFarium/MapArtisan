@@ -44,7 +44,7 @@ export async function generateMapartExport(
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
             ...metadata,
             name: metadata.name || 'MapArt',
-            description: metadata.description || 'MapArt created by mapart-creator'
+            description: metadata.description || 'MapArt created by MapArtisan'
         }, targetVersion);
         const nbtDataOpt = serializeNBT(nbtOpt);
         const blob = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
@@ -97,7 +97,7 @@ export async function generateMapartExport(
                 const sectionNbt = createLitematicaNBT(blockStates, {
                     ...metadata,
                     name: `${metadata.name || 'MapArt'} (${x},${y})`,
-                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by mapart-creator'} `
+                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by MapArtisan'} `
                 }, targetVersion);
 
                 const sectionBuffer = serializeNBT(sectionNbt);
