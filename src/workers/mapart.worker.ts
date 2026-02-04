@@ -10,6 +10,7 @@ let lastBaseResult: {
     blockIndices: Int32Array;
     candidates: ColorCandidate[];
     stats: MapartStats;
+    needsSupportMap: Uint8Array;
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -29,7 +30,7 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } => {
+    ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
         const result = processMapart(
             imageData,
             buildMode,
@@ -47,18 +48,19 @@ const api = {
             blockIndices: result.blockIndices,
             candidates: result.candidates,
             stats: result.stats,
+            needsSupportMap: result.needsSupportMap,
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode
         };
 
-        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap };
+        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap, needsSupportMap: result.needsSupportMap };
     },
 
     /**
      * Light step. Applies manual edits to the cached base result.
      */
-    applyEdits: (manualEdits: Record<number, ManualEdit>): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } => {
+    applyEdits: (manualEdits: Record<number, ManualEdit>): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
         if (!lastBaseResult) {
             throw new Error("No base mapart processed yet. Call processMapart first.");
         }
@@ -66,11 +68,12 @@ const api = {
         const result = applyManualEdits(
             lastBaseResult.imageData,
             lastBaseResult.toneMap,
+            lastBaseResult.needsSupportMap,
             manualEdits,
             lastBaseResult.buildMode
         );
 
-        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap };
+        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap, needsSupportMap: result.needsSupportMap };
     },
 
     generateMapartExport: async (

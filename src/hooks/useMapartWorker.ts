@@ -54,6 +54,7 @@ export const useMapartWorker = ({
     const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
     const [toneMap, setToneMap] = useState<Int8Array | null>(null);
+    const [needsSupportMap, setNeedsSupportMap] = useState<Uint8Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
 
     const mapartResolution = {
@@ -226,7 +227,7 @@ export const useMapartWorker = ({
                 if (!active) return;
 
                 // Apply current edits to that new base
-                const { imageData: processedData, stats, toneMap: newToneMap } = await api.applyEdits(manualEdits);
+                const { imageData: processedData, stats, toneMap: newToneMap, needsSupportMap: newNeedsSupportMap } = await api.applyEdits(manualEdits);
 
                 if (!active) return;
 
@@ -241,6 +242,7 @@ export const useMapartWorker = ({
                     setPreviewImageData(processedData);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
+                    setNeedsSupportMap(newNeedsSupportMap);
                 }
             } catch (_err) {
                 if (active) console.error("Heavy processing failed", _err);
@@ -277,7 +279,7 @@ export const useMapartWorker = ({
                 const api = workerApiRef.current;
                 if (!api) return;
 
-                const { imageData: processedData, stats, toneMap: newToneMap } = await api.applyEdits(manualEdits);
+                const { imageData: processedData, stats, toneMap: newToneMap, needsSupportMap: newNeedsSupportMap } = await api.applyEdits(manualEdits);
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -290,6 +292,7 @@ export const useMapartWorker = ({
                     setPreviewImageData(processedData);
                     setMapartStats(stats);
                     setToneMap(newToneMap);
+                    setNeedsSupportMap(newNeedsSupportMap);
                 }
             } catch {
                 // This might fail if processMapart hasn't run yet (e.g. init).
@@ -380,6 +383,7 @@ export const useMapartWorker = ({
         scaledPreviewUrl,
         previewImageData,
         toneMap,
+        needsSupportMap,
         originalTransformedUrl,
         mapartResolution,
         exportMapart,

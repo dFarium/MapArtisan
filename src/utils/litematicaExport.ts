@@ -42,7 +42,7 @@ export function imageDataToBlockStates(
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     // Phase 1: Base Processing
-    const { imageData: baseImageData, toneMap: baseToneMap } = processMapart(
+    const { imageData: baseImageData, toneMap: baseToneMap, needsSupportMap: baseNeedsSupportMap } = processMapart(
         imageData,
         buildMode,
         selectedPaletteItems,
@@ -58,7 +58,7 @@ export function imageDataToBlockStates(
     // We don't strictly need updated toneMap/stats here as logic derives tone from rgb match below,
     // but applyManualEdits gives us the correct pixel colors.
     if (manualEdits && Object.keys(manualEdits).length > 0) {
-        const res = applyManualEdits(baseImageData, baseToneMap, manualEdits, buildMode);
+        const res = applyManualEdits(baseImageData, baseToneMap, baseNeedsSupportMap, manualEdits, buildMode);
         processedImageData = res.imageData;
     }
 
@@ -82,41 +82,12 @@ export function imageDataToBlockStates(
         }
     }
 
-    // Identify blocks that need support (gravity or fragile)
-    const gravityBlocks = new Set([
-        'minecraft:sand',
-        'minecraft:red_sand',
-        'minecraft:gravel',
-        'minecraft:dragon_egg',
-        'minecraft:anvil',
-        'minecraft:chipped_anvil',
-        'minecraft:damaged_anvil',
-        'minecraft:white_concrete_powder',
-        'minecraft:orange_concrete_powder',
-        'minecraft:magenta_concrete_powder',
-        'minecraft:light_blue_concrete_powder',
-        'minecraft:yellow_concrete_powder',
-        'minecraft:lime_concrete_powder',
-        'minecraft:pink_concrete_powder',
-        'minecraft:gray_concrete_powder',
-        'minecraft:light_gray_concrete_powder',
-        'minecraft:cyan_concrete_powder',
-        'minecraft:purple_concrete_powder',
-        'minecraft:blue_concrete_powder',
-        'minecraft:brown_concrete_powder',
-        'minecraft:green_concrete_powder',
-        'minecraft:red_concrete_powder',
-        'minecraft:black_concrete_powder',
-        'minecraft:scaffolding',
-        'minecraft:snow', // Gravity affected if layers? No, snow block not gravity.
-        // Add others if needed
-    ]);
-
-    const fragileBlocks = new Set<string>();
+    // Identify blocks that need support (from palette.json - source of truth)
+    const blocksNeedingSupport = new Set<string>();
     for (const color of palette) {
         for (const block of color.blocks) {
             if (block.needsSupport) {
-                fragileBlocks.add(block.id);
+                blocksNeedingSupport.add(block.id);
             }
         }
     }
@@ -236,10 +207,8 @@ export function imageDataToBlockStates(
                 } else if (blockSupport === 'needed') {
                     addSupport = false;
                 } else if (blockSupport === 'gravity') {
-                    // Check if block is gravity or fragile
-                    const isGravity = gravityBlocks.has(rawBlock.blockId);
-                    const isFragile = fragileBlocks.has(rawBlock.blockId);
-                    addSupport = isGravity || isFragile;
+                    // Check if block needs support (from palette.json)
+                    addSupport = blocksNeedingSupport.has(rawBlock.blockId);
                 }
 
                 if (addSupport) {

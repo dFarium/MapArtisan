@@ -328,9 +328,12 @@ describe('mapartProcessing', () => {
                 }
             };
 
+            const baseNeedsSupportMap = new Uint8Array([0, 0]);
+
             const result = applyManualEdits(
                 baseImageData,
                 baseToneMap,
+                baseNeedsSupportMap,
                 manualEdits,
                 '3d_valley'
             );
@@ -360,7 +363,9 @@ describe('mapartProcessing', () => {
                 }
             };
 
-            applyManualEdits(baseImageData, baseToneMap, manualEdits, '2d');
+            const baseNeedsSupportMap = new Uint8Array([0]);
+
+            applyManualEdits(baseImageData, baseToneMap, baseNeedsSupportMap, manualEdits, '2d');
 
             // Original should be unchanged
             expect(baseImageData.data[0]).toBe(100);
@@ -389,9 +394,12 @@ describe('mapartProcessing', () => {
                 }
             };
 
+            const baseNeedsSupportMap = new Uint8Array([0, 0, 0]);
+
             const result = applyManualEdits(
                 baseImageData,
                 baseToneMap,
+                baseNeedsSupportMap,
                 manualEdits,
                 '3d_valley'
             );

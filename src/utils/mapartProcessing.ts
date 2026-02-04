@@ -7,6 +7,7 @@ export interface ColorCandidate {
     brightness: BrightnessLevel;
     rgb: RGB;
     blockId: string;
+    needsSupport: boolean;
 }
 
 export type { BuildMode };
@@ -334,12 +335,17 @@ export function getValidColors(
             levels = ['low', 'normal', 'high'];
         }
 
+        // Find needsSupport for the selected block
+        const blockInfo = color.blocks.find(b => b.id === blockId);
+        const needsSupport = blockInfo?.needsSupport ?? false;
+
         for (const level of levels) {
             candidates.push({
                 colorID: color.colorID,
                 brightness: level,
                 rgb: color.brightnessValues[level],
-                blockId
+                blockId,
+                needsSupport
             });
         }
     }
@@ -468,7 +474,7 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[] } {
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[]; needsSupportMap: Uint8Array } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -481,7 +487,8 @@ export function processMapart(
             },
             toneMap: new Int8Array(imageData.width * imageData.height),
             blockIndices: new Int32Array(imageData.width * imageData.height),
-            candidates: []
+            candidates: [],
+            needsSupportMap: new Uint8Array(imageData.width * imageData.height)
         };
     }
 
@@ -546,6 +553,9 @@ export function processMapart(
     // Block Indices Map (for Picker)
     const blockIndices = new Int32Array(width * height);
 
+    // Needs Support Map (for 3D preview support visualization)
+    const needsSupportMap = new Uint8Array(width * height);
+
     {
         // Standard Processing
         for (let y = 0; y < height; y++) {
@@ -601,6 +611,9 @@ export function processMapart(
 
                 // Save Block Index
                 blockIndices[y * width + x] = bestIndex;
+
+                // Save needsSupport flag
+                needsSupportMap[y * width + x] = best.needsSupport ? 1 : 0;
 
                 // Save Tone decision for Phase 2
                 if (buildMode === '3d_valley') {
@@ -749,7 +762,8 @@ export function processMapart(
         },
         toneMap,
         blockIndices,
-        candidates
+        candidates,
+        needsSupportMap
     };
 }
 
@@ -760,14 +774,16 @@ export function processMapart(
 export function applyManualEdits(
     baseImageData: ImageData,
     baseToneMap: Int8Array,
-    manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
+    baseNeedsSupportMap: Uint8Array,
+    manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB; needsSupport?: boolean }>,
     buildMode: BuildMode
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array } {
+): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } {
     const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
     const newData = new Uint8ClampedArray(data);
     const newToneMap = new Int8Array(baseToneMap); // Copy tone map
+    const newNeedsSupportMap = new Uint8Array(baseNeedsSupportMap); // Copy needs support map
 
     // Apply edits
     for (const [indexStr, edit] of Object.entries(manualEdits)) {
@@ -789,6 +805,11 @@ export function applyManualEdits(
             if (edit.brightness === 'high') tone = 1;
             else if (edit.brightness === 'low') tone = -1;
             newToneMap[index] = tone;
+        }
+
+        // Update needsSupport if provided
+        if (edit.needsSupport !== undefined) {
+            newNeedsSupportMap[index] = edit.needsSupport ? 1 : 0;
         }
     }
 
@@ -827,7 +848,8 @@ export function applyManualEdits(
             maxHeight: overallMax,
             heightMap: colHeights
         },
-        toneMap: newToneMap
+        toneMap: newToneMap,
+        needsSupportMap: newNeedsSupportMap
     };
 }
 

@@ -31,6 +31,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         scaledPreviewUrl,
         previewImageData: workerImageData,
         toneMap,
+        needsSupportMap,
         originalTransformedUrl,
         mapartResolution,
         isExporting,
@@ -176,6 +177,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 blockSupport={blockSupport}
                                 stats={mapartStats || undefined}
                                 toneMap={toneMap || undefined}
+                                needsSupportMap={needsSupportMap || undefined}
                             // We are passing stats (which has heightMap) and imageData (colors).
                             // But note: stats.heightMap is column-based max range, NOT per-pixel Y.
                             // Mapart3DPreview currently re-calculates/estimates.

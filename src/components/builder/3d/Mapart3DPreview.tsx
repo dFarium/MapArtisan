@@ -10,6 +10,7 @@ interface Mapart3DPreviewProps {
     toneMap?: Int8Array;
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
+    needsSupportMap?: Uint8Array;
 }
 
 interface HintItemProps {
@@ -26,7 +27,7 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
     </div>
 );
 
-export const Mapart3DPreview = ({ imageData, toneMap, blockSupport }: Mapart3DPreviewProps) => {
+export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupportMap }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
@@ -36,7 +37,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport }: Mapart3DPr
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[10, 20, 10]} intensity={0.25} castShadow />
 
-                <MapartMesh imageData={imageData} toneMap={toneMap} blockSupport={blockSupport} />
+                <MapartMesh imageData={imageData} toneMap={toneMap} blockSupport={blockSupport} needsSupportMap={needsSupportMap} />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
                 <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
@@ -55,7 +56,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport }: Mapart3DPr
     );
 };
 
-const MapartMesh = ({ imageData, toneMap, blockSupport }: { imageData: ImageData; toneMap?: Int8Array; blockSupport: 'all' | 'needed' | 'gravity' }) => {
+const MapartMesh = ({ imageData, toneMap, blockSupport, needsSupportMap }: { imageData: ImageData; toneMap?: Int8Array; blockSupport: 'all' | 'needed' | 'gravity'; needsSupportMap?: Uint8Array }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const { width, height, data } = imageData;
     const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -98,23 +99,33 @@ const MapartMesh = ({ imageData, toneMap, blockSupport }: { imageData: ImageData
                     color: new THREE.Color(r, g, b)
                 });
 
-                // Add Support Block
-                // Logic: If block is elevated (y > 0), add support at y - 1
-                // We only show supports if blockSupport is 'all' (since we can't check gravity without block IDs)
-                // For 'gravity' or 'needed', we skip for now to avoid clutter/inaccuracy without IDs.
-                // Or if user specifically asked for supports, we assume 'all' is the primary mode to verify.
-                if (blockY > 0 && blockSupport === 'all') {
-                    blocks.push({
-                        x: worldX,
-                        y: worldY - 1,
-                        z: worldZ,
-                        color: new THREE.Color(0.5, 0.5, 0.5) // Grey stone-like support
-                    });
+                // Add Support Block (if needed)
+                if (blockY > 0) {
+                    let addSupport = false;
+
+                    if (blockSupport === 'all') {
+                        // Include physical support for all elevated blocks
+                        addSupport = true;
+                    } else if (blockSupport === 'gravity' && needsSupportMap) {
+                        // Support only for blocks that need it (from palette.json)
+                        const pixelIndex = y * width + x;
+                        addSupport = needsSupportMap[pixelIndex] === 1;
+                    }
+                    // 'needed' mode: no supports (addSupport stays false)
+
+                    if (addSupport) {
+                        blocks.push({
+                            x: worldX,
+                            y: worldY - 1,
+                            z: worldZ,
+                            color: new THREE.Color(0.5, 0.5, 0.5) // Grey stone-like support
+                        });
+                    }
                 }
             }
         }
         return { blocks, instanceCount: blocks.length };
-    }, [toneMap, width, height, data, blockSupport]);
+    }, [toneMap, width, height, data, blockSupport, needsSupportMap]);
 
     useEffect(() => {
         if (!meshRef.current) return;

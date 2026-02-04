@@ -10,6 +10,7 @@ export interface ManualEdit {
     blockId: string;
     brightness: BrightnessLevel;
     rgb: RGB;
+    needsSupport?: boolean;
 }
 
 export interface MapartStats {
