@@ -1,465 +1,54 @@
-import paletteData from '../data/palette.json';
-import { MAPART } from './constants.ts';
-import type { RGB, BrightnessLevel, MapartStats, BuildMode, PaletteColor } from '../types/mapart';
+/**
+ * Map Art Processing - Main Entry Point
+ * 
+ * This module exports the main processing functions and re-exports
+ * utilities from sub-modules for backwards compatibility.
+ */
 
-export interface ColorCandidate {
-    colorID: number;
-    brightness: BrightnessLevel;
-    rgb: RGB;
-    blockId: string;
-    needsSupport: boolean;
-}
+import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../types/mapart';
+
+// Re-export from sub-modules
+export {
+    // Color Space
+    type LAB,
+    rgbToLab,
+    deltaE,
+    clearColorCache,
+
+    // Dithering
+    type DitheringMode,
+    DITHER_MATRICES,
+    BAYER_4X4,
+    BAYER_8X8,
+    calculateLocalVariance,
+
+    // Height Optimization
+    optimizeColumnHeights,
+
+    // Color Matching
+    type ColorCandidate,
+    getValidColors,
+    findClosestColorIndex,
+    findTwoClosestColors
+} from './processing';
+
+// Import for internal use
+import {
+    rgbToLab,
+    clearColorCache,
+    type DitheringMode,
+    DITHER_MATRICES,
+    BAYER_4X4,
+    BAYER_8X8,
+    calculateLocalVariance,
+    optimizeColumnHeights,
+    type ColorCandidate,
+    getValidColors,
+    findClosestColorIndex,
+    findTwoClosestColors
+} from './processing';
 
 export type { BuildMode };
-
-
-// ============================================================================
-// Caching System
-// ============================================================================
-
-// LAB cache: RGB binary -> LAB values
-const labCache = new Map<number, LAB>();
-
-// Color cache: RGB binary -> best candidate index (cleared per processMapart call)
-const colorCache = new Map<number, number>();
-
-function rgbToBinary(rgb: RGB): number {
-    return (Math.round(rgb.r) << 16) + (Math.round(rgb.g) << 8) + Math.round(rgb.b);
-}
-
-function clearColorCache(): void {
-    colorCache.clear();
-}
-
-// ============================================================================
-// CIELAB Color Space
-// ============================================================================
-
-export interface LAB {
-    L: number;
-    a: number;
-    b: number;
-}
-
-/**
- * RGB to LAB conversion - exact copy from mapartcraft (redstonehelper's program).
- * This version scales L to 0-255 range for consistent distance calculations.
- */
-export function rgbToLab(rgb: RGB): LAB {
-    const key = rgbToBinary(rgb);
-    if (labCache.has(key)) {
-        return labCache.get(key)!;
-    }
-
-    let r1 = rgb.r / 255.0;
-    let g1 = rgb.g / 255.0;
-    let b1 = rgb.b / 255.0;
-
-    // sRGB to linear RGB (gamma correction)
-    const { RGB_TO_LINEAR_THRESHOLD: THRESHOLD, RGB_TO_LINEAR_DIVISOR: DIVISOR, RGB_TO_LINEAR_OFFSET: OFFSET, RGB_TO_LINEAR_POWER: POWER } = MAPART;
-
-    r1 = THRESHOLD >= r1 ? (r1 / DIVISOR) : Math.pow((r1 + OFFSET) / (1 + OFFSET), POWER);
-    g1 = THRESHOLD >= g1 ? (g1 / DIVISOR) : Math.pow((g1 + OFFSET) / (1 + OFFSET), POWER);
-    b1 = THRESHOLD >= b1 ? (b1 / DIVISOR) : Math.pow((b1 + OFFSET) / (1 + OFFSET), POWER);
-
-    // Linear RGB to XYZ
-    const { XYZ_R_COEFFS: Rc, XYZ_G_COEFFS: Gc, XYZ_B_COEFFS: Bc, XYZ_WHITE_REF: Wr } = MAPART;
-
-    const f = (Rc[0] * r1 + Rc[1] * g1 + Rc[2] * b1) / Wr.X;
-    const h = (Gc[0] * r1 + Gc[1] * g1 + Gc[2] * b1) / Wr.Y;
-    const k = (Bc[0] * r1 + Bc[1] * g1 + Bc[2] * b1) / Wr.Z;
-
-    // XYZ to Lab
-    const { LAB_THRESHOLD: L_THRESH, LAB_FACTOR_LOW: L_FACT, LAB_OFFSET_LOW: L_OFF, LAB_DIVISOR_LOW: L_DIV } = MAPART;
-
-    const l = L_THRESH < h ? Math.pow(h, MAPART.LAB_POWER) : (L_FACT * h + L_OFF) / L_DIV;
-    const m = MAPART.LAB_A_FACTOR * ((L_THRESH < f ? Math.pow(f, MAPART.LAB_POWER) : (L_FACT * f + L_OFF) / L_DIV) - l);
-    const n = MAPART.LAB_B_FACTOR * (l - (L_THRESH < k ? Math.pow(k, MAPART.LAB_POWER) : (L_FACT * k + L_OFF) / L_DIV));
-
-    // Scale L to 0-255 range
-    const lab: LAB = {
-        L: MAPART.CIELAB_SCALE / 100 * (MAPART.LAB_L_FACTOR * l - MAPART.LAB_L_OFFSET) + 0.5, // Approx scaling
-        a: m + 0.5,
-        b: n + 0.5
-    };
-
-    labCache.set(key, lab);
-    return lab;
-}
-
-export function deltaE(lab1: LAB, lab2: LAB): number {
-    const dL = lab1.L - lab2.L;
-    const da = lab1.a - lab2.a;
-    const db = lab1.b - lab2.b;
-    return Math.sqrt(dL * dL + da * da + db * db);
-}
-
-/**
- * Squared Euclidean distance in LAB space (like mapartcraft).
- * Using squared values avoids sqrt and works better for comparisons.
- */
-function labDistanceSq(lab1: LAB, lab2: LAB): number {
-    const dL = lab1.L - lab2.L;
-    const da = lab1.a - lab2.a;
-    const db = lab1.b - lab2.b;
-    return dL * dL + da * da + db * db;
-}
-
-function colorDistanceSq(a: RGB, b: RGB): number {
-    const dr = a.r - b.r;
-    const dg = a.g - b.g;
-    const db = a.b - b.b;
-    return dr * dr + dg * dg + db * db;
-}
-
-// ============================================================================
-// Dithering Configuration
-// ============================================================================
-
-export type DitheringMode =
-    | 'none'
-    | 'floyd-steinberg'
-    | 'atkinson'
-    | 'stucki'
-    | 'burkes'
-    | 'sierra-lite'
-    | 'ordered'
-    | 'ordered-8x8'
-    | 'adaptive'
-    | 'hybrid';
-
-interface DitherMatrix {
-    divisor: number;
-    // Matrix rows: [row0, row1, row2] where each row is [col-2, col-1, col0, col+1, col+2]
-    // Position [0][2] is current pixel (always 0), error distributed to right and below
-    matrix: number[][];
-}
-
-const DITHER_MATRICES: Record<string, DitherMatrix> = {
-    'floyd-steinberg': {
-        divisor: 16,
-        matrix: [
-            [0, 0, 0, 7, 0],
-            [0, 3, 5, 1, 0],
-            [0, 0, 0, 0, 0]
-        ]
-    },
-    'atkinson': {
-        divisor: 8,
-        matrix: [
-            [0, 0, 0, 1, 1],
-            [0, 1, 1, 1, 0],
-            [0, 0, 1, 0, 0]
-        ]
-    },
-    'stucki': {
-        divisor: 42,
-        matrix: [
-            [0, 0, 0, 8, 4],
-            [2, 4, 8, 4, 2],
-            [1, 2, 4, 2, 1]
-        ]
-    },
-    'burkes': {
-        divisor: 32,
-        matrix: [
-            [0, 0, 0, 8, 4],
-            [2, 4, 8, 4, 2],
-            [0, 0, 0, 0, 0]
-        ]
-    },
-    'sierra-lite': {
-        divisor: 4,
-        matrix: [
-            [0, 0, 0, 2, 0],
-            [0, 1, 1, 0, 0],
-            [0, 0, 0, 0, 0]
-        ]
-    }
-};
-
-// Bayer 4x4 threshold matrix for ordered dithering (values 1-16)
-const BAYER_4X4 = [
-    [1, 9, 3, 11],
-    [13, 5, 15, 7],
-    [4, 12, 2, 10],
-    [16, 8, 14, 6]
-];
-
-// Bayer 8x8 threshold matrix for ordered dithering (values 1-64)
-const BAYER_8X8 = [
-    [1, 49, 13, 61, 4, 52, 16, 64],
-    [33, 17, 45, 29, 36, 20, 48, 32],
-    [9, 57, 5, 53, 12, 60, 8, 56],
-    [41, 25, 37, 21, 44, 28, 40, 24],
-    [3, 51, 15, 63, 2, 50, 14, 62],
-    [35, 19, 47, 31, 34, 18, 46, 30],
-    [11, 59, 7, 55, 10, 58, 6, 54],
-    [43, 27, 39, 23, 42, 26, 38, 22]
-];
-
-// ============================================================================
-// Hybrid Dithering - Local Variance Analysis
-// ============================================================================
-
-// Hybrid variance thresholds are now calculated dynamically based on hybridStrength parameter
-
-/**
- * Calculate local variance in a 3x3 window around a pixel.
- * Returns the sum of squared differences from the center pixel.
- */
-function calculateLocalVariance(
-    floatBuffer: number[][],
-    x: number,
-    y: number,
-    width: number,
-    height: number
-): number {
-    const centerR = floatBuffer[y][x * 3];
-    const centerG = floatBuffer[y][x * 3 + 1];
-    const centerB = floatBuffer[y][x * 3 + 2];
-
-    let variance = 0;
-    let count = 0;
-
-    for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
-
-            const nx = x + dx;
-            const ny = y + dy;
-
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                const dr = floatBuffer[ny][nx * 3] - centerR;
-                const dg = floatBuffer[ny][nx * 3 + 1] - centerG;
-                const db = floatBuffer[ny][nx * 3 + 2] - centerB;
-                variance += dr * dr + dg * dg + db * db;
-                count++;
-            }
-        }
-    }
-
-    return count > 0 ? variance / count : 0;
-}
-
-// ============================================================================
-// Smart Drop Optimization (Ported from Python)
-// ============================================================================
-
-/**
- * Optimizes the height profile of a column to minimize the total height range.
- * Uses a "Smart Drop" strategy that capitalizes on shadow blocks (tone -1)
- * to drop deeper when safe, recovering height for future climbs.
- */
-export function optimizeColumnHeights(tonos: number[]): { min: number; max: number; path: number[] } {
-    // 1. Reference (Classic Approach)
-    const ref = [0];
-    for (const t of tonos) {
-        if (t === 1) ref.push(ref[ref.length - 1] + 1);
-        else if (t === 0) ref.push(ref[ref.length - 1]);
-        else if (t === -1) ref.push(ref[ref.length - 1] - 1);
-    }
-
-    // 2. Suffix Min (Future Lookahead)
-    const n = ref.length;
-    const minFuturo = new Int32Array(n);
-    let currentMin = Infinity;
-    for (let i = n - 1; i >= 0; i--) {
-        if (ref[i] < currentMin) currentMin = ref[i];
-        minFuturo[i] = currentMin;
-    }
-
-    // 3. Smart Drop Construction
-    const path: number[] = []; // Starting at 0 (implicit, strictly not needed for output length=tonos.length)
-    let currentOpt = 0;
-    let maxOpt = 0;
-    let minOpt = 0;
-
-    // We generate the path corresponding to each tone.
-    for (let i = 0; i < tonos.length; i++) {
-        const t = tonos[i];
-        if (t === -1) {
-            // Check safe drop target
-            const alturaSegura = ref[i + 1] - minFuturo[i + 1];
-            if (alturaSegura < currentOpt) {
-                currentOpt = alturaSegura;
-            } else {
-                currentOpt -= 1;
-            }
-        } else if (t === 1) {
-            currentOpt += 1;
-        }
-        // If t == 0, currentOpt stays same.
-
-        path.push(currentOpt);
-
-        if (currentOpt > maxOpt) maxOpt = currentOpt;
-        if (currentOpt < minOpt) minOpt = currentOpt;
-    }
-
-    return { min: minOpt, max: maxOpt, path };
-}
-
-
-// ============================================================================
-// Color Candidate Functions
-// ============================================================================
-
-export function getValidColors(
-    selectedPaletteItems: Record<number, string | null>,
-    buildMode: BuildMode
-): ColorCandidate[] {
-    const candidates: ColorCandidate[] = [];
-    const palette = paletteData.colors as unknown as PaletteColor[];
-
-    const selectedColorIDs = Object.keys(selectedPaletteItems)
-        .map(Number)
-        .filter(id => selectedPaletteItems[id] !== null);
-
-    if (selectedColorIDs.length === 0) {
-        return [];
-    }
-
-    for (const color of palette) {
-        if (!selectedColorIDs.includes(color.colorID)) continue;
-
-        const blockId = selectedPaletteItems[color.colorID];
-        if (!blockId) continue;
-
-        let levels: BrightnessLevel[];
-        if (buildMode === '2d') {
-            levels = ['normal'];
-        } else if (buildMode === 'staircase') {
-            levels = ['high'];
-        } else {
-            levels = ['low', 'normal', 'high'];
-        }
-
-        // Find needsSupport for the selected block
-        const blockInfo = color.blocks.find(b => b.id === blockId);
-        const needsSupport = blockInfo?.needsSupport ?? false;
-
-        for (const level of levels) {
-            candidates.push({
-                colorID: color.colorID,
-                brightness: level,
-                rgb: color.brightnessValues[level],
-                blockId,
-                needsSupport
-            });
-        }
-    }
-
-    return candidates;
-}
-
-// ============================================================================
-// Color Matching with Cache
-// ============================================================================
-
-interface ColorMatchResult {
-    index: number;
-    distance: number;
-}
-
-function findClosestColorIndex(
-    target: RGB,
-    candidates: ColorCandidate[],
-    candidateLabs: LAB[],
-    useCielab: boolean,
-    skipCache: boolean = false,
-    heightPenalty: number = 0
-): ColorMatchResult {
-    const key = rgbToBinary(target);
-
-    // Check cache first (only for exact RGB matches, skip during error diffusion)
-    if (!skipCache && colorCache.has(key)) {
-        const cachedIndex = colorCache.get(key)!;
-        const dist = useCielab
-            ? labDistanceSq(rgbToLab(target), candidateLabs[cachedIndex])
-            : colorDistanceSq(target, candidates[cachedIndex].rgb);
-        return { index: cachedIndex, distance: dist };
-    }
-
-    const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
-
-    let bestIndex = 0;
-    let bestDist = Infinity;
-
-    for (let i = 0; i < candidates.length; i++) {
-        let dist: number;
-        if (useCielab) {
-            // Use squared Euclidean in LAB (like mapartcraft)
-            dist = labDistanceSq(targetLab, candidateLabs[i]);
-        } else {
-            dist = colorDistanceSq(target, candidates[i].rgb);
-        }
-
-        // Apply 3D Precision Penalty
-        // If block is not flat (normal) and we have a penalty, add it to distance.
-        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
-            dist += heightPenalty;
-        }
-
-        if (dist < bestDist) {
-            bestDist = dist;
-            bestIndex = i;
-        }
-    }
-
-    if (!skipCache) {
-        colorCache.set(key, bestIndex);
-    }
-    return { index: bestIndex, distance: bestDist };
-}
-
-/**
- * Find two closest colors for ordered dithering.
- */
-function findTwoClosestColors(
-    target: RGB,
-    candidates: ColorCandidate[],
-    candidateLabs: LAB[],
-    useCielab: boolean,
-    heightPenalty: number = 0
-): { first: ColorMatchResult; second: ColorMatchResult } {
-    const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
-
-    let bestIndex = 0;
-    let bestDist = Infinity;
-    let secondIndex = 0;
-    let secondDist = Infinity;
-
-    for (let i = 0; i < candidates.length; i++) {
-        let dist: number;
-        if (useCielab) {
-            // Use squared Euclidean in LAB (like mapartcraft)
-            dist = labDistanceSq(targetLab, candidateLabs[i]);
-        } else {
-            dist = colorDistanceSq(target, candidates[i].rgb);
-        }
-
-        // Apply 3D Precision Penalty
-        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
-            dist += heightPenalty;
-        }
-
-        if (dist < bestDist) {
-            secondDist = bestDist;
-            secondIndex = bestIndex;
-            bestDist = dist;
-            bestIndex = i;
-        } else if (dist < secondDist) {
-            secondDist = dist;
-            secondIndex = i;
-        }
-    }
-
-    return {
-        first: { index: bestIndex, distance: bestDist },
-        second: { index: secondIndex, distance: secondDist }
-    };
-}
 
 // ============================================================================
 // Main Processing Function
@@ -503,16 +92,9 @@ export function processMapart(
         floatBuffer[i] = [];
         for (let j = 0; j < width; j++) {
             const idx = (i * width + j) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            // Alpha ignored
-
-            // Just load RGB, ignore Alpha
-            // If alpha is 0, RGB is usually 0,0,0
-            floatBuffer[i][j * 3] = r;
-            floatBuffer[i][j * 3 + 1] = g;
-            floatBuffer[i][j * 3 + 2] = b;
+            floatBuffer[i][j * 3] = data[idx];
+            floatBuffer[i][j * 3 + 1] = data[idx + 1];
+            floatBuffer[i][j * 3 + 2] = data[idx + 2];
         }
     }
 
@@ -526,7 +108,6 @@ export function processMapart(
         if (threeDPrecision < 100) {
             const PRACTICAL_MAX = useCielab ? 10000 : 200000;
             heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
-            // Make 0% absolute refusal
             if (threeDPrecision === 0) heightPenalty = Infinity;
         }
     }
@@ -545,7 +126,7 @@ export function processMapart(
     const isErrorDiffusion = ditherMatrix !== undefined || dithering === 'hybrid';
     const baseErrorScale = dithering === 'adaptive' ? 0.85 : 1.0;
     const isHybrid = dithering === 'hybrid';
-    const fsMatrix = DITHER_MATRICES['floyd-steinberg']; // For hybrid mode
+    const fsMatrix = DITHER_MATRICES['floyd-steinberg'];
 
     // Tone Map for Smart Drop Optimization phase
     const toneMap = new Int8Array(width * height);
@@ -565,9 +146,6 @@ export function processMapart(
             }
 
             for (let x = 0; x < width; x++) {
-
-                // (Alpha handling removed, processing all pixels)
-
                 const r = floatBuffer[y][x * 3];
                 const g = floatBuffer[y][x * 3 + 1];
                 const b = floatBuffer[y][x * 3 + 2];
@@ -607,7 +185,7 @@ export function processMapart(
                 output[idx] = bestRGB.r;
                 output[idx + 1] = bestRGB.g;
                 output[idx + 2] = bestRGB.b;
-                output[idx + 3] = 255; // Force opacity
+                output[idx + 3] = 255;
 
                 // Save Block Index
                 blockIndices[y * width + x] = bestIndex;
@@ -620,7 +198,7 @@ export function processMapart(
                     let tone = 0;
                     if (bestBrightness === 'high') tone = 1;
                     else if (bestBrightness === 'low') tone = -1;
-                    toneMap[y * width + x] = tone; // Store in row-major order
+                    toneMap[y * width + x] = tone;
                 }
 
                 // Update height stats (standard/2d modes)
@@ -695,55 +273,29 @@ export function processMapart(
         if (buildMode === '3d_valley') {
             overallMin = 0;
             overallMax = 0;
-            // We need to store height map for 3D preview
-            // Since 3D mode can have independent maps, we should probably store the height relative to each column's start
-            // processed by optimizeColumnHeights.
-
-            // Reset colHeights to be used for 3D height map
             colHeights.fill(0);
 
-            // Process each column
             for (let x = 0; x < width; x++) {
                 const columnTones = [];
                 for (let y = 0; y < height; y++) {
-                    columnTones.push(toneMap[y * width + x]); // Extract tone from flat array
+                    columnTones.push(toneMap[y * width + x]);
                 }
 
-                // Split into chunks if independentMaps
                 if (independentMaps) {
                     const numChunks = Math.ceil(height / 128);
                     for (let c = 0; c < numChunks; c++) {
                         const startY = c * 128;
                         const endY = Math.min((c + 1) * 128, height);
                         const chunkTones = columnTones.slice(startY, endY);
-                        // Optimize this chunk
                         const { min, max } = optimizeColumnHeights(chunkTones);
 
                         if (min < overallMin) overallMin = min;
                         if (max > overallMax) overallMax = max;
 
-                        // Fill colHeights for 3D preview?
-                        // The path returned is 0-based relative to start of optimization.
-                        // We can't easily represent full 3D terrain with just colHeights (1 value per x).
-                        // 3D terrain needs height per pixel (x,y).
-                        // colHeights in 2D mode is just "how high is the stack".
-                        // in 3D valley, Y change per pixel.
-                        // We need a full 2D array for height map if we want to visualize it properly?
-                        // stats.heightMap is Int32Array(width).
-                        // Let's repurpose it or add a new field if needed.
-                        // For now, let's just store the "max height" of the column in colHeights for the graph?
-                        // Or maybe we don't update colHeights for 3D valley in stats and relying on something else?
-                        // Actually, the current graph expects "Blocks Required" (height range).
-                        // So max - min is the range.
-
                         const range = max - min;
-                        // For independent maps, we might want the max range of any chunk in the column?
-                        // or just the last one? 
-                        // Let's store the Accumulative Range for standard stats display.
                         if (range > colHeights[x]) colHeights[x] = range;
                     }
                 } else {
-                    // Full column optimization
                     const { min, max } = optimizeColumnHeights(columnTones);
                     if (min < overallMin) overallMin = min;
                     if (max > overallMax) overallMax = max;
@@ -767,6 +319,10 @@ export function processMapart(
     };
 }
 
+// ============================================================================
+// Apply Manual Edits
+// ============================================================================
+
 /**
  * Applies manual edits to the existing image data and updates stats.
  * This is a lighter operation than full reprocessing.
@@ -782,8 +338,8 @@ export function applyManualEdits(
 
     // Clone data to avoid mutating base
     const newData = new Uint8ClampedArray(data);
-    const newToneMap = new Int8Array(baseToneMap); // Copy tone map
-    const newNeedsSupportMap = new Uint8Array(baseNeedsSupportMap); // Copy needs support map
+    const newToneMap = new Int8Array(baseToneMap);
+    const newNeedsSupportMap = new Uint8Array(baseNeedsSupportMap);
 
     // Apply edits
     for (const [indexStr, edit] of Object.entries(manualEdits)) {
@@ -813,15 +369,12 @@ export function applyManualEdits(
         }
     }
 
-    // Recalculate Height Stats (Required because tones changed)
+    // Recalculate Height Stats
     let overallMin = 0;
     let overallMax = 0;
-    // We need to update the heightMap (colHeights) as well for the graph to update
     const colHeights = new Int32Array(width).fill(0);
 
     if (buildMode === '3d_valley' || buildMode === 'staircase') {
-
-        // Optimize each column again with new tones
         for (let x = 0; x < width; x++) {
             const columnTones = [];
             for (let y = 0; y < height; y++) {
@@ -832,13 +385,6 @@ export function applyManualEdits(
             if (max > overallMax) overallMax = max;
             colHeights[x] = max - min;
         }
-    } else {
-        // Re-scan 2D heights if we were in 2D mode (manual edits might change brightness)
-        // But 2D mode manual edits on brightness don't change height (flat).
-        // Actually, if user changes brightness manually, it might imply a block change.
-        // In 2D mode, brightness is forced to 'normal'.
-        // So manual edits shouldn't affect height in 2D really.
-        // But let's be safe and just zero it or keep it consistent.
     }
 
     return {
@@ -853,6 +399,9 @@ export function applyManualEdits(
     };
 }
 
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
 /**
  * Suggests a dithering mode based on image characteristics.
@@ -880,10 +429,6 @@ export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMod
     const mean = sumGray / samples;
     const variance = (sumGraySq / samples) - (mean * mean);
     const stdDev = Math.sqrt(variance);
-
-    // Heuristic:
-    // Low variance -> Flat image (e.g. cartoon) -> ordered dither works well or none
-    // High variance -> Detailed photo -> Hybrid or Adaptive
 
     if (stdDev < 20) {
         return { mode: 'ordered', strength: 50 };
