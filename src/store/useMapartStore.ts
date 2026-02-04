@@ -89,7 +89,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     gridDimensions: { x: 1, y: 1 },
     buildMode: '3d_valley',
     blockSupport: 'all',
-    dithering: 'floyd-steinberg',
+    dithering: 'hybrid',
     uploadedImage: null,
     previewUrl: null,
     imageFitMode: 'adjust',
