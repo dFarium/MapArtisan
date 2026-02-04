@@ -105,9 +105,7 @@ npm run dev
 npm run build
 
 # Run tests
-npm run test
-```
 
 ---
 
-_Developed for the Minecraft community._
+_Developed for the amazing mapart community._
