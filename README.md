@@ -74,7 +74,6 @@ Supports **Minecraft 1.16.0 through 1.21.5**:
 | -------------------- | ------------------------------------------------------------------ |
 | **Litematica**       | Download `.litematic` files for direct use with the Litematica mod |
 | **Multi-Map**        | Automatically bundles maps larger than 1x1 into a `.zip` file      |
-| **Schematic**        | Alternative `.schematic` format for legacy tools                   |
 | **Material List**    | View all required blocks with quantities and stack counts          |
 | **Preview Download** | Save the quantized preview as a PNG image                          |
 
