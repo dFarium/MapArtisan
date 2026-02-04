@@ -8,6 +8,40 @@ import {
 import type { BrightnessLevel } from '../../types/mapart';
 
 describe('litematicaExport', () => {
+    // Helper interfaces for NBT typing in tests
+    interface NBTString { value: string; }
+    interface NBTInt { value: number; }
+
+    interface MetadataValue {
+        Name: NBTString;
+        Author: NBTString;
+        Description: NBTString;
+        EnclosingSize: {
+            value: {
+                x: NBTInt;
+                y: NBTInt;
+                z: NBTInt;
+            }
+        };
+    }
+
+    interface BlockStatePalette {
+        Name: NBTString;
+        Properties?: Record<string, unknown>;
+    }
+
+    interface RegionValue {
+        map: {
+            value: {
+                BlockStatePalette: {
+                    value: {
+                        value: BlockStatePalette[];
+                    }
+                }
+            }
+        }
+    }
+
     describe('imageDataToBlockStates', () => {
         it('generates blocks for simple 2x2 2D mapart', () => {
             // Create a simple gray 2x2 image
@@ -249,7 +283,7 @@ describe('litematicaExport', () => {
                 description: 'Custom Description'
             });
 
-            const metadata = (nbt.value.Metadata as any).value;
+            const metadata = (nbt.value.Metadata.value as unknown as MetadataValue);
             expect(metadata.Name.value).toBe('Custom Name');
             expect(metadata.Author.value).toBe('Custom Author');
             expect(metadata.Description.value).toBe('Custom Description');
@@ -263,7 +297,7 @@ describe('litematicaExport', () => {
 
             const nbt = createLitematicaNBT(blocks);
 
-            const size = (nbt.value.Metadata as any).value.EnclosingSize.value;
+            const size = (nbt.value.Metadata.value as unknown as MetadataValue).EnclosingSize.value;
             // Dimensions should be max + 1
             expect(size.x.value).toBe(3); // max x is 2, so 2+1=3
             expect(size.y.value).toBe(4); // max y is 3, so 3+1=4
@@ -284,7 +318,7 @@ describe('litematicaExport', () => {
             const nbt = createLitematicaNBT(blocks);
 
             // Palette should include the block with properties
-            const palette = (nbt.value.Regions as any).value.map.value.BlockStatePalette.value.value;
+            const palette = (nbt.value.Regions.value as unknown as RegionValue).map.value.BlockStatePalette.value.value;
 
             // First should be air, second should be our chest
             expect(palette.length).toBe(2);
