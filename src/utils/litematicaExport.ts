@@ -3,10 +3,11 @@ import type { PaletteColor, DitheringMode } from './mapartProcessing';
 import { processMapart, optimizeColumnHeights, applyManualEdits } from './mapartProcessing';
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
 import * as bitArray from './litematicaBitArray';
-import paletteData from '../data/palette_1_21_11.json';
+import paletteData from '../data/palette.json';
+import { getDataVersion, DEFAULT_VERSION } from '../data/supportedVersions';
 
-const MINECRAFT_DATA_VERSION = 4671; // 1.21.11
 const LITEMATICA_VERSION = 7;
+
 
 export interface BlockWithCoords {
     blockId: string;
@@ -312,7 +313,8 @@ export function imageDataToBlockStates(
  */
 export function createLitematicaNBT(
     blockStates: BlockWithCoords[],
-    metadata: LitematicaMetadata = {}
+    metadata: LitematicaMetadata = {},
+    targetVersion: string = DEFAULT_VERSION
 ): NBTRoot {
     // Calculate dimensions
     const maxX = Math.max(...blockStates.map(b => b.x), 0) + 1;
@@ -391,8 +393,9 @@ export function createLitematicaNBT(
     const nbt: NBTRoot = {
         name: '',
         value: {
-            MinecraftDataVersion: { type: TagTypes.INT, value: MINECRAFT_DATA_VERSION },
+            MinecraftDataVersion: { type: TagTypes.INT, value: getDataVersion(targetVersion) },
             Version: { type: TagTypes.INT, value: LITEMATICA_VERSION },
+
             Metadata: {
                 type: TagTypes.COMPOUND,
                 value: {
@@ -507,7 +510,8 @@ export async function generateMapartExport(
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
-    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+    targetVersion: string = DEFAULT_VERSION
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
     const isMultiMap = width > 128 || height > 128;
@@ -523,11 +527,12 @@ export async function generateMapartExport(
             ...metadata,
             name: metadata.name || 'MapArt',
             description: metadata.description || 'MapArt created by mapart-creator'
-        });
+        }, targetVersion);
         const nbtDataOpt = serializeNBT(nbtOpt);
         const blob = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
 
         return { blob, filename };
+
     } else {
         // Multi Map Case - Split and Zip
         const zip = new JSZip();
@@ -580,7 +585,7 @@ export async function generateMapartExport(
                     ...metadata,
                     name: `${metadata.name || 'MapArt'} (${x},${y})`,
                     description: `Section ${x},${y} - ${metadata.description || 'MapArt created by mapart-creator'} `
-                });
+                }, targetVersion);
 
                 const sectionBuffer = serializeNBT(sectionNbt);
                 zip.file(`${baseName}_${x}_${y}.litematic`, sectionBuffer);

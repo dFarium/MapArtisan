@@ -8,7 +8,7 @@ export interface PaletteColor {
         normal: { r: number; g: number; b: number; };
         high: { r: number; g: number; b: number; };
     };
-    blocks: { id: string; needsSupport: boolean }[];
+    blocks: { id: string; needsSupport: boolean; introducedIn: string }[];
 }
 
 export type PaletteSelection = Record<number, string | null>;

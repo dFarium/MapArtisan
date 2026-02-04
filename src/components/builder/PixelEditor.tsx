@@ -2,7 +2,7 @@ import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun, Undo2
 
 import { useMapart } from '../../context/MapartContext';
 import type { BrightnessLevel } from '../../types/mapart';
-import paletteData from '../../data/palette_1_21_11.json';
+import paletteData from '../../data/palette.json';
 import type { PaletteColor } from '../../types/palette';
 import { BrushSelector } from './BrushSelector';
 import { useState, memo } from 'react';

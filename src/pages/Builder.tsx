@@ -13,7 +13,7 @@ const Builder: React.FC = () => {
     const {
         uploadedImage, previewUrl, gridDimensions,
         imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength,
-        setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport
+        setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, paletteVersion
     } = useMapart();
 
     const workerState = useMapartWorker({
@@ -32,7 +32,8 @@ const Builder: React.FC = () => {
         setMapartStats,
         imageSettings,
         manualEdits,
-        blockSupport
+        blockSupport,
+        paletteVersion
     });
 
     return (

@@ -85,7 +85,8 @@ const api = {
         hybridStrength: number,
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
-        blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+        blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+        targetVersion: string = '1.21.5'
     ) => {
         return generateMapartExport(
             imageData,
@@ -99,7 +100,8 @@ const api = {
             hybridStrength,
             independentMaps,
             manualEdits,
-            blockSupport
+            blockSupport,
+            targetVersion
         );
     },
 

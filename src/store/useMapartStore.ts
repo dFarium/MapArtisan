@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { MapartStats, ManualEdit, BuildMode } from '../types/mapart';
+import { DEFAULT_VERSION } from '../data/supportedVersions';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
@@ -83,7 +84,7 @@ export interface MapartState {
 
 
 export const useMapartStore = create<MapartState>((set) => ({
-    paletteVersion: '1.21.11',
+    paletteVersion: DEFAULT_VERSION,
     imageSettings: { saturation: 100, brightness: 0, contrast: 0 },
     gridDimensions: { x: 1, y: 1 },
     buildMode: '3d_valley',

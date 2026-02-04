@@ -22,6 +22,7 @@ interface UseMapartWorkerProps {
     imageSettings: ImageSettings;
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
     blockSupport: 'all' | 'needed' | 'gravity';
+    paletteVersion: string;
 }
 
 
@@ -41,6 +42,7 @@ export const useMapartWorker = ({
     imageSettings,
     manualEdits,
     blockSupport,
+    paletteVersion,
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
@@ -349,7 +351,8 @@ export const useMapartWorker = ({
                 hybridStrength,
                 independentMaps,
                 manualEdits, // Pass manual edits
-                blockSupport
+                blockSupport,
+                paletteVersion // Pass version for correct DataVersion in export
             );
 
             // Import dynamically to avoid circular dependencies if any, or just standard import
@@ -360,7 +363,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, isExporting]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, paletteVersion, isExporting]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

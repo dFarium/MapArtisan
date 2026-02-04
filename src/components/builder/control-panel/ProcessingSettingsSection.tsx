@@ -8,6 +8,7 @@ import { Label } from '../../ui/Label';
 import { Select } from '../../ui/Select';
 import { Button } from '../../ui/Button';
 import { suggestDitheringMode } from '../../../utils/mapartProcessing';
+import { SUPPORTED_VERSIONS } from '../../../data/supportedVersions';
 
 interface SectionProps {
     isOpen?: boolean;
@@ -133,7 +134,9 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                     value={paletteVersion}
                     onChange={(e) => setPaletteVersion(e.target.value)}
                 >
-                    <option value="1.21.11">Minecraft 1.21.x</option>
+                    {SUPPORTED_VERSIONS.map(v => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                    ))}
                 </Select>
             </div>
         </CollapsibleSection>

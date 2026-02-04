@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
-import paletteData from '../../data/palette_1_21_11.json';
+import paletteData from '../../data/palette.json';
 import { useMapart } from '../../context/MapartContext';
 import type { PaletteColor } from '../../types/palette';
 import { usePalettePresets } from '../../utils/usePalettePresets';
 import { PresetsToolbar } from './palette/PresetsToolbar';
 import { PaletteGroup } from './palette/PaletteGroup';
+import { filterPaletteByVersion } from '../../utils/filterPaletteByVersion';
 
 export const PaletteSidebar = () => {
     const paletteVersion = useMapart(s => s.paletteVersion);
@@ -18,13 +19,19 @@ export const PaletteSidebar = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
 
-    // Custom Hook for Presets
-    const presetsHook = usePalettePresets(selectedPaletteItems, setSelectedPaletteItems);
+    // Custom Hook for Presets (with version awareness)
+    const presetsHook = usePalettePresets(selectedPaletteItems, setSelectedPaletteItems, paletteVersion);
+
+
+    // Filter palette by version first, then by search query
+    const versionFilteredPalette = useMemo(() => {
+        const allColors = paletteData.colors as unknown as PaletteColor[];
+        return filterPaletteByVersion(allColors, paletteVersion);
+    }, [paletteVersion]);
 
     const filteredPalette = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        // Access .colors array
-        return (paletteData.colors as unknown as PaletteColor[]).filter(color => {
+        return versionFilteredPalette.filter(color => {
             if (color.colorName === 'clear') return false;
 
             const matches =
@@ -33,7 +40,8 @@ export const PaletteSidebar = () => {
                 color.colorID.toString().includes(query);
             return matches;
         });
-    }, [searchQuery]);
+    }, [searchQuery, versionFilteredPalette]);
+
 
     // Auto-expand groups when searching
     // Auto-collapse groups when search bar is empty

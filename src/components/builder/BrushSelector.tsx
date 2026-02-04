@@ -1,10 +1,11 @@
 import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import paletteData from '../../data/palette_1_21_11.json';
+import paletteData from '../../data/palette.json';
 import { useMapart } from '../../context/MapartContext';
 import type { PaletteColor } from '../../types/palette';
 import { type ManualEdit, type BrightnessLevel } from '../../types/mapart';
+import { filterPaletteByVersion, isBlockAvailable } from '../../utils/filterPaletteByVersion';
 
 interface BrushSelectorProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
     const setBrushBlock = useMapart(s => s.setBrushBlock);
     const brushBlock = useMapart(s => s.brushBlock);
     const buildMode = useMapart(s => s.buildMode);
+    const paletteVersion = useMapart(s => s.paletteVersion);
 
     // ESC Key Handler
     useEffect(() => {
@@ -36,12 +38,23 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
     };
 
     const activeColors = useMemo(() => {
-        // Filter colors that have a valid block selected in the palette
-        return (paletteData.colors as unknown as PaletteColor[]).filter(color => {
+        // Filter colors by version first
+        const versionFiltered = filterPaletteByVersion(
+            paletteData.colors as unknown as PaletteColor[],
+            paletteVersion
+        );
+
+        // Then filter colors that have a valid, version-compatible block selected
+        return versionFiltered.filter(color => {
             const selectedBlock = selectedPaletteItems[color.colorID];
-            return selectedBlock && selectedBlock !== '';
+            if (!selectedBlock || selectedBlock === '') return false;
+
+            // Check if the selected block is available in this version
+            const blockInfo = color.blocks.find(b => b.id === selectedBlock);
+            return blockInfo && isBlockAvailable(blockInfo.introducedIn, paletteVersion);
         });
-    }, [selectedPaletteItems]);
+    }, [selectedPaletteItems, paletteVersion]);
+
 
     const handleSelectColor = (color: PaletteColor, brightness: BrightnessLevel = 'normal') => {
         const blockId = selectedPaletteItems[color.colorID];

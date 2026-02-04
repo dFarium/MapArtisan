@@ -1,4 +1,4 @@
-import paletteData from '../data/palette_1_21_11.json';
+import paletteData from '../data/palette.json';
 import { MAPART } from './constants.ts';
 import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../types/mapart';
 

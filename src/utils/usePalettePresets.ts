@@ -1,24 +1,30 @@
-import { useState, useEffect } from 'react';
-import paletteData from '../data/palette_1_21_11.json';
+import { useState, useEffect, useCallback } from 'react';
+import paletteData from '../data/palette.json';
 import { BASIC_COLORS, EASY_KEYWORDS } from '../data/constants';
-
-// Define the shape locally or import if shared
-interface PaletteColor {
-    colorID: number;
-    colorName: string;
-    blocks: { id: string; needsSupport: boolean }[];
-}
+import type { PaletteColor } from '../types/palette';
+import {
+    filterPaletteByVersion,
+    checkPresetCompatibility,
+    applyReplacements,
+    type BlockReplacement
+} from './filterPaletteByVersion';
 
 export interface Preset {
     name: string;
     selection: Record<number, string | null>;
 }
 
+export interface PresetApplyResult {
+    replacements: BlockReplacement[];
+}
+
 export const usePalettePresets = (
     selectedPaletteItems: Record<number, string | null>,
-    setSelectedPaletteItems: (items: Record<number, string | null>) => void
+    setSelectedPaletteItems: (items: Record<number, string | null>) => void,
+    targetVersion?: string
 ) => {
     const [customPresets, setCustomPresets] = useState<Preset[]>([]);
+    const [lastReplacements, setLastReplacements] = useState<BlockReplacement[]>([]);
 
     // Load custom presets from localStorage on mount
     useEffect(() => {
@@ -48,16 +54,39 @@ export const usePalettePresets = (
         saveCustomPresets(customPresets.filter((_, i) => i !== index));
     };
 
-    const applyPreset = (type: 'all' | 'basic' | 'easy' | 'custom', customData?: Record<number, string | null>) => {
+    const clearReplacements = useCallback(() => {
+        setLastReplacements([]);
+    }, []);
+
+    const applyPreset = useCallback((
+        type: 'all' | 'basic' | 'easy' | 'custom',
+        customData?: Record<number, string | null>
+    ): PresetApplyResult => {
+        const allColors = paletteData.colors as unknown as PaletteColor[];
+        const version = targetVersion || '1.21.5';
+
+        // Filter colors by version
+        const availableColors = filterPaletteByVersion(allColors, version);
+
         if (type === 'custom' && customData) {
-            setSelectedPaletteItems(customData);
-            return;
+            // Check compatibility and apply replacements
+            const replacements = checkPresetCompatibility(customData, allColors, version);
+
+            if (replacements.length > 0) {
+                const correctedSelection = applyReplacements(customData, replacements);
+                setSelectedPaletteItems(correctedSelection);
+                setLastReplacements(replacements);
+            } else {
+                setSelectedPaletteItems(customData);
+                setLastReplacements([]);
+            }
+
+            return { replacements };
         }
 
         const newSelection: Record<number, string | null> = {};
-        const colors = paletteData.colors as unknown as PaletteColor[];
 
-        colors.forEach(color => {
+        availableColors.forEach(color => {
             if (color.colorName === 'clear') return;
 
             const blockIds = color.blocks.map(b => b.id);
@@ -81,12 +110,16 @@ export const usePalettePresets = (
         });
 
         setSelectedPaletteItems(newSelection);
-    };
+        setLastReplacements([]);
+        return { replacements: [] };
+    }, [targetVersion, setSelectedPaletteItems]);
 
     return {
         customPresets,
         saveCurrentAsPreset,
         deletePreset,
-        applyPreset
+        applyPreset,
+        lastReplacements,
+        clearReplacements
     };
 };

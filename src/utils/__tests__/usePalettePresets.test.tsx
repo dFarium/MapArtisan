@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePalettePresets } from '../usePalettePresets';
 
 // Mock palette data
-vi.mock('../../data/palette_1_21_11.json', () => ({
+vi.mock('../../data/palette.json', () => ({
     default: {
         colors: [
             {

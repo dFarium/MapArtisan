@@ -29,11 +29,13 @@
       "blocks": [
         {
           "id": "minecraft:grass_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:slime_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         }
       ]
     },
@@ -65,95 +67,118 @@
       "blocks": [
         {
           "id": "minecraft:birch_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:birch_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:birch_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:birch_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:birch_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:bone_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.10.0"
         },
         {
           "id": "minecraft:candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:chiseled_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:cut_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:cut_sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:end_stone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:end_stone_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:end_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:glowstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:ochre_froglight",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:sand",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:smooth_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:smooth_sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_birch_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_birch_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:suspicious_sand",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.20.0"
         }
       ]
     },
@@ -185,15 +210,18 @@
       "blocks": [
         {
           "id": "minecraft:white_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cobweb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:mushroom_stem",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -225,11 +253,13 @@
       "blocks": [
         {
           "id": "minecraft:redstone_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:tnt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -261,19 +291,23 @@
       "blocks": [
         {
           "id": "minecraft:blue_ice",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:frosted_ice",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:ice",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:packed_ice",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         }
       ]
     },
@@ -305,19 +339,23 @@
       "blocks": [
         {
           "id": "minecraft:iron_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:heavy_weighted_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:lodestone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:pale_oak_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         }
       ]
     },
@@ -349,75 +387,93 @@
       "blocks": [
         {
           "id": "minecraft:acacia_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:birch_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:dark_oak_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:jungle_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:mangrove_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:oak_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:spruce_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:azalea_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:firefly_bush",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.21.5"
         },
         {
           "id": "minecraft:flowering_azalea_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:large_fern",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:lilac",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:peony",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:pitcher_plant",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:rose_bush",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:sunflower",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:tall_grass",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:vine",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -449,39 +505,48 @@
       "blocks": [
         {
           "id": "minecraft:white_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:white_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:white_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:white_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:white_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:white_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:white_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:powder_snow",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:snow_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -513,31 +578,38 @@
       "blocks": [
         {
           "id": "minecraft:clay",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_chiseled_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_cobblestone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_cracked_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_mossy_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_stone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:infested_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -569,71 +641,88 @@
       "blocks": [
         {
           "id": "minecraft:brown_mushroom_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:granite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:granite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:jungle_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:jungle_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:jungle_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:jungle_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:jungle_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:coarse_dirt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:dirt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:jukebox",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:packed_mud",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:polished_granite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:polished_granite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:rooted_dirt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:stripped_jungle_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_jungle_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -665,175 +754,218 @@
       "blocks": [
         {
           "id": "minecraft:andesite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:andesite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:cobblestone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:cobblestone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:copper_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:gold_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:iron_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stone_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stone_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:bedrock",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:blast_furnace",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:chiseled_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:coal_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:cracked_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:crafter",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:diamond_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:dispenser",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:dropper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:emerald_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.3.1"
         },
         {
           "id": "minecraft:furnace",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:gravel",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:lapis_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:mossy_cobblestone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:mossy_cobblestone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:mossy_stone_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:mossy_stone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:observer",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:pale_oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:piston",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:polished_andesite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:polished_andesite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:redstone_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:smoker",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:smooth_stone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:smooth_stone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:spawner",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:sticky_piston",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:suspicious_gravel",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:trial_spawner",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:vault",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         }
       ]
     },
@@ -865,7 +997,8 @@
       "blocks": [
         {
           "id": "minecraft:kelp_plant",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -897,75 +1030,93 @@
       "blocks": [
         {
           "id": "minecraft:oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:oak_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:oak_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:oak_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:barrel",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:beehive",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.15.0"
         },
         {
           "id": "minecraft:bookshelf",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:cartography_table",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:chiseled_bookshelf",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:crafting_table",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:fletching_table",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:loom",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:note_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:petrified_oak_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:smithing_table",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:stripped_oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -997,79 +1148,98 @@
       "blocks": [
         {
           "id": "minecraft:diorite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:diorite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:quartz_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:quartz_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:quartz_pillar",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:quartz_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:chiseled_quartz_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:pale_oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:pale_oak_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:pale_oak_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:pale_oak_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:polished_diorite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:polished_diorite_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:sea_lantern",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:smooth_quartz",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:smooth_quartz_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_pale_oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:stripped_pale_oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:target",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -1101,171 +1271,213 @@
       "blocks": [
         {
           "id": "minecraft:acacia_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:acacia_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:acacia_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:acacia_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:copper_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:orange_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:orange_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:orange_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:orange_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:orange_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:orange_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:orange_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:orange_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:red_sand",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:red_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:red_sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:carved_pumpkin",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:chiseled_red_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:creaking_heart",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cut_red_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:cut_red_sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:honey_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.15.0"
         },
         {
           "id": "minecraft:honeycomb_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.15.0"
         },
         {
           "id": "minecraft:jack_o_lantern",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:pumpkin",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:raw_copper_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:smooth_red_sandstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:smooth_red_sandstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_acacia_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_acacia_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:waxed_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_copper_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -1297,47 +1509,58 @@
       "blocks": [
         {
           "id": "minecraft:magenta_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:magenta_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:magenta_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:magenta_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:magenta_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:magenta_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:magenta_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:magenta_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:purpur_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:purpur_pillar",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:purpur_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         }
       ]
     },
@@ -1369,35 +1592,43 @@
       "blocks": [
         {
           "id": "minecraft:light_blue_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:light_blue_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:light_blue_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_blue_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_blue_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_blue_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:light_blue_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:light_blue_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -1429,83 +1660,103 @@
       "blocks": [
         {
           "id": "minecraft:bamboo_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:bamboo_mosaic",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:bamboo_mosaic_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:bamboo_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:bamboo_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:bamboo_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:yellow_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:yellow_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:yellow_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:yellow_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:yellow_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:yellow_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:yellow_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:yellow_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:bee_nest",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.15.0"
         },
         {
           "id": "minecraft:hay_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:horn_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:sponge",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:stripped_bamboo_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:wet_sponge",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         }
       ]
     },
@@ -1537,39 +1788,48 @@
       "blocks": [
         {
           "id": "minecraft:lime_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:lime_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:lime_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:lime_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:lime_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:lime_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:lime_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:lime_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:melon",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -1601,47 +1861,58 @@
       "blocks": [
         {
           "id": "minecraft:cherry_leaves",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:pink_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:pink_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:pink_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:pink_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:pink_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:pink_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:pink_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:pink_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:brain_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:pearlescent_froglight",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         }
       ]
     },
@@ -1673,63 +1944,78 @@
       "blocks": [
         {
           "id": "minecraft:acacia_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:gray_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:gray_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:gray_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:gray_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:gray_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:gray_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:gray_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:gray_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:dead_brain_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:dead_bubble_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:dead_fire_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:dead_horn_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:dead_tube_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:tinted_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -1761,51 +2047,63 @@
       "blocks": [
         {
           "id": "minecraft:light_gray_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:light_gray_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:light_gray_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_gray_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_gray_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:light_gray_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:light_gray_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:light_gray_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:jigsaw",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:pale_moss_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:structure_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:test_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.5"
         }
       ]
     },
@@ -1837,43 +2135,53 @@
       "blocks": [
         {
           "id": "minecraft:cyan_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cyan_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:cyan_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:cyan_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:cyan_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:cyan_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:cyan_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:cyan_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:prismarine",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:prismarine_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -1905,59 +2213,73 @@
       "blocks": [
         {
           "id": "minecraft:purple_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:purple_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:purple_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:purple_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:purple_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:purple_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:purple_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:amethyst_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:bubble_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:budding_amethyst",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:chorus_flower",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:mycelium",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:repeating_command_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         }
       ]
     },
@@ -1989,39 +2311,48 @@
       "blocks": [
         {
           "id": "minecraft:blue_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:blue_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:blue_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:blue_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:blue_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:blue_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:blue_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:blue_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:tube_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -2053,75 +2384,93 @@
       "blocks": [
         {
           "id": "minecraft:brown_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:brown_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:brown_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:brown_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:brown_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:brown_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:brown_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:brown_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:dark_oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:dark_oak_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:dark_oak_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:dark_oak_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:dark_oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:command_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.4.2"
         },
         {
           "id": "minecraft:soul_sand",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:soul_soil",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_dark_oak_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_dark_oak_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -2153,51 +2502,63 @@
       "blocks": [
         {
           "id": "minecraft:green_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:green_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:green_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:green_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:green_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:green_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:green_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:green_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:chain_command_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:dried_kelp_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:moss_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:moss_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -2229,87 +2590,108 @@
       "blocks": [
         {
           "id": "minecraft:mangrove_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:mangrove_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:mangrove_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:mangrove_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:mangrove_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:red_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:red_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:red_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:red_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:red_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:red_mushroom_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:red_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:red_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:red_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:fire_coral_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:nether_wart_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.10.0"
         },
         {
           "id": "minecraft:shroomlight",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_mangrove_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:stripped_mangrove_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         }
       ]
     },
@@ -2341,131 +2723,163 @@
       "blocks": [
         {
           "id": "minecraft:black_candle",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:black_carpet",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:black_concrete",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:black_concrete_powder",
-          "needsSupport": false
+          "needsSupport": true,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:black_glazed_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.12.0"
         },
         {
           "id": "minecraft:black_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:black_stained_glass",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:black_wool",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:blackstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:blackstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:ancient_debris",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:basalt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:chiseled_polished_blackstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:coal_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:cracked_polished_blackstone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:crying_obsidian",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:end_gateway",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.9.0"
         },
         {
           "id": "minecraft:gilded_blackstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:netherite_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:obsidian",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:polished_basalt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:polished_blackstone",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:polished_blackstone_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:polished_blackstone_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:polished_blackstone_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:polished_blackstone_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:respawn_anchor",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:sculk",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:sculk_catalyst",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:sculk_shrieker",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:sculk_vein",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:smooth_basalt",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -2497,15 +2911,18 @@
       "blocks": [
         {
           "id": "minecraft:gold_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:light_weighted_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:raw_gold_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -2537,27 +2954,33 @@
       "blocks": [
         {
           "id": "minecraft:prismarine_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:prismarine_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:beacon",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.4.2"
         },
         {
           "id": "minecraft:dark_prismarine",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.8.0"
         },
         {
           "id": "minecraft:dark_prismarine_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:diamond_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -2589,7 +3012,8 @@
       "blocks": [
         {
           "id": "minecraft:lapis_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -2621,7 +3045,8 @@
       "blocks": [
         {
           "id": "minecraft:emerald_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.3.1"
         }
       ]
     },
@@ -2653,43 +3078,53 @@
       "blocks": [
         {
           "id": "minecraft:mangrove_roots",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:spruce_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:spruce_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:spruce_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:spruce_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:spruce_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:muddy_mangrove_roots",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:podzol",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.7.2"
         },
         {
           "id": "minecraft:stripped_spruce_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         },
         {
           "id": "minecraft:stripped_spruce_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.13.0"
         }
       ]
     },
@@ -2721,43 +3156,53 @@
       "blocks": [
         {
           "id": "minecraft:nether_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:red_nether_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.14.0"
         },
         {
           "id": "minecraft:red_nether_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.10.0"
         },
         {
           "id": "minecraft:chiseled_nether_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:cracked_nether_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:magma_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.10.0"
         },
         {
           "id": "minecraft:nether_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         },
         {
           "id": "minecraft:nether_gold_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:nether_quartz_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.5.0"
         },
         {
           "id": "minecraft:netherrack",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.0.0"
         }
       ]
     },
@@ -2789,31 +3234,38 @@
       "blocks": [
         {
           "id": "minecraft:cherry_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:cherry_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:cherry_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:cherry_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:white_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:calcite",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:stripped_cherry_log",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         }
       ]
     },
@@ -2845,31 +3297,38 @@
       "blocks": [
         {
           "id": "minecraft:orange_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:chiseled_resin_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:redstone_lamp",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.2.1"
         },
         {
           "id": "minecraft:resin_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:resin_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:resin_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:resin_clump",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.21.4"
         }
       ]
     },
@@ -2901,7 +3360,8 @@
       "blocks": [
         {
           "id": "minecraft:magenta_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -2933,7 +3393,8 @@
       "blocks": [
         {
           "id": "minecraft:light_blue_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -2965,7 +3426,8 @@
       "blocks": [
         {
           "id": "minecraft:yellow_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -2997,7 +3459,8 @@
       "blocks": [
         {
           "id": "minecraft:lime_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3029,11 +3492,13 @@
       "blocks": [
         {
           "id": "minecraft:pink_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:stripped_cherry_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         }
       ]
     },
@@ -3065,43 +3530,53 @@
       "blocks": [
         {
           "id": "minecraft:cherry_wood",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.20.0"
         },
         {
           "id": "minecraft:gray_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:chiseled_tuff",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:chiseled_tuff_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:polished_tuff",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:polished_tuff_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:tuff",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:tuff_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:tuff_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:tuff_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         }
       ]
     },
@@ -3133,63 +3608,78 @@
       "blocks": [
         {
           "id": "minecraft:light_gray_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:mud_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:mud_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         },
         {
           "id": "minecraft:exposed_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:exposed_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:exposed_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:exposed_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:exposed_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:exposed_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_exposed_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_exposed_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_exposed_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_exposed_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_exposed_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_exposed_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -3221,11 +3711,13 @@
       "blocks": [
         {
           "id": "minecraft:cyan_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:mud",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         }
       ]
     },
@@ -3257,11 +3749,13 @@
       "blocks": [
         {
           "id": "minecraft:purple_shulker_box",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.11.0"
         },
         {
           "id": "minecraft:purple_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3293,7 +3787,8 @@
       "blocks": [
         {
           "id": "minecraft:blue_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3325,11 +3820,13 @@
       "blocks": [
         {
           "id": "minecraft:brown_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         },
         {
           "id": "minecraft:dripstone_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -3361,7 +3858,8 @@
       "blocks": [
         {
           "id": "minecraft:green_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3393,7 +3891,8 @@
       "blocks": [
         {
           "id": "minecraft:red_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3425,7 +3924,8 @@
       "blocks": [
         {
           "id": "minecraft:black_terracotta",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.6.1"
         }
       ]
     },
@@ -3457,7 +3957,8 @@
       "blocks": [
         {
           "id": "minecraft:crimson_nylium",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -3489,23 +3990,28 @@
       "blocks": [
         {
           "id": "minecraft:crimson_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:crimson_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:crimson_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:crimson_stem",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_crimson_stem",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -3537,11 +4043,13 @@
       "blocks": [
         {
           "id": "minecraft:crimson_hyphae",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_crimson_hyphae",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -3573,55 +4081,68 @@
       "blocks": [
         {
           "id": "minecraft:warped_nylium",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:oxidized_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:oxidized_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:oxidized_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:oxidized_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:oxidized_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:oxidized_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_oxidized_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_oxidized_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_oxidized_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_oxidized_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_oxidized_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_oxidized_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -3653,71 +4174,88 @@
       "blocks": [
         {
           "id": "minecraft:warped_planks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:warped_pressure_plate",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:warped_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:warped_stem",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_warped_stem",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:waxed_weathered_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_weathered_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_weathered_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_weathered_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:waxed_weathered_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:waxed_weathered_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:weathered_chiseled_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:weathered_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:weathered_copper_bulb",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:weathered_copper_grate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.21.0"
         },
         {
           "id": "minecraft:weathered_cut_copper",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:weathered_cut_copper_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -3749,11 +4287,13 @@
       "blocks": [
         {
           "id": "minecraft:warped_hyphae",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         },
         {
           "id": "minecraft:stripped_warped_hyphae",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -3785,7 +4325,8 @@
       "blocks": [
         {
           "id": "minecraft:warped_wart_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.16.0"
         }
       ]
     },
@@ -3817,91 +4358,113 @@
       "blocks": [
         {
           "id": "minecraft:deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_brick_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_coal_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_copper_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_diamond_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_emerald_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_gold_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_iron_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_lapis_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_redstone_ore",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_tile_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:deepslate_tiles",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:chiseled_deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cobbled_deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cobbled_deepslate_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cracked_deepslate_bricks",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:cracked_deepslate_tiles",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:infested_deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.18.0"
         },
         {
           "id": "minecraft:polished_deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:polished_deepslate_slab",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:reinforced_deepslate",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         }
       ]
     },
@@ -3933,7 +4496,8 @@
       "blocks": [
         {
           "id": "minecraft:raw_iron_block",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.17.0"
         }
       ]
     },
@@ -3965,11 +4529,13 @@
       "blocks": [
         {
           "id": "minecraft:glow_lichen",
-          "needsSupport": true
+          "needsSupport": true,
+          "introducedIn": "1.17.0"
         },
         {
           "id": "minecraft:verdant_froglight",
-          "needsSupport": false
+          "needsSupport": false,
+          "introducedIn": "1.19.0"
         }
       ]
     }
