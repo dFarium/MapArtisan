@@ -1,0 +1,22 @@
+{
+  "name": "MapArtisan",
+  "short_name": "MapArtisan",
+  "description": "Transform images into Minecraft map art blueprints with 10 dithering algorithms, real-time 3D preview, custom block palettes, pixel editor, and Litematica export",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#00CED1",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
