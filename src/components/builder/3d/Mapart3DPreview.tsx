@@ -43,7 +43,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupport
                 <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
             </Canvas>
 
-            <div className="absolute bottom-4 right-4 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
                 <div className="flex items-center gap-4">
                     <HintItem icon={Rotate3D} label="Rotate" bind="LMB" />
                     <div className="w-px h-3 bg-white/20" />

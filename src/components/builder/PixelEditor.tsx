@@ -1,4 +1,4 @@
-import { X, RefreshCw, Paintbrush, ChevronDown, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
+import { X, RefreshCw, Paintbrush, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
 
 import { useMapart } from '../../context/useMapart';
 import type { BrightnessLevel } from '../../types/mapart';
@@ -16,11 +16,11 @@ const OpenButton = memo(({ onClick, disabled }: { onClick: () => void, disabled?
     <button
         onClick={onClick}
         disabled={disabled}
-        className="flex h-[56px] items-center justify-center gap-2 px-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-zinc-700 text-sm font-medium shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex flex-col items-center justify-center gap-1 p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor"}
     >
-        <Paintbrush size={16} />
-        <span>Pixel Editor</span>
+        <Paintbrush size={18} />
+        <span>Editor</span>
     </button>
 ));
 
@@ -76,16 +76,16 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
 
             {/* Open state - Full Editor (always mounted when isPainting, hidden otherwise) */}
             <div
-                className={`flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg ${isPainting ? 'animate-in fade-in slide-in-from-bottom-2' : 'hidden'
+                className={`flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg w-full ${isPainting ? 'animate-in fade-in slide-in-from-left-2' : 'hidden'
                     }`}
             >
                 {/* Current Brush Display */}
                 <div
-                    className="flex items-center gap-2 px-2 border-r border-zinc-800 cursor-pointer hover:bg-zinc-800/50 rounded transition-colors"
+                    className="flex flex-col items-center gap-1 p-1 border-b border-zinc-800 cursor-pointer hover:bg-zinc-800/50 rounded transition-colors w-full"
                     onClick={() => setIsBrushSelectorOpen(true)}
-                    title="Change Brush"
+                    title={`Change Brush: ${brushBlock ? brushBlock.blockId.replace('minecraft:', '') : 'Select Block'} (${brushBlock ? brushBlock.brightness : 'None'})`}
                 >
-                    <div className="w-10 h-10 rounded border border-zinc-700 bg-zinc-800 overflow-hidden relative shadow-inner shrink-0">
+                    <div className="w-8 h-8 rounded border border-zinc-700 bg-zinc-800 overflow-hidden relative shadow-inner shrink-0">
                         {brushBlock ? (
                             <>
                                 <div
@@ -107,15 +107,6 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                             </div>
                         )}
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs font-medium text-zinc-200 flex items-center gap-1">
-                            {brushBlock ? brushBlock.blockId.replace('minecraft:', '').split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : 'Select Block'}
-                            <ChevronDown size={10} className="text-zinc-500" />
-                        </span>
-                        <span className="text-[10px] text-zinc-500">
-                            {brushBlock ? brushBlock.brightness : 'No Brush'}
-                        </span>
-                    </div>
                 </div>
 
 
@@ -127,38 +118,38 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                 {/* Brightness Controls */}
                 {
                     brushBlock && (
-                        <div className="flex items-center gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
+                        <div className="flex flex-col items-center gap-1 p-1 bg-zinc-950 rounded-lg border border-zinc-800 w-full">
                             <button
                                 onClick={() => updateBrightness('low')}
                                 disabled={buildMode === '2d'}
-                                className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'low'
+                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'low'
                                     ? 'bg-zinc-800 text-blue-400'
                                     : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                     }`}
                                 title={buildMode === '2d' ? "Not available in 2D mode" : "Low (Depth)"}
                             >
-                                <Moon size={16} />
+                                <Moon size={14} />
                             </button>
                             <button
                                 onClick={() => updateBrightness('normal')}
-                                className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'normal'
+                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'normal'
                                     ? 'bg-zinc-800 text-zinc-100'
                                     : 'text-zinc-500 hover:text-zinc-300'
                                     }`}
                                 title="Normal (Flat)"
                             >
-                                <Minus size={16} />
+                                <Minus size={14} />
                             </button>
                             <button
                                 onClick={() => updateBrightness('high')}
                                 disabled={buildMode === '2d'}
-                                className={`flex-1 p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'high'
+                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'high'
                                     ? 'bg-zinc-800 text-amber-400'
                                     : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                     }`}
                                 title={buildMode === '2d' ? "Not available in 2D mode" : "High (Peak)"}
                             >
-                                <Sun size={16} />
+                                <Sun size={14} />
                             </button>
                         </div>
                     )
@@ -166,36 +157,38 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
 
 
                 {/* Tools */}
-                <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                <div className="flex flex-col bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 w-full">
                     <button
                         onClick={() => {
                             setIsPicking(false);
                             setIsPainting(true);
                         }}
-                        className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${(isPainting && !isPicking)
+                        className={`flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors w-full ${(isPainting && !isPicking)
                             ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
+                        title="Paint Brush"
                     >
-                        <Paintbrush size={16} /> Brush
+                        <Paintbrush size={16} />
                     </button>
                     <button
                         onClick={() => setIsPicking(!isPicking)}
-                        className={`flex-1 flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors ${isPicking
+                        className={`flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors w-full ${isPicking
                             ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
+                        title="Color Picker"
                     >
-                        <Pipette size={16} /> Picker
+                        <Pipette size={16} />
                     </button>
                 </div>
 
                 {/* Clear Edits */}
-                <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                <div className="flex flex-col bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 w-full">
                     <button
                         onClick={undo}
                         disabled={historyIndex <= 0}
-                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
                         title="Undo"
                     >
                         <Undo2 size={16} />
@@ -203,16 +196,16 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                     <button
                         onClick={redo}
                         disabled={historyIndex >= history.length - 1}
-                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
                         title="Redo"
                     >
                         <Redo2 size={16} />
                     </button>
-                    <div className='w-px h-5 bg-zinc-800 mx-0.5 self-center' />
+                    <div className='h-px w-5 bg-zinc-800 my-0.5 self-center' />
                     <button
                         onClick={clearManualEdits}
                         disabled={editCount === 0}
-                        className="p-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
+                        className="p-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50 w-full flex justify-center"
                         title={`Clear ${editCount} edits`}
                     >
                         <RefreshCw size={16} />
@@ -222,7 +215,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                 {/* Close / Done */}
                 <button
                     onClick={() => setIsPainting(false)}
-                    className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+                    className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors w-full flex justify-center"
                     title="Close Editor"
                 >
                     <X size={16} />

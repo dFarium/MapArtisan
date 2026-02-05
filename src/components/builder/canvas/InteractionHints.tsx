@@ -19,7 +19,7 @@ export const InteractionHints = () => {
     const isPainting = useMapart(s => s.isPainting);
 
     return (
-        <div className="absolute bottom-4 right-4 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
             {isPainting ? (
                 <div className="flex items-center gap-4">
                     <HintItem icon={Paintbrush} label="Paint" bind="LMB" />

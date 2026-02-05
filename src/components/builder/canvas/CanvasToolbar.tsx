@@ -39,26 +39,32 @@ export const CanvasToolbar = ({
 }: CanvasToolbarProps) => {
     return (
         <>
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-stretch gap-2">
-                {/* Standard Toolbar */}
-                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg">
+            {/* LEFT SIDEBAR - Pixel Editor */}
+            <div className="absolute top-1/2 left-4 -translate-y-1/2 z-20 flex flex-col gap-4">
+                <div className="flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg">
+                    <PixelEditor disabled={is3DMode} />
+                </div>
+            </div>
 
+            {/* RIGHT SIDEBAR - Basic Controls */}
+            <div className="absolute top-1/2 right-4 -translate-y-1/2 z-20 flex flex-col gap-4">
+                <div className="flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg">
                     {/* Zoom Controls */}
-                    <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
-                        <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors" title="Zoom Out">
-                            <ZoomOut size={16} />
-                        </button>
-                        <span className="text-xs w-10 text-center font-mono text-zinc-400 self-center">{Math.round(scale * 100)}%</span>
-                        <button onClick={() => setScale(s => Math.min(5, s + 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors" title="Zoom In">
+                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                        <button onClick={() => setScale(s => Math.min(5, s + 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors flex justify-center" title="Zoom In">
                             <ZoomIn size={16} />
+                        </button>
+                        <span className="text-[10px] w-8 text-center font-mono text-zinc-500 py-1 border-y border-zinc-800/50">{Math.round(scale * 100)}%</span>
+                        <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors flex justify-center" title="Zoom Out">
+                            <ZoomOut size={16} />
                         </button>
                     </div>
 
-                    {/* View/Interaction Controls */}
-                    <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                    {/* View Controls */}
+                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
                         <button
                             onClick={() => setShowOriginal(!showOriginal)}
-                            className={clsx("p-2 rounded transition-colors", showOriginal ? "bg-zinc-700 text-white ring-1 ring-zinc-500" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200")}
+                            className={clsx("p-2 rounded transition-colors flex justify-center", showOriginal ? "bg-zinc-700 text-white ring-1 ring-zinc-500" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200")}
                             title="Toggle Original Image"
                         >
                             <ImageIcon size={16} />
@@ -67,7 +73,7 @@ export const CanvasToolbar = ({
                             onClick={onToggle3D}
                             disabled={isPainting}
                             className={clsx(
-                                "p-2 rounded transition-colors",
+                                "p-2 rounded transition-colors flex justify-center",
                                 is3DMode ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200",
                                 isPainting && "opacity-50 cursor-not-allowed text-zinc-600"
                             )}
@@ -78,12 +84,12 @@ export const CanvasToolbar = ({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
+                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
                         <button
                             onClick={onDownloadPreview}
                             disabled={!canDownloadPreview}
                             className={clsx(
-                                "p-2 rounded transition-colors",
+                                "p-2 rounded transition-colors flex justify-center",
                                 canDownloadPreview ? "hover:bg-blue-900/50 hover:text-blue-400 text-zinc-400 hover:text-zinc-200" : "text-zinc-700 cursor-not-allowed"
                             )}
                             title="Save Preview as PNG"
@@ -110,21 +116,18 @@ export const CanvasToolbar = ({
                         </button>
                     </div>
 
+                    {/* Discard Button (Moved to bottom of Right Sidebar) */}
+                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 mt-2 pt-2 border-t border-zinc-800">
+                        <button
+                            onClick={onClearImage}
+                            className="p-2 bg-zinc-900 border border-red-500/20 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded shadow-sm transition-colors flex items-center justify-center"
+                            title="Discard Image"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
+
                 </div>
-
-                {/* Pixel Editor Controls (Separate block but inline) */}
-                <PixelEditor disabled={is3DMode} />
-            </div>
-
-            {/* Discard Button (Top Right) */}
-            <div className="absolute top-4 right-4 z-20 h-[56px] flex items-center">
-                <button
-                    onClick={onClearImage}
-                    className="p-2 bg-zinc-900 border border-red-500/20 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg shadow-lg transition-colors flex items-center justify-center"
-                    title="Discard Image"
-                >
-                    <Trash2 size={18} />
-                </button>
             </div>
 
             {isProcessing && (
