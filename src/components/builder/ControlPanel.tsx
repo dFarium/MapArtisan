@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMapart } from '../../context/useMapart';
+
 import {
     Settings2,
     Box,
     Info,
-    Bug
+
 } from 'lucide-react';
 import { ImageSettingsSection } from './control-panel/ImageSettingsSection';
 import { ProcessingSettingsSection } from './control-panel/ProcessingSettingsSection';
@@ -17,7 +17,7 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
-    const context = useMapart();
+
     const [activeSection, setActiveSection] = useState<string>('image');
 
     const handleToggle = (section: string) => {
@@ -41,14 +41,7 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
                     >
                         <Box size={20} />
                     </button>
-                    <button
-                        onClick={() => console.log('Mapart Configuration:', context)}
-                        className="p-1.5 hover:bg-amber-500/10 text-zinc-500 hover:text-amber-400 rounded transition-colors"
-                        title="Log Profile"
-                        type="button"
-                    >
-                        <Bug size={20} />
-                    </button>
+
                     <Link
                         to="/about"
                         className="p-1.5 hover:bg-blue-500/10 text-zinc-500 hover:text-blue-400 rounded transition-colors"
