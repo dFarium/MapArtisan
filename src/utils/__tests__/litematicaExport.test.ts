@@ -366,11 +366,12 @@ describe('litematicaExport', () => {
                 'all'
             );
 
-            expect(counts).toBeDefined();
-            expect(typeof counts).toBe('object');
+            // Should have count object structure
+            expect(counts.total).toBeDefined();
+            expect(counts.reusable).toBeDefined();
 
             // Should have counts for blocks (may include stone, cobblestone for noobline)
-            const totalBlocks = Object.values(counts).reduce((a, b) => a + b, 0);
+            const totalBlocks = Object.values(counts.total).reduce((a, b) => a + b, 0);
             expect(totalBlocks).toBeGreaterThan(0);
         });
 
@@ -398,7 +399,7 @@ describe('litematicaExport', () => {
             );
 
             // Air should not be in the counts
-            expect(counts['minecraft:air']).toBeUndefined();
+            expect(counts.total['minecraft:air']).toBeUndefined();
         });
 
         it('includes support blocks in all mode', () => {
@@ -437,11 +438,76 @@ describe('litematicaExport', () => {
                 'needed'
             );
 
-            const totalAll = Object.values(countsAll).reduce((a, b) => a + b, 0);
-            const totalNeeded = Object.values(countsNeeded).reduce((a, b) => a + b, 0);
+            const totalAll = Object.values(countsAll.total).reduce((a, b) => a + b, 0);
+            const totalNeeded = Object.values(countsNeeded.total).reduce((a, b) => a + b, 0);
 
             // 'all' mode should have more or equal blocks
             expect(totalAll).toBeGreaterThanOrEqual(totalNeeded);
+        });
+
+        it('calculates reusable material counts correctly', () => {
+            // Create a 256x1 image (2 horizontal maps of width 128)
+            const width = 256;
+            const height = 1;
+            const data = new Uint8ClampedArray(width * height * 4).fill(0);
+            const imageData = new ImageData(data, width, height);
+
+            const selectedPaletteItems = {
+                // We need at least one item to not abort early, but we will override with manual edits
+                11: 'minecraft:stone' // Color ID 11 is Stone
+            };
+
+            // Use manual edits to define EVERY block to ensure deterministic results.
+            // Map 1 (0-127): 1 Stone, rest Air (Air is skipped in counts)
+            // Map 2 (128-255): 2 Stone, rest Air
+            const manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }> = {};
+
+            const stoneEdit = {
+                blockId: 'minecraft:stone',
+                brightness: 'normal' as BrightnessLevel,
+                rgb: { r: 96, g: 96, b: 96 } // Values from palette.json for Stone (Normal)
+            };
+
+            const airEdit = {
+                blockId: 'minecraft:air',
+                brightness: 'normal' as BrightnessLevel,
+                rgb: { r: 0, g: 0, b: 0 } // Not in palette for Stone, so will be skipped
+            };
+
+            for (let x = 0; x < width; x++) {
+                // Set default to Air
+                manualEdits[x] = airEdit;
+            }
+
+            // Set specific stones
+            // Map 1: 1 Stone at x=0
+            manualEdits[0] = stoneEdit;
+
+            // Map 2: 2 Stones at x=128, x=129
+            manualEdits[128] = stoneEdit;
+            manualEdits[129] = stoneEdit;
+
+            const counts = calculateMaterialCounts(
+                imageData,
+                selectedPaletteItems,
+                '2d',
+                0,
+                'none',
+                true,
+                50,
+                false,
+                manualEdits,
+                'all'
+            );
+
+            const stoneTotal = counts.total['minecraft:stone'];
+            const stoneReusable = counts.reusable['minecraft:stone'];
+
+            // Total: 1 (Map1) + 2 (Map2) = 3
+            // Reusable: Max(1, 2) = 2
+
+            expect(stoneTotal).toBe(3);
+            expect(stoneReusable).toBe(2);
         });
     });
 });

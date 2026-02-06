@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, ClipboardList, RefreshCw, Box } from 'lucide-react';
+import { X, ClipboardList, RefreshCw, Box, Info } from 'lucide-react';
+import type { MaterialCounts } from '../../utils/export/materials';
 
 interface MaterialListProps {
     isOpen: boolean;
     onClose: () => void;
-    onCalculate: () => Promise<Record<string, number> | null>;
+    onCalculate: () => Promise<MaterialCounts | null>;
 }
 
 export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps) => {
-    const [materials, setMaterials] = useState<Record<string, number> | null>(null);
+    const [materials, setMaterials] = useState<MaterialCounts | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [viewMode, setViewMode] = useState<'total' | 'reusable'>('total');
 
     const loadMaterials = useCallback(async () => {
         setIsLoading(true);
@@ -48,7 +50,9 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
 
     const getMaterialRows = () => {
         if (!materials) return [];
-        return Object.entries(materials)
+        const activeCounts = materials[viewMode];
+
+        return Object.entries(activeCounts)
             .sort(([, a], [, b]) => b - a)
             .map(([id, count]) => {
                 const stacks = Math.floor(count / 64);
@@ -95,23 +99,49 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
             });
     };
 
-    const totalBlocks = materials ? Object.values(materials).reduce((a, b) => a + b, 0) : 0;
+    const totalBlocks = materials ? Object.values(materials[viewMode]).reduce((a, b) => a + b, 0) : 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-zinc-900 w-full max-w-2xl max-h-[85vh] rounded-xl border border-zinc-700 shadow-2xl flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50 rounded-t-xl">
-                    <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-                        <ClipboardList className="text-blue-500" size={20} />
-                        Material List
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-colors"
-                    >
-                        <X size={20} />
-                    </button>
+                <div className="flex flex-col gap-4 p-4 border-b border-zinc-800 bg-zinc-900/50 rounded-t-xl">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+                            <ClipboardList className="text-blue-500" size={20} />
+                            Material List
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center gap-4 bg-zinc-950/50 p-1 rounded-lg border border-zinc-800 self-start">
+                        <button
+                            onClick={() => setViewMode('total')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${viewMode === 'total'
+                                    ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50 shadow-sm'
+                                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                }`}
+                        >
+                            Total Materials
+                        </button>
+                        <div className="h-4 w-px bg-zinc-800"></div>
+                        <button
+                            onClick={() => setViewMode('reusable')}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-2 ${viewMode === 'reusable'
+                                    ? 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/50 shadow-sm'
+                                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                }`}
+                        >
+                            <RefreshCw size={12} />
+                            Reusable Blocks
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -141,7 +171,10 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
                             </tbody>
                             <tfoot className="sticky bottom-0 bg-zinc-900/95 border-t border-zinc-800 font-bold text-zinc-100">
                                 <tr>
-                                    <td className="py-3 px-3">TOTAL BLOCKS</td>
+                                    <td className="py-3 px-3">
+                                        TOTAL BLOCKS
+                                        {viewMode === 'reusable' && <span className="text-xs font-normal text-zinc-500 ml-2">(Max per section)</span>}
+                                    </td>
                                     <td colSpan={3} className="py-3 px-3 text-right text-blue-400">
                                         {totalBlocks.toLocaleString()}
                                     </td>
@@ -153,7 +186,16 @@ export const MaterialList = ({ isOpen, onClose, onCalculate }: MaterialListProps
 
                 {/* Footer */}
                 <div className="p-4 border-t border-zinc-800 bg-zinc-950/30 rounded-b-xl flex justify-between items-center text-xs text-zinc-500">
-                    <p>Estimates based on current configuration.</p>
+                    <p className="flex items-center gap-2">
+                        {viewMode === 'reusable' ? (
+                            <>
+                                <Info size={14} className="text-emerald-500" />
+                                <span>Shows maximum blocks needed for any single 128x128 map section.</span>
+                            </>
+                        ) : (
+                            <span>Estimates based on current configuration.</span>
+                        )}
+                    </p>
                 </div>
             </div>
         </div>

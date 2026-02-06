@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import {
     Settings2,
-    Box,
+    ClipboardList,
     Info,
 
 } from 'lucide-react';
@@ -39,7 +39,7 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
                         title="Material List"
                         type="button"
                     >
-                        <Box size={20} />
+                        <ClipboardList size={20} />
                     </button>
 
                     <Link
