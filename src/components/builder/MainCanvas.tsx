@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useMapart } from '../../context/useMapart';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { type useMapartWorker } from '../../hooks/useMapartWorker';
@@ -10,8 +10,8 @@ import { PixelGridOverlay } from './canvas/PixelGridOverlay';
 import { InteractionLayer } from './canvas/InteractionLayer';
 import { InteractionHints } from './canvas/InteractionHints';
 
-// ... imports
-import { Mapart3DPreview } from './3d/Mapart3DPreview';
+// Lazy load heavy 3D preview
+const Mapart3DPreview = lazy(() => import('./3d/Mapart3DPreview').then(m => ({ default: m.Mapart3DPreview })));
 
 interface MainCanvasProps {
     workerState: ReturnType<typeof useMapartWorker>;
@@ -172,19 +172,22 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
                     {is3DMode ? (
                         <div className="flex-1 relative z-10 w-full h-full">
-                            <Mapart3DPreview
-                                imageData={debounced3DImageData}
-                                blockSupport={blockSupport}
-                                stats={mapartStats || undefined}
-                                toneMap={toneMap || undefined}
-                                needsSupportMap={needsSupportMap || undefined}
-                            // We are passing stats (which has heightMap) and imageData (colors).
-                            // But note: stats.heightMap is column-based max range, NOT per-pixel Y.
-                            // Mapart3DPreview currently re-calculates/estimates.
-                            // Ideally we should pass the toneMap too if we want perfect 3D.
-                            // But fetching toneMap from worker is heavy (Int8Array size of image).
-                            // For now, let's see if Mapart3DPreview can work with what we have.
-                            />
+                            <Suspense fallback={
+                                <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                        <span className="text-zinc-400 text-sm font-medium">Loading 3D Engine...</span>
+                                    </div>
+                                </div>
+                            }>
+                                <Mapart3DPreview
+                                    imageData={debounced3DImageData}
+                                    blockSupport={blockSupport}
+                                    stats={mapartStats || undefined}
+                                    toneMap={toneMap || undefined}
+                                    needsSupportMap={needsSupportMap || undefined}
+                                />
+                            </Suspense>
                         </div>
                     ) : (
                         /* Canvas Area */
