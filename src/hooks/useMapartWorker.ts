@@ -49,6 +49,7 @@ export const useMapartWorker = ({
     const sourceImageDataRef = useRef<ImageData | null>(null);
 
     const isProcessingRef = useRef(false);
+    const workerImageVersionRef = useRef(-1);
     const [isProcessing, setIsProcessing] = useState(false);
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
     const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
@@ -90,6 +91,7 @@ export const useMapartWorker = ({
         });
         workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
         isProcessingRef.current = false;
+        workerImageVersionRef.current = -1;
     }, []);
 
     useEffect(() => {
@@ -199,16 +201,16 @@ export const useMapartWorker = ({
         if (!sourceImageDataRef.current || !workerApiRef.current) return;
 
         // Debounce time in ms
-        const DEBOUNCE_MS = 300;
+        const DEBOUNCE_MS = 100;
 
         const timerId = setTimeout(() => {
-            console.log('[useMapartWorker] Starting heavy processing...');
             const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
             if (!hasSelection) return;
 
             let active = true;
 
-            const process = async () => {
+            const process = async (retryWithBuffer = false) => {
+                const startTime = performance.now();
                 isProcessingRef.current = true;
                 setIsProcessing(true);
 
@@ -216,14 +218,23 @@ export const useMapartWorker = ({
                     const api = workerApiRef.current;
                     if (!api) return;
 
-                    // We use a clone of the buffer to avoid detaching the source.
-                    const bufferToSend = sourceImageDataRef.current!.data.buffer.slice(0);
+                    const currentVersion = sourceImageVersion;
+                    const needsBuffer = retryWithBuffer || (workerImageVersionRef.current !== currentVersion);
 
-                    // We don't use the result here, just wait for it to finish caching in worker
-                    await api.processMapart(
-                        comlinkTransfer(bufferToSend, [bufferToSend]),
+                    let bufferToSend: ArrayBuffer | null = null;
+                    if (needsBuffer && sourceImageDataRef.current) {
+                        // Use slice(0) to keep a copy in main for other uses (pickBlock, calculations)
+                        // but then TRANSFER the copy to avoid the Comlink/Structured Clone cost.
+                        bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
+                    }
+
+                    console.log(`[useMapartWorker] Requesting heavy processing (v${currentVersion}, buffer: ${!!bufferToSend})...`);
+
+                    const result = await api.processMapart(
+                        bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
                         sourceImageDataRef.current!.width,
                         sourceImageDataRef.current!.height,
+                        currentVersion,
                         buildMode,
                         selectedPaletteItems,
                         threeDPrecision,
@@ -235,10 +246,29 @@ export const useMapartWorker = ({
 
                     if (!active) return;
 
+                    if (result.error === 'CACHE_MISS') {
+                        console.warn("[useMapartWorker] Worker cache miss, retrying with buffer...");
+                        return process(true);
+                    }
+
+                    // Concurrency check
+                    if (result.version !== currentVersion) {
+                        console.log(`[useMapartWorker] Discarding outdated heavy result (got v${result.version}, current v${currentVersion})`);
+                        return;
+                    }
+
+                    workerImageVersionRef.current = currentVersion;
+
                     // Apply current edits to that new base
-                    const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
+                    const editsResult = await api.applyEdits(manualEdits);
 
                     if (!active) return;
+                    if (editsResult.version !== currentVersion) return;
+
+                    const processedData = editsResult.imageData;
+                    const finalStats = editsResult.stats;
+                    const finalToneMap = editsResult.toneMap;
+                    const finalNeedsSupportMap = editsResult.needsSupportMap;
 
                     const canvas = document.createElement('canvas');
                     canvas.width = mapartResolution.width;
@@ -253,6 +283,10 @@ export const useMapartWorker = ({
                         setToneMap(finalToneMap);
                         setNeedsSupportMap(finalNeedsSupportMap);
                     }
+
+                    const endTime = performance.now();
+                    console.log(`[useMapartWorker] Heavy processing (v${currentVersion}) complete in ${(endTime - startTime).toFixed(1)}ms`);
+
                 } catch (_err) {
                     if (active) console.error("Heavy processing failed", _err);
                 } finally {
@@ -264,13 +298,6 @@ export const useMapartWorker = ({
             };
 
             process();
-
-            // Cleanup for the internal process if the effect re-runs *after* timeout but *during* processing
-            // This is handled by the outer return, but we need to reference `active` there?
-            // Actually, the outer cleanup closes over `active`? No, `active` is local to this callback.
-            // We need a way to cancel this specific process execution from the outer scope if possible, 
-            // but `isProcessingRef` handles the "global" cancellation via `initWorker`.
-
         }, DEBOUNCE_MS);
 
 
@@ -283,29 +310,31 @@ export const useMapartWorker = ({
             }
         };
     }, [
-        sourceImageVersion,
-        buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps,
-        initWorker, mapartResolution.width, mapartResolution.height, setMapartStats, manualEdits
+        sourceImageVersion, buildMode, selectedPaletteItems, threeDPrecision, dithering,
+        useCielab, hybridStrength, independentMaps, initWorker, mapartResolution.width,
+        mapartResolution.height, setMapartStats, manualEdits
     ]);
 
     // 2b. Light Processing (Manual Edits only)
     useEffect(() => {
         if (!workerApiRef.current || isProcessingRef.current) return;
-        // If heavy processing is running, it will include edits at the end.
-        // But if heavy processing just finished, we might need to re-run this if edits changed in between?
-        // Simpler: if edits change, we just run this. If heavy process is running, we might have a race, 
-        // but `isProcessingRef` helps.
 
         let active = true;
 
         const applyEditsVideo = async () => {
-            // We can't really "cancel" heavy processing easily without terminating worker.
-            // But we can check if we should run.
             try {
+                const currentVersion = sourceImageVersion;
+                // Only run light processing if the worker has the correct base version cached
+                if (workerImageVersionRef.current !== currentVersion) return;
+
                 const api = workerApiRef.current!;
-                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
+                const result = await api.applyEdits(manualEdits);
 
                 if (!active) return;
+                // Concurrency check
+                if (result.version !== currentVersion) return;
+
+                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = result;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -326,9 +355,8 @@ export const useMapartWorker = ({
         };
 
         applyEditsVideo();
-
         return () => { active = false; };
-    }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats]);
+    }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats, sourceImageVersion]);
 
     const [isExporting, setIsExporting] = useState(false);
 
@@ -337,13 +365,16 @@ export const useMapartWorker = ({
 
         try {
             const api = workerApiRef.current;
-            // Create copy for transfer
-            const bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
+            const currentVersion = sourceImageVersion;
+            const needsBuffer = workerImageVersionRef.current !== currentVersion;
+
+            const bufferToSend = needsBuffer ? sourceImageDataRef.current.data.buffer.slice(0) : null;
 
             const counts = await api.calculateMaterialCounts(
-                comlinkTransfer(bufferToSend, [bufferToSend]),
+                bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
                 sourceImageDataRef.current.width,
                 sourceImageDataRef.current.height,
+                currentVersion,
                 selectedPaletteItems,
                 buildMode,
                 threeDPrecision,
@@ -351,7 +382,7 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits, // Pass manual edits
+                manualEdits,
                 blockSupport
             );
             return counts;
@@ -359,7 +390,7 @@ export const useMapartWorker = ({
             console.error("Material calculation failed:", err);
             return null;
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, sourceImageVersion]);
 
     const exportMapart = useCallback(async (
         filename: string,
@@ -370,13 +401,16 @@ export const useMapartWorker = ({
         setIsExporting(true);
         try {
             const api = workerApiRef.current;
-            // Create copy for transfer
-            const bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
+            const currentVersion = sourceImageVersion;
+            const needsBuffer = workerImageVersionRef.current !== currentVersion;
+
+            const bufferToSend = needsBuffer ? sourceImageDataRef.current.data.buffer.slice(0) : null;
 
             const result = await api.generateMapartExport(
-                comlinkTransfer(bufferToSend, [bufferToSend]),
+                bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
                 sourceImageDataRef.current.width,
                 sourceImageDataRef.current.height,
+                currentVersion,
                 selectedPaletteItems,
                 buildMode,
                 filename,
@@ -386,12 +420,11 @@ export const useMapartWorker = ({
                 useCielab,
                 hybridStrength,
                 independentMaps,
-                manualEdits, // Pass manual edits
+                manualEdits,
                 blockSupport,
-                paletteVersion // Pass version for correct DataVersion in export
+                paletteVersion
             );
 
-            // Import dynamically to avoid circular dependencies if any, or just standard import
             const { triggerDownload } = await import('../utils/litematicaExport');
             triggerDownload(result.blob, result.filename);
         } catch (err) {
@@ -399,7 +432,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, paletteVersion, isExporting]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, paletteVersion, isExporting, sourceImageVersion]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

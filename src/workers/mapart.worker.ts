@@ -4,8 +4,10 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/litemati
 import type { ManualEdit, MapartStats } from '../types/mapart';
 
 // State to cache the last base processing result
+// State to cache the last base processing result
 let lastBaseResult: {
-    imageData: ImageData;
+    sourceImage: ImageData; // Raw unprocessed image
+    processedImage: ImageData; // Output image (quantized)
     toneMap: Int8Array;
     blockIndices: Int32Array;
     candidates: ColorCandidate[];
@@ -14,6 +16,7 @@ let lastBaseResult: {
     width: number;
     height: number;
     buildMode: BuildMode;
+    sourceVersion: number;
 } | null = null;
 
 const api = {
@@ -22,9 +25,10 @@ const api = {
      * Caches the result to allow fast manual editing later.
      */
     processMapart: (
-        imageDataBuffer: ArrayBuffer,
+        imageDataBuffer: ArrayBuffer | null,
         width: number,
         height: number,
+        version: number,
         buildMode: BuildMode,
         selectedPaletteItems: Record<number, string | null>,
         threeDPrecision: number,
@@ -32,12 +36,26 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ): { imageData: ArrayBuffer; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
-        // Reconstruct ImageData
-        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; toneMap?: Int8Array; needsSupportMap?: Uint8Array } => {
+
+        let sourceImage: ImageData;
+
+        if (imageDataBuffer) {
+            // New image data provided, update cache
+            sourceImage = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+            console.log(`[Worker] Source Image Updated. Version: ${version}`);
+        } else {
+            // No buffer provided, check cache
+            if (!lastBaseResult || !lastBaseResult.sourceImage) {
+                console.warn(`[Worker] Cache miss: No cached source available for version ${version}`);
+                return { error: 'CACHE_MISS', version };
+            }
+            sourceImage = lastBaseResult.sourceImage;
+            console.log(`[Worker] Using cached Source Image for version ${version}`);
+        }
 
         const result = processMapart(
-            imageData,
+            sourceImage,
             buildMode,
             selectedPaletteItems,
             threeDPrecision,
@@ -48,7 +66,8 @@ const api = {
         );
 
         lastBaseResult = {
-            imageData: result.imageData,
+            sourceImage,
+            processedImage: result.imageData,
             toneMap: result.toneMap,
             blockIndices: result.blockIndices,
             candidates: result.candidates,
@@ -56,55 +75,60 @@ const api = {
             needsSupportMap: result.needsSupportMap,
             width: result.imageData.width,
             height: result.imageData.height,
-            buildMode
+            buildMode,
+            sourceVersion: version
         };
 
-        // Transfer the buffer back?
-        // NO. The consumer ignores this result and calls applyEdits immediately.
-        // Also, we need `result.imageData` in `lastBaseResult` for applyEdits.
-        // If we transfer it, it gets detached.
-        // So we return everything EXCEPT the buffer to save bandwidth.
-        // We can return a small placeholder or nothing for imageData.
+        // Transfer large arrays to avoid cloning, but we MUST return a CLONE 
+        // if we intend to keep it in our cache (lastBaseResult), otherwise it detaches here!
+        const toneMapClone = result.toneMap.slice(0);
+        const needsSupportMapClone = result.needsSupportMap.slice(0);
 
-        return {
-            imageData: new ArrayBuffer(0), // Dummy
-            stats: result.stats,
-            toneMap: result.toneMap,
-            needsSupportMap: result.needsSupportMap
-        };
+        return transfer(
+            {
+                version,
+                stats: result.stats,
+                toneMap: toneMapClone,
+                needsSupportMap: needsSupportMapClone
+            },
+            [toneMapClone.buffer, needsSupportMapClone.buffer]
+        );
     },
 
     /**
      * Light step. Applies manual edits to the cached base result.
      */
-    applyEdits: (manualEdits: Record<number, ManualEdit>): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
+    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
         if (!lastBaseResult) {
             throw new Error("No base mapart processed yet. Call processMapart first.");
         }
 
         const result = applyManualEdits(
-            lastBaseResult.imageData,
+            lastBaseResult.processedImage,
             lastBaseResult.toneMap,
             lastBaseResult.needsSupportMap,
             manualEdits,
             lastBaseResult.buildMode
         );
 
+        // Here we can transfer directly because applyManualEdits created fresh buffers for result.
         return transfer(
             {
+                version: lastBaseResult.sourceVersion,
                 imageData: result.imageData,
                 stats: result.stats,
                 toneMap: result.toneMap,
                 needsSupportMap: result.needsSupportMap
             },
-            [result.imageData.data.buffer]
+            [result.imageData.data.buffer, result.toneMap.buffer, result.needsSupportMap.buffer]
         );
     },
 
     generateMapartExport: async (
-        imageDataBuffer: ArrayBuffer,
+        imageDataBuffer: ArrayBuffer | null,
         width: number,
         height: number,
+        version: number,
         selectedPaletteItems: Record<number, string | null>,
         buildMode: BuildMode,
         filename: string,
@@ -118,17 +142,23 @@ const api = {
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
         targetVersion: string = '1.21.5'
     ) => {
-        // Reconstruct ImageData
-        // Note: For export we likely need a clean copy or the one from cache.
-        // If we pass it from main thread, we must transfer a copy.
-        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+        let imageData: ImageData;
+        if (imageDataBuffer) {
+            imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+            console.log(`[Worker] Export: Image cache updated (v${version})`);
+        } else if (lastBaseResult) {
+            imageData = lastBaseResult.sourceImage;
+            console.log(`[Worker] Export: Using cached image (v${version})`);
+        } else {
+            throw new Error("Export failed: No image data provided and no cache available.");
+        }
 
         return generateMapartExport(
             imageData,
             selectedPaletteItems,
             buildMode,
             filename,
-            metadata, // metadata
+            metadata,
             threeDPrecision,
             dithering,
             useCielab,
@@ -145,9 +175,10 @@ const api = {
      */
 
     calculateMaterialCounts: async (
-        imageDataBuffer: ArrayBuffer,
+        imageDataBuffer: ArrayBuffer | null,
         width: number,
         height: number,
+        version: number,
         selectedPaletteItems: Record<number, string | null>,
         buildMode: BuildMode,
         threeDPrecision: number,
@@ -158,8 +189,14 @@ const api = {
         manualEdits: Record<number, ManualEdit>,
         blockSupport: 'all' | 'needed' | 'gravity' = 'all'
     ) => {
-        // Reconstruct ImageData
-        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+        let imageData: ImageData;
+        if (imageDataBuffer) {
+            imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+        } else if (lastBaseResult) {
+            imageData = lastBaseResult.sourceImage;
+        } else {
+            throw new Error("Material calculation failed: No image data provided and no cache available.");
+        }
 
         return calculateMaterialCounts(
             imageData,
