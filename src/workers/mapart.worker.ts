@@ -140,6 +140,7 @@ const api = {
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+        supportBlockId: string = 'minecraft:cobblestone',
         targetVersion: string = '1.21.5'
     ) => {
         let imageData: ImageData;
@@ -166,6 +167,7 @@ const api = {
             independentMaps,
             manualEdits,
             blockSupport,
+            supportBlockId,
             targetVersion
         );
     },
@@ -187,7 +189,8 @@ const api = {
         hybridStrength: number,
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
-        blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+        blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+        supportBlockId: string = 'minecraft:cobblestone'
     ) => {
         let imageData: ImageData;
         if (imageDataBuffer) {
@@ -209,7 +212,8 @@ const api = {
             hybridStrength,
             independentMaps,
             manualEdits,
-            blockSupport
+            blockSupport,
+            supportBlockId
         );
     },
 

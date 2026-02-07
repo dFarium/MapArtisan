@@ -31,7 +31,6 @@ A powerful, web-based tool for creating Minecraft Map Art. Originally inspired b
 |------|-------------|
 | `2D` | Flat map, no height variation |
 | `3D Valley` | _Default._ Optimized height selection with Smart Drop for easier construction |
-| `Staircase` | Classic diagonal staircase for full color range |
 
 **Additional Options:**
 

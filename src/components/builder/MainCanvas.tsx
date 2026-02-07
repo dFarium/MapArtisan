@@ -22,7 +22,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         uploadedImage, setUploadedImage, previewUrl, gridDimensions,
         selectedPaletteItems,
         mapartStats,
-        blockSupport
+        blockSupport,
+        supportBlockId
     } = useMapart();
 
     // Use passed worker state
@@ -183,6 +184,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 <Mapart3DPreview
                                     imageData={debounced3DImageData}
                                     blockSupport={blockSupport}
+                                    supportBlockId={supportBlockId}
                                     stats={mapartStats || undefined}
                                     toneMap={toneMap || undefined}
                                     needsSupportMap={needsSupportMap || undefined}

@@ -29,6 +29,7 @@ export async function generateMapartExport(
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+    supportBlockId: string = 'minecraft:cobblestone',
     targetVersion: string = DEFAULT_VERSION
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height, data } = imageData;
@@ -38,7 +39,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -91,7 +92,7 @@ export async function generateMapartExport(
 
                 const blockStates = imageDataToBlockStates(
                     sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, blockSupport
+                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, blockSupport, supportBlockId
                 );
 
                 const sectionNbt = createLitematicaNBT(blockStates, {

@@ -22,6 +22,7 @@ interface UseMapartWorkerProps {
     imageSettings: ImageSettings;
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
     blockSupport: 'all' | 'needed' | 'gravity';
+    supportBlockId: string;
     paletteVersion: string;
 }
 
@@ -42,6 +43,7 @@ export const useMapartWorker = ({
     imageSettings,
     manualEdits,
     blockSupport,
+    supportBlockId,
     paletteVersion,
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
@@ -383,14 +385,15 @@ export const useMapartWorker = ({
                 hybridStrength,
                 independentMaps,
                 manualEdits,
-                blockSupport
+                blockSupport,
+                supportBlockId
             );
             return counts;
         } catch (err) {
             console.error("Material calculation failed:", err);
             return null;
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, sourceImageVersion]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion]);
 
     const exportMapart = useCallback(async (
         filename: string,
@@ -422,6 +425,7 @@ export const useMapartWorker = ({
                 independentMaps,
                 manualEdits,
                 blockSupport,
+                supportBlockId,
                 paletteVersion
             );
 
@@ -432,7 +436,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, paletteVersion, isExporting, sourceImageVersion]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, paletteVersion, isExporting, sourceImageVersion]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

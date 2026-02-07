@@ -4,6 +4,8 @@ import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
 import { optimizeColumnHeights } from '../../../utils/mapartProcessing';
+import paletteData from '../../../data/palette.json';
+import { type PaletteData } from '../../../types/mapart';
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
@@ -29,7 +31,7 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
 );
 
 
-export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupportMap }: Mapart3DPreviewProps) => {
+export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlockId, needsSupportMap }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
@@ -39,7 +41,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupport
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[10, 20, 10]} intensity={0.25} castShadow />
 
-                <MapartMesh imageData={imageData} toneMap={toneMap} blockSupport={blockSupport} needsSupportMap={needsSupportMap} />
+                <MapartMesh imageData={imageData} toneMap={toneMap} blockSupport={blockSupport} supportBlockId={supportBlockId} needsSupportMap={needsSupportMap} />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
                 <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
@@ -58,13 +60,26 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupport
     );
 };
 
-const MapartMesh = ({ imageData, toneMap, blockSupport, needsSupportMap }: { imageData: ImageData; toneMap?: Int8Array; blockSupport: 'all' | 'needed' | 'gravity'; needsSupportMap?: Uint8Array }) => {
+const MapartMesh = ({ imageData, toneMap, blockSupport, supportBlockId, needsSupportMap }: { imageData: ImageData; toneMap?: Int8Array; blockSupport: 'all' | 'needed' | 'gravity'; supportBlockId?: string; needsSupportMap?: Uint8Array }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const { width, height, data } = imageData;
     const dummy = useMemo(() => new THREE.Object3D(), []);
 
     const { blocks, instanceCount } = useMemo(() => {
         const blocks: { x: number, y: number, z: number, color: THREE.Color }[] = [];
+
+        // Find support block color from palette
+        let supportColor = new THREE.Color(0.5, 0.5, 0.5);
+        if (supportBlockId) {
+            const palette = (paletteData as unknown as PaletteData).colors;
+            for (const color of palette) {
+                if (color.blocks.some(b => b.id === supportBlockId)) {
+                    const { r, g, b } = color.brightnessValues.normal;
+                    supportColor = new THREE.Color(r / 255, g / 255, b / 255);
+                    break;
+                }
+            }
+        }
 
         for (let x = 0; x < width; x++) {
             const tones = [];
@@ -120,14 +135,14 @@ const MapartMesh = ({ imageData, toneMap, blockSupport, needsSupportMap }: { ima
                             x: worldX,
                             y: worldY - 1,
                             z: worldZ,
-                            color: new THREE.Color(0.5, 0.5, 0.5) // Keep grey for generic support for now, or maybe specific color for cobblestone
+                            color: supportColor
                         });
                     }
                 }
             }
         }
         return { blocks, instanceCount: blocks.length };
-    }, [toneMap, width, height, data, blockSupport, needsSupportMap]);
+    }, [toneMap, width, height, data, blockSupport, supportBlockId, needsSupportMap]);
 
     useEffect(() => {
         if (!meshRef.current) return;
