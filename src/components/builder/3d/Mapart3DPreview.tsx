@@ -34,12 +34,33 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
 );
 
 
+
+const applyGridOffset = (factor: number) => (node: any) => {
+    if (node?.material) {
+        node.material.polygonOffset = true;
+        node.material.polygonOffsetFactor = factor;
+        node.material.polygonOffsetUnits = factor;
+        node.material.needsUpdate = true;
+    }
+};
+
 export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
         <div className="w-full h-full bg-zinc-900 relative">
-            <Canvas shadows dpr={[1, 2]} gl={{ toneMapping: THREE.NoToneMapping }}>
+            <Canvas
+                shadows
+                dpr={[1, 2]}
+                gl={{
+                    toneMapping: THREE.NoToneMapping,
+                    antialias: true,
+                    alpha: false,
+                    powerPreference: "high-performance",
+                    stencil: false,
+                    depth: true
+                }}
+            >
                 <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={50} near={0.1} />
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[10, 20, 10]} intensity={0.25} castShadow />
@@ -58,6 +79,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
                 <OrbitControls minDistance={10} maxDistance={500} />
                 {/* 1x1 Minimal Grid - Only visible when close */}
                 <Grid
+                    ref={applyGridOffset(1)}
                     position={[0, -0.01, 0]}
                     args={[10, 10]}
                     cellSize={1}
@@ -71,15 +93,16 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
                 />
                 {/* 16x16 Chunk Grid - Always visible from afar */}
                 <Grid
-                    position={[0, 0, 0]}
+                    ref={applyGridOffset(2)}
+                    position={[0, -0.05, 0]}
                     args={[10, 10]}
                     cellSize={0}
                     sectionSize={16}
-                    sectionThickness={2.5}
-                    sectionColor="#3b82f6"
+                    sectionThickness={1.5}
+                    sectionColor="#444444"
                     fadeDistance={1200}
                     fadeStrength={5}
-                    renderOrder={2}
+                    renderOrder={0}
                     infiniteGrid
                 />
             </Canvas>
