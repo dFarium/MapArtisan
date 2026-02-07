@@ -52,8 +52,6 @@ export function getValidColors(
         let levels: BrightnessLevel[];
         if (buildMode === '2d') {
             levels = ['normal'];
-        } else if (buildMode === 'staircase') {
-            levels = ['high'];
         } else {
             levels = ['low', 'normal', 'high'];
         }

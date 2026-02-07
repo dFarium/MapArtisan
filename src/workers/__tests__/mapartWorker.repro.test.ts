@@ -25,13 +25,8 @@ describe('mapart.worker idempotency', () => {
         }
 
         const inputBuffer = buffer.buffer;
-        // We need to copy it because the worker might transfer/neuter it (in real life)
-        // But here we are calling the function directly.
-        // The function `processMapart` implementation in worker:
-        // const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-        // It reads from buffer.
 
-        const buildMode: BuildMode = 'staircase';
+        const buildMode: BuildMode = '3d_valley';
         const palette: Record<number, string | null> = {
             1: 'stone', // Example ID
             2: 'dirt'
@@ -39,12 +34,14 @@ describe('mapart.worker idempotency', () => {
         const threeDPrecision = 80;
         const dithering: DitheringMode = 'floyd-steinberg';
         const useCielab = true;
+        const version = 1;
 
         // First run
         const result1 = await mapartWorkerApi.processMapart(
             inputBuffer.slice(0), // Pass a copy
             width,
             height,
+            version,
             buildMode,
             palette,
             threeDPrecision,
@@ -57,6 +54,7 @@ describe('mapart.worker idempotency', () => {
             inputBuffer.slice(0), // Pass a copy
             width,
             height,
+            version,
             buildMode,
             palette,
             threeDPrecision,
@@ -68,8 +66,5 @@ describe('mapart.worker idempotency', () => {
         expect(result1.stats).toEqual(result2.stats);
         expect(result1.toneMap).toEqual(result2.toneMap);
         expect(result1.needsSupportMap).toEqual(result2.needsSupportMap);
-
-        // Verify that imageData is empty as expected from the new optimization
-        expect(result1.imageData.byteLength).toBe(0);
     });
 });

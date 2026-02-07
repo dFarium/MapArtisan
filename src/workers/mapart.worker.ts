@@ -194,8 +194,9 @@ const api = {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
+            console.log(`[Worker] Materials: Using cached image (v${version})`);
         } else {
-            throw new Error("Material calculation failed: No image data provided and no cache available.");
+            throw new Error(`Material calculation failed: No image data provided and no cache available (v${version}).`);
         }
 
         return calculateMaterialCounts(

@@ -44,7 +44,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
             <div className="space-y-2">
                 <Label icon={<Layers size={14} />} className="text-xs">Placement Logic</Label>
                 <div className="flex flex-col gap-1">
-                    {(['2d', '3d_valley', 'staircase'] as BuildMode[]).map((mode) => (
+                    {(['2d', '3d_valley'] as BuildMode[]).map((mode) => (
                         <label key={mode} className={cn(
                             "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all",
                             buildMode === mode

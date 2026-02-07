@@ -12,10 +12,12 @@ describe('nbtBuilder', () => {
 
         expect(nbt.name).toBe('');
         // Check Metadata
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const metadata = nbt.value.Metadata.value as any;
         expect(metadata.TotalBlocks.value).toBe(2);
 
         // Check Regions
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const regions = nbt.value.Regions.value as any;
         const mapRegion = regions.map.value;
         expect(mapRegion.BlockStatePalette.value.value.length).toBeGreaterThan(0);

@@ -160,15 +160,7 @@ describe('mapartProcessing', () => {
             expect(result.every(c => c.brightness === 'normal')).toBe(true);
         });
 
-        it('returns only high brightness for staircase mode', () => {
-            const selectedPaletteItems = {
-                4: 'minecraft:stone'
-            };
-            const result = getValidColors(selectedPaletteItems, 'staircase');
 
-            expect(result.length).toBeGreaterThan(0);
-            expect(result.every(c => c.brightness === 'high')).toBe(true);
-        });
 
         it('returns all brightness levels for 3d_valley mode', () => {
             const selectedPaletteItems = {

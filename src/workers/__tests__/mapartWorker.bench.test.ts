@@ -47,6 +47,7 @@ describe('mapart.worker performance', () => {
                 inputBuffer.slice(0),
                 width,
                 height,
+                i, // Use iteration as version
                 buildMode,
                 palette,
                 threeDPrecision,

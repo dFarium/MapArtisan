@@ -376,7 +376,7 @@ export function applyManualEdits(
         newData[idx + 3] = 255;
 
         // Update Tone Map for this pixel
-        if (buildMode === '3d_valley' || buildMode === 'staircase') {
+        if (buildMode === '3d_valley') {
             let tone = 0;
             if (edit.brightness === 'high') tone = 1;
             else if (edit.brightness === 'low') tone = -1;
@@ -394,7 +394,7 @@ export function applyManualEdits(
     let overallMax = 0;
     const colHeights = new Int32Array(width).fill(0);
 
-    if (buildMode === '3d_valley' || buildMode === 'staircase') {
+    if (buildMode === '3d_valley') {
         const workspace: SmartDropWorkspace = {
             ref: new Int32Array(height + 1),
             minFuturo: new Int32Array(height + 1),

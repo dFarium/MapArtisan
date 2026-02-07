@@ -207,7 +207,7 @@ export const useMapartWorker = ({
             const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
             if (!hasSelection) return;
 
-            let active = true;
+            const active = true;
 
             const process = async (retryWithBuffer = false) => {
                 const startTime = performance.now();

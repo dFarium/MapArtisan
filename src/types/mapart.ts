@@ -36,4 +36,4 @@ export interface PaletteData {
     colors: PaletteColor[];
 }
 
-export type BuildMode = '2d' | '3d_valley' | 'staircase';
+export type BuildMode = '2d' | '3d_valley';
