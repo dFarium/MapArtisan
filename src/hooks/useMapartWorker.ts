@@ -1,4 +1,4 @@
-import { wrap, type Remote } from 'comlink';
+import { wrap, type Remote, transfer as comlinkTransfer } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
@@ -212,9 +212,14 @@ export const useMapartWorker = ({
                 const api = workerApiRef.current;
                 if (!api) return;
 
-                // this call caches the base result in the worker
+                // We use a clone of the buffer to avoid detaching the source.
+                const bufferToSend = sourceImageDataRef.current!.data.buffer.slice(0);
+
+                // We don't use the result here, just wait for it to finish caching in worker
                 await api.processMapart(
-                    sourceImageDataRef.current!,
+                    comlinkTransfer(bufferToSend, [bufferToSend]),
+                    sourceImageDataRef.current!.width,
+                    sourceImageDataRef.current!.height,
                     buildMode,
                     selectedPaletteItems,
                     threeDPrecision,
@@ -227,7 +232,7 @@ export const useMapartWorker = ({
                 if (!active) return;
 
                 // Apply current edits to that new base
-                const { imageData: processedData, stats, toneMap: newToneMap, needsSupportMap: newNeedsSupportMap } = await api.applyEdits(manualEdits);
+                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
 
                 if (!active) return;
 
@@ -240,9 +245,9 @@ export const useMapartWorker = ({
                     const blobUrl = await imageDataToBlobUrl(processedData);
                     setScaledPreviewUrl(blobUrl);
                     setPreviewImageData(processedData);
-                    setMapartStats(stats);
-                    setToneMap(newToneMap);
-                    setNeedsSupportMap(newNeedsSupportMap);
+                    setMapartStats(finalStats);
+                    setToneMap(finalToneMap);
+                    setNeedsSupportMap(finalNeedsSupportMap);
                 }
             } catch (_err) {
                 if (active) console.error("Heavy processing failed", _err);
@@ -270,16 +275,24 @@ export const useMapartWorker = ({
         initWorker, mapartResolution.width, mapartResolution.height, setMapartStats, manualEdits
     ]);
 
-    // 2b. Light Processing (Manual Edits)
+    // 2b. Light Processing (Manual Edits only)
     useEffect(() => {
-        if (!sourceImageDataRef.current || !workerApiRef.current) return;
+        if (!workerApiRef.current || isProcessingRef.current) return;
+        // If heavy processing is running, it will include edits at the end.
+        // But if heavy processing just finished, we might need to re-run this if edits changed in between?
+        // Simpler: if edits change, we just run this. If heavy process is running, we might have a race, 
+        // but `isProcessingRef` helps.
 
-        const apply = async () => {
+        let active = true;
+
+        const applyEditsVideo = async () => {
+            // We can't really "cancel" heavy processing easily without terminating worker.
+            // But we can check if we should run.
             try {
-                const api = workerApiRef.current;
-                if (!api) return;
+                const api = workerApiRef.current!;
+                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
 
-                const { imageData: processedData, stats, toneMap: newToneMap, needsSupportMap: newNeedsSupportMap } = await api.applyEdits(manualEdits);
+                if (!active) return;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -290,30 +303,34 @@ export const useMapartWorker = ({
                     const blobUrl = await imageDataToBlobUrl(processedData);
                     setScaledPreviewUrl(blobUrl);
                     setPreviewImageData(processedData);
-                    setMapartStats(stats);
-                    setToneMap(newToneMap);
-                    setNeedsSupportMap(newNeedsSupportMap);
+                    setMapartStats(finalStats);
+                    setToneMap(finalToneMap);
+                    setNeedsSupportMap(finalNeedsSupportMap);
                 }
-            } catch {
-                // This might fail if processMapart hasn't run yet (e.g. init).
-                // We can ignore or handle.
+            } catch (e) {
+                console.error("Light processing failed", e);
             }
         };
 
-        apply();
+        applyEditsVideo();
+
+        return () => { active = false; };
     }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats]);
 
     const [isExporting, setIsExporting] = useState(false);
-
-    // ... existing initialization code ...
 
     const calculateMaterials = useCallback(async () => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return null;
 
         try {
             const api = workerApiRef.current;
+            // Create copy for transfer
+            const bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
+
             const counts = await api.calculateMaterialCounts(
-                sourceImageDataRef.current,
+                comlinkTransfer(bufferToSend, [bufferToSend]),
+                sourceImageDataRef.current.width,
+                sourceImageDataRef.current.height,
                 selectedPaletteItems,
                 buildMode,
                 threeDPrecision,
@@ -340,9 +357,13 @@ export const useMapartWorker = ({
         setIsExporting(true);
         try {
             const api = workerApiRef.current;
+            // Create copy for transfer
+            const bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
 
             const result = await api.generateMapartExport(
-                sourceImageDataRef.current,
+                comlinkTransfer(bufferToSend, [bufferToSend]),
+                sourceImageDataRef.current.width,
+                sourceImageDataRef.current.height,
                 selectedPaletteItems,
                 buildMode,
                 filename,

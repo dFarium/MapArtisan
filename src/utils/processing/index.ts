@@ -25,7 +25,7 @@ export {
 } from './dithering';
 
 // Height Optimization
-export { optimizeColumnHeights } from './heightOptimization';
+export { optimizeColumnHeights, type SmartDropWorkspace } from './heightOptimization';
 
 // Color Matching
 export {

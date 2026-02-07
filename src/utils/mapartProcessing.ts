@@ -42,6 +42,7 @@ import {
     BAYER_8X8,
     calculateLocalVariance,
     optimizeColumnHeights,
+    type SmartDropWorkspace,
     type ColorCandidate,
     getValidColors,
     findClosestColorIndex,
@@ -86,15 +87,15 @@ export function processMapart(
 
     const { width, height, data } = imageData;
 
-    // Create float buffer for error diffusion
-    const floatBuffer: number[][] = [];
+    // Create flat float buffer for error diffusion (Float32Array for performance)
+    const floatBuffer = new Float32Array(width * height * 3);
     for (let i = 0; i < height; i++) {
-        floatBuffer[i] = [];
         for (let j = 0; j < width; j++) {
-            const idx = (i * width + j) * 4;
-            floatBuffer[i][j * 3] = data[idx];
-            floatBuffer[i][j * 3 + 1] = data[idx + 1];
-            floatBuffer[i][j * 3 + 2] = data[idx + 2];
+            const srcIdx = (i * width + j) * 4;
+            const destIdx = (i * width + j) * 3;
+            floatBuffer[destIdx] = data[srcIdx];
+            floatBuffer[destIdx + 1] = data[srcIdx + 1];
+            floatBuffer[destIdx + 2] = data[srcIdx + 2];
         }
     }
 
@@ -146,9 +147,10 @@ export function processMapart(
             }
 
             for (let x = 0; x < width; x++) {
-                const r = floatBuffer[y][x * 3];
-                const g = floatBuffer[y][x * 3 + 1];
-                const b = floatBuffer[y][x * 3 + 2];
+                const pixelIdx = (y * width + x) * 3;
+                const r = floatBuffer[pixelIdx];
+                const g = floatBuffer[pixelIdx + 1];
+                const b = floatBuffer[pixelIdx + 2];
 
                 const target: RGB = {
                     r: Math.max(0, Math.min(255, r)),
@@ -257,9 +259,10 @@ export function processMapart(
                                     if (currentMapIndex !== nextMapIndex) continue;
                                 }
 
-                                floatBuffer[ny][nx * 3] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3] + errR * weight / divisor));
-                                floatBuffer[ny][nx * 3 + 1] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 1] + errG * weight / divisor));
-                                floatBuffer[ny][nx * 3 + 2] = Math.max(0, Math.min(255, floatBuffer[ny][nx * 3 + 2] + errB * weight / divisor));
+                                const nIdx = (ny * width + nx) * 3;
+                                floatBuffer[nIdx] = Math.max(0, Math.min(255, floatBuffer[nIdx] + errR * weight / divisor));
+                                floatBuffer[nIdx + 1] = Math.max(0, Math.min(255, floatBuffer[nIdx + 1] + errG * weight / divisor));
+                                floatBuffer[nIdx + 2] = Math.max(0, Math.min(255, floatBuffer[nIdx + 2] + errB * weight / divisor));
                             }
                         }
                     }
@@ -275,19 +278,29 @@ export function processMapart(
             overallMax = 0;
             colHeights.fill(0);
 
-            for (let x = 0; x < width; x++) {
-                const columnTones = [];
-                for (let y = 0; y < height; y++) {
-                    columnTones.push(toneMap[y * width + x]);
-                }
+            // Pre-allocate workspace for Smart Drop to avoid GC pressure
+            const workspace: SmartDropWorkspace = {
+                ref: new Int32Array(height + 1),
+                minFuturo: new Int32Array(height + 1),
+                path: new Int32Array(height)
+            };
 
+            for (let x = 0; x < width; x++) {
                 if (independentMaps) {
                     const numChunks = Math.ceil(height / 128);
                     for (let c = 0; c < numChunks; c++) {
                         const startY = c * 128;
                         const endY = Math.min((c + 1) * 128, height);
-                        const chunkTones = columnTones.slice(startY, endY);
-                        const { min, max } = optimizeColumnHeights(chunkTones);
+                        const chunkHeight = endY - startY;
+
+                        // Pass direct buffer access
+                        const { min, max } = optimizeColumnHeights(
+                            toneMap,
+                            startY * width + x, // startIndex
+                            width,              // stride (skip one row width to go down)
+                            chunkHeight,        // count
+                            workspace
+                        );
 
                         if (min < overallMin) overallMin = min;
                         if (max > overallMax) overallMax = max;
@@ -296,7 +309,14 @@ export function processMapart(
                         if (range > colHeights[x]) colHeights[x] = range;
                     }
                 } else {
-                    const { min, max } = optimizeColumnHeights(columnTones);
+                    const { min, max } = optimizeColumnHeights(
+                        toneMap,
+                        x,      // startIndex (at top row, column x)
+                        width,  // stride
+                        height, // count
+                        workspace
+                    );
+
                     if (min < overallMin) overallMin = min;
                     if (max > overallMax) overallMax = max;
                     colHeights[x] = max - min;
@@ -375,12 +395,22 @@ export function applyManualEdits(
     const colHeights = new Int32Array(width).fill(0);
 
     if (buildMode === '3d_valley' || buildMode === 'staircase') {
+        const workspace: SmartDropWorkspace = {
+            ref: new Int32Array(height + 1),
+            minFuturo: new Int32Array(height + 1),
+            path: new Int32Array(height)
+        };
+
         for (let x = 0; x < width; x++) {
-            const columnTones = [];
-            for (let y = 0; y < height; y++) {
-                columnTones.push(newToneMap[y * width + x]);
-            }
-            const { min, max } = optimizeColumnHeights(columnTones);
+            // Updated to use zero-allocation call
+            const { min, max } = optimizeColumnHeights(
+                newToneMap,
+                x,      // startIndex
+                width,  // stride
+                height, // count
+                workspace
+            );
+
             if (min < overallMin) overallMin = min;
             if (max > overallMax) overallMax = max;
             colHeights[x] = max - min;

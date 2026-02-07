@@ -22,7 +22,9 @@ const api = {
      * Caches the result to allow fast manual editing later.
      */
     processMapart: (
-        imageData: ImageData,
+        imageDataBuffer: ArrayBuffer,
+        width: number,
+        height: number,
         buildMode: BuildMode,
         selectedPaletteItems: Record<number, string | null>,
         threeDPrecision: number,
@@ -30,7 +32,10 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
+    ): { imageData: ArrayBuffer; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
+        // Reconstruct ImageData
+        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+
         const result = processMapart(
             imageData,
             buildMode,
@@ -54,7 +59,19 @@ const api = {
             buildMode
         };
 
-        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap, needsSupportMap: result.needsSupportMap };
+        // Transfer the buffer back?
+        // NO. The consumer ignores this result and calls applyEdits immediately.
+        // Also, we need `result.imageData` in `lastBaseResult` for applyEdits.
+        // If we transfer it, it gets detached.
+        // So we return everything EXCEPT the buffer to save bandwidth.
+        // We can return a small placeholder or nothing for imageData.
+
+        return {
+            imageData: new ArrayBuffer(0), // Dummy
+            stats: result.stats,
+            toneMap: result.toneMap,
+            needsSupportMap: result.needsSupportMap
+        };
     },
 
     /**
@@ -77,7 +94,9 @@ const api = {
     },
 
     generateMapartExport: async (
-        imageData: ImageData,
+        imageDataBuffer: ArrayBuffer,
+        width: number,
+        height: number,
         selectedPaletteItems: Record<number, string | null>,
         buildMode: BuildMode,
         filename: string,
@@ -91,6 +110,11 @@ const api = {
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
         targetVersion: string = '1.21.5'
     ) => {
+        // Reconstruct ImageData
+        // Note: For export we likely need a clean copy or the one from cache.
+        // If we pass it from main thread, we must transfer a copy.
+        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+
         return generateMapartExport(
             imageData,
             selectedPaletteItems,
@@ -111,8 +135,11 @@ const api = {
     /**
      * Calculates the materials required for the mapart.
      */
+
     calculateMaterialCounts: async (
-        imageData: ImageData,
+        imageDataBuffer: ArrayBuffer,
+        width: number,
+        height: number,
         selectedPaletteItems: Record<number, string | null>,
         buildMode: BuildMode,
         threeDPrecision: number,
@@ -123,6 +150,9 @@ const api = {
         manualEdits: Record<number, ManualEdit>,
         blockSupport: 'all' | 'needed' | 'gravity' = 'all'
     ) => {
+        // Reconstruct ImageData
+        const imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+
         return calculateMaterialCounts(
             imageData,
             selectedPaletteItems,
@@ -173,5 +203,7 @@ const api = {
 };
 
 export type MapartWorkerApi = typeof api;
+
+export const mapartWorkerApi = api;
 
 expose(api);

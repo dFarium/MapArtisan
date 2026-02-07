@@ -102,15 +102,16 @@ export const BAYER_8X8 = [
  * Returns the sum of squared differences from the center pixel.
  */
 export function calculateLocalVariance(
-    floatBuffer: number[][],
+    floatBuffer: Float32Array,
     x: number,
     y: number,
     width: number,
     height: number
 ): number {
-    const centerR = floatBuffer[y][x * 3];
-    const centerG = floatBuffer[y][x * 3 + 1];
-    const centerB = floatBuffer[y][x * 3 + 2];
+    const centerIdx = (y * width + x) * 3;
+    const centerR = floatBuffer[centerIdx];
+    const centerG = floatBuffer[centerIdx + 1];
+    const centerB = floatBuffer[centerIdx + 2];
 
     let variance = 0;
     let count = 0;
@@ -123,9 +124,10 @@ export function calculateLocalVariance(
             const ny = y + dy;
 
             if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                const dr = floatBuffer[ny][nx * 3] - centerR;
-                const dg = floatBuffer[ny][nx * 3 + 1] - centerG;
-                const db = floatBuffer[ny][nx * 3 + 2] - centerB;
+                const nIdx = (ny * width + nx) * 3;
+                const dr = floatBuffer[nIdx] - centerR;
+                const dg = floatBuffer[nIdx + 1] - centerG;
+                const db = floatBuffer[nIdx + 2] - centerB;
                 variance += dr * dr + dg * dg + db * db;
                 count++;
             }
