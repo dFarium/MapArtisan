@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
@@ -40,7 +40,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
     return (
         <div className="w-full h-full bg-zinc-900 relative">
             <Canvas shadows dpr={[1, 2]} gl={{ toneMapping: THREE.NoToneMapping }}>
-                <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={50} />
+                <PerspectiveCamera makeDefault position={[0, 100, 100]} fov={50} near={0.1} />
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[10, 20, 10]} intensity={0.25} castShadow />
 
@@ -56,7 +56,32 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
                 />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
-                <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
+                {/* 1x1 Minimal Grid - Only visible when close */}
+                <Grid
+                    position={[0, -0.01, 0]}
+                    args={[10, 10]}
+                    cellSize={1}
+                    sectionSize={0}
+                    cellThickness={1}
+                    cellColor="#444444"
+                    fadeDistance={100}
+                    fadeStrength={5}
+                    renderOrder={1}
+                    infiniteGrid
+                />
+                {/* 16x16 Chunk Grid - Always visible from afar */}
+                <Grid
+                    position={[0, 0, 0]}
+                    args={[10, 10]}
+                    cellSize={0}
+                    sectionSize={16}
+                    sectionThickness={2.5}
+                    sectionColor="#3b82f6"
+                    fadeDistance={1200}
+                    fadeStrength={5}
+                    renderOrder={2}
+                    infiniteGrid
+                />
             </Canvas>
 
             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
@@ -212,15 +237,14 @@ const MapartMesh = ({
                     blockColor = new THREE.Color(r, g, b);
                 }
 
-                // Centering Logic
+                // Centering Logic (Half-pixel offset to align boundaries with integer grid lines)
                 let worldX, worldZ;
                 if (previewSection) {
-                    // Center the 128x128 section at (0,0)
-                    worldX = x - (previewSection.x * 128 + 64);
-                    worldZ = y - (previewSection.y * 128 + 64);
+                    worldX = x - (previewSection.x * 128 + 63.5);
+                    worldZ = y - (previewSection.y * 128 + 63.5);
                 } else {
-                    worldX = x - width / 2;
-                    worldZ = y - height / 2;
+                    worldX = x - (width - 1) / 2;
+                    worldZ = y - (height - 1) / 2;
                 }
 
                 blocks.push({
@@ -267,7 +291,12 @@ const MapartMesh = ({
     }, [blocks, dummy]);
 
     return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, instanceCount]}>
+        <instancedMesh
+            ref={meshRef}
+            args={[undefined, undefined, instanceCount]}
+            position={[0, 0.5, 0]}
+            frustumCulled={false}
+        >
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial roughness={1} metalness={0} />
         </instancedMesh>
