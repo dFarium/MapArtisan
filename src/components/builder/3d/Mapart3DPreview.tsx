@@ -130,7 +130,9 @@ const MapartMesh = ({
 
             // Path generation and Grounding
             const path: number[] = new Array(height).fill(0);
-            if (independentMaps) {
+            const useIndependentSD = independentMaps && exportMode === 'sections';
+
+            if (useIndependentSD) {
                 const numMaps = Math.ceil(height / 128);
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
@@ -158,7 +160,7 @@ const MapartMesh = ({
             for (let y = -1; y < height; y++) {
                 let isNoobline = false;
                 // Filter by previewSection Y if provided
-                if (previewSection) {
+                if (exportMode === 'sections' && previewSection) {
                     const sectionMinY = previewSection.y * 128;
                     const sectionMaxY = (previewSection.y + 1) * 128;
                     const nooblineY = sectionMinY - 1;
@@ -171,7 +173,7 @@ const MapartMesh = ({
                         }
                     }
                 } else if (y === -1) {
-                    // Global view: row -1 is the global noobline
+                    // row -1 is the global noobline
                     isNoobline = true;
                 }
 

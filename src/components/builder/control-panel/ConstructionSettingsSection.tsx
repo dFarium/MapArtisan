@@ -35,10 +35,17 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         setSupportBlockId(localSupportId);
     };
 
-    // Enforce section selection in 'sections' mode
+    // Enforce selection constraints based on export mode
     useEffect(() => {
-        if (exportMode === 'sections' && !previewSection) {
-            setPreviewSection({ x: 0, y: 0 });
+        if (exportMode === 'sections') {
+            if (!previewSection) {
+                setPreviewSection({ x: 0, y: 0 });
+            }
+        } else {
+            // mode is 'full'
+            if (previewSection !== null) {
+                setPreviewSection(null);
+            }
         }
     }, [exportMode, previewSection, setPreviewSection]);
 
@@ -184,17 +191,21 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                             }
                         }}
                         className="h-8 text-xs font-medium"
+                        disabled={exportMode === 'full'}
                     >
-                        {exportMode === 'full' && (
+                        {exportMode === 'full' ? (
                             <option value="all">Show Entire Mapart</option>
+                        ) : (
+                            <>
+                                {Array.from({ length: gridDimensions.y }).map((_, y) => (
+                                    Array.from({ length: gridDimensions.x }).map((_, x) => (
+                                        <option key={`${x}_${y}`} value={`${x},${y}`}>
+                                            Section {x}, {y}
+                                        </option>
+                                    ))
+                                ))}
+                            </>
                         )}
-                        {Array.from({ length: gridDimensions.y }).map((_, y) => (
-                            Array.from({ length: gridDimensions.x }).map((_, x) => (
-                                <option key={`${x}_${y}`} value={`${x},${y}`}>
-                                    Section {x}, {y}
-                                </option>
-                            ))
-                        ))}
                     </Select>
                 </div>
             </div>

@@ -388,7 +388,8 @@ export const useMapartWorker = ({
                 independentMaps,
                 manualEdits,
                 blockSupport,
-                supportBlockId
+                supportBlockId,
+                exportMode
             );
             return counts;
         } catch (err) {

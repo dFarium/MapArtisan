@@ -40,7 +40,8 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            exportMode
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -55,10 +56,11 @@ export async function generateMapartExport(
 
     } else {
         // Multi Map Case - Global Processing then Split
-        // 1. Generate ALL blocks globally
+        // 1. Generate ALL blocks globally or per section depending on independentMaps
         const allBlocks = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            exportMode
         );
 
         const zip = new JSZip();
@@ -121,11 +123,15 @@ export async function generateMapartExport(
 
                 if (blocks.length === 0) continue;
 
-                // Re-ground this specific section
-                const minSectionY = Math.min(...blocks.map(b => b.y));
+                // Re-ground this specific section ONLY if it's independent
+                if (independentMaps) {
+                    const minSectionY = Math.min(...blocks.map(b => b.y));
+                    for (const b of blocks) {
+                        b.y -= minSectionY;
+                    }
+                }
+
                 for (const b of blocks) {
-                    b.y -= minSectionY;
-                    // Make coordinates local to the section
                     b.x -= sX * 128;
                     // Z is trickier: global Z=0 is map 0 noobline.
                     // Map sY starts its blocks at global Z = sY * 128 + 1.

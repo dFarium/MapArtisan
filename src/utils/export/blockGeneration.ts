@@ -25,7 +25,8 @@ export function imageDataToBlockStates(
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
-    supportBlockId: string = 'minecraft:cobblestone'
+    supportBlockId: string = 'minecraft:cobblestone',
+    exportMode: 'full' | 'sections' = 'sections'
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     const { imageData: baseImageData, toneMap: baseToneMap, needsSupportMap: baseNeedsSupportMap } = processMapart(
@@ -36,7 +37,7 @@ export function imageDataToBlockStates(
         dithering,
         useCielab,
         hybridStrength,
-        independentMaps
+        exportMode === 'full' ? false : independentMaps // Force global if full map
     );
 
     // Apply Manual Edits
@@ -108,9 +109,10 @@ export function imageDataToBlockStates(
         // 2. Optimization and Grounding
         const finalHeights = new Int32Array(height);
         const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
+        const useIndependent = independentMaps && exportMode === 'sections';
 
         if (applySD) {
-            if (independentMaps) {
+            if (useIndependent) {
                 // Ground each 128-row section independently
                 const numMaps = Math.ceil(height / 128);
                 for (let m = 0; m < numMaps; m++) {

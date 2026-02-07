@@ -192,7 +192,8 @@ const api = {
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
-        supportBlockId: string = 'minecraft:cobblestone'
+        supportBlockId: string = 'minecraft:cobblestone',
+        exportMode: 'full' | 'sections' = 'sections'
     ) => {
         let imageData: ImageData;
         if (imageDataBuffer) {
@@ -215,7 +216,8 @@ const api = {
             independentMaps,
             manualEdits,
             blockSupport,
-            supportBlockId
+            supportBlockId,
+            exportMode
         );
     },
 
