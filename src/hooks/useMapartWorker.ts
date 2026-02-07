@@ -198,71 +198,84 @@ export const useMapartWorker = ({
     useEffect(() => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return;
 
-        console.log('[useMapartWorker] Starting heavy processing...');
-        const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
-        if (!hasSelection) return;
+        // Debounce time in ms
+        const DEBOUNCE_MS = 300;
 
-        let active = true;
+        const timerId = setTimeout(() => {
+            console.log('[useMapartWorker] Starting heavy processing...');
+            const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
+            if (!hasSelection) return;
 
-        const process = async () => {
-            isProcessingRef.current = true;
-            setIsProcessing(true);
+            let active = true;
 
-            try {
-                const api = workerApiRef.current;
-                if (!api) return;
+            const process = async () => {
+                isProcessingRef.current = true;
+                setIsProcessing(true);
 
-                // We use a clone of the buffer to avoid detaching the source.
-                const bufferToSend = sourceImageDataRef.current!.data.buffer.slice(0);
+                try {
+                    const api = workerApiRef.current;
+                    if (!api) return;
 
-                // We don't use the result here, just wait for it to finish caching in worker
-                await api.processMapart(
-                    comlinkTransfer(bufferToSend, [bufferToSend]),
-                    sourceImageDataRef.current!.width,
-                    sourceImageDataRef.current!.height,
-                    buildMode,
-                    selectedPaletteItems,
-                    threeDPrecision,
-                    dithering as DitheringMode,
-                    useCielab,
-                    hybridStrength,
-                    independentMaps
-                );
+                    // We use a clone of the buffer to avoid detaching the source.
+                    const bufferToSend = sourceImageDataRef.current!.data.buffer.slice(0);
 
-                if (!active) return;
+                    // We don't use the result here, just wait for it to finish caching in worker
+                    await api.processMapart(
+                        comlinkTransfer(bufferToSend, [bufferToSend]),
+                        sourceImageDataRef.current!.width,
+                        sourceImageDataRef.current!.height,
+                        buildMode,
+                        selectedPaletteItems,
+                        threeDPrecision,
+                        dithering as DitheringMode,
+                        useCielab,
+                        hybridStrength,
+                        independentMaps
+                    );
 
-                // Apply current edits to that new base
-                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
+                    if (!active) return;
 
-                if (!active) return;
+                    // Apply current edits to that new base
+                    const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = await api.applyEdits(manualEdits);
 
-                const canvas = document.createElement('canvas');
-                canvas.width = mapartResolution.width;
-                canvas.height = mapartResolution.height;
-                const ctx = canvas.getContext('2d');
-                if (ctx) {
-                    ctx.putImageData(processedData, 0, 0);
-                    const blobUrl = await imageDataToBlobUrl(processedData);
-                    setScaledPreviewUrl(blobUrl);
-                    setPreviewImageData(processedData);
-                    setMapartStats(finalStats);
-                    setToneMap(finalToneMap);
-                    setNeedsSupportMap(finalNeedsSupportMap);
+                    if (!active) return;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = mapartResolution.width;
+                    canvas.height = mapartResolution.height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.putImageData(processedData, 0, 0);
+                        const blobUrl = await imageDataToBlobUrl(processedData);
+                        setScaledPreviewUrl(blobUrl);
+                        setPreviewImageData(processedData);
+                        setMapartStats(finalStats);
+                        setToneMap(finalToneMap);
+                        setNeedsSupportMap(finalNeedsSupportMap);
+                    }
+                } catch (_err) {
+                    if (active) console.error("Heavy processing failed", _err);
+                } finally {
+                    if (active) {
+                        setIsProcessing(false);
+                        isProcessingRef.current = false;
+                    }
                 }
-            } catch (_err) {
-                if (active) console.error("Heavy processing failed", _err);
-            } finally {
-                if (active) {
-                    setIsProcessing(false);
-                    isProcessingRef.current = false;
-                }
-            }
-        };
+            };
 
-        process();
+            process();
+
+            // Cleanup for the internal process if the effect re-runs *after* timeout but *during* processing
+            // This is handled by the outer return, but we need to reference `active` there?
+            // Actually, the outer cleanup closes over `active`? No, `active` is local to this callback.
+            // We need a way to cancel this specific process execution from the outer scope if possible, 
+            // but `isProcessingRef` handles the "global" cancellation via `initWorker`.
+
+        }, DEBOUNCE_MS);
+
 
         return () => {
-            active = false;
+            clearTimeout(timerId);
             // Checks if it is currently processing to cancel it
             if (isProcessingRef.current) {
                 console.log("Cancelling previous processing worker...");
