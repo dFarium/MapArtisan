@@ -25,11 +25,12 @@ export function calculateMaterialCounts(
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
-    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+    supportBlockId: string = 'minecraft:cobblestone'
 ): MaterialCounts { // Changed return type
     const blockStates = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport
+        threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId
     );
 
     const counts: Record<string, number> = {};

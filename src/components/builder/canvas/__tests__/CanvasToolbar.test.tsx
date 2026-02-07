@@ -29,7 +29,7 @@ describe('CanvasToolbar', () => {
         render(<CanvasToolbar {...defaultProps} />);
 
         // Zoom Out
-        const zoomOutBtn = screen.getAllByRole('button')[0]; // Assuming order
+        const zoomOutBtn = screen.getByTitle('Zoom Out');
         fireEvent.click(zoomOutBtn);
         expect(setScale).toHaveBeenCalled(); // We pass a callback to setScale, verifying call is enough
     });

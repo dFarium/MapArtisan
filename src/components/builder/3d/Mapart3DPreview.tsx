@@ -10,6 +10,7 @@ interface Mapart3DPreviewProps {
     toneMap?: Int8Array;
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
+    supportBlockId?: string;
     needsSupportMap?: Uint8Array;
 }
 
@@ -26,6 +27,7 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
         <span className="text-white font-semibold">{bind}</span>
     </div>
 );
+
 
 export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, needsSupportMap }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
@@ -118,7 +120,7 @@ const MapartMesh = ({ imageData, toneMap, blockSupport, needsSupportMap }: { ima
                             x: worldX,
                             y: worldY - 1,
                             z: worldZ,
-                            color: new THREE.Color(0.5, 0.5, 0.5) // Grey stone-like support
+                            color: new THREE.Color(0.5, 0.5, 0.5) // Keep grey for generic support for now, or maybe specific color for cobblestone
                         });
                     }
                 }

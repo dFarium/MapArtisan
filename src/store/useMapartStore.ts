@@ -34,6 +34,7 @@ export interface MapartState {
     gridDimensions: GridDimensions;
     buildMode: BuildMode;
     blockSupport: BlockSupport;
+    supportBlockId: string;
     dithering: string;
     uploadedImage: File | null;
     previewUrl: string | null;
@@ -58,6 +59,7 @@ export interface MapartState {
     setGridDimensions: (dim: GridDimensions) => void;
     setBuildMode: (mode: BuildMode) => void;
     setBlockSupport: (support: BlockSupport) => void;
+    setSupportBlockId: (id: string) => void;
     setDithering: (dithering: string) => void;
     setUploadedImage: (file: File | null) => void;
     setImageFitMode: (mode: ImageFitMode) => void;
@@ -89,6 +91,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     gridDimensions: { x: 1, y: 1 },
     buildMode: '3d_valley',
     blockSupport: 'all',
+    supportBlockId: 'minecraft:cobblestone',
     dithering: 'hybrid',
     uploadedImage: null,
     previewUrl: null,
@@ -123,6 +126,7 @@ export const useMapartStore = create<MapartState>((set) => ({
         history: [{}], historyIndex: 0
     }),
     setBlockSupport: (support) => set({ blockSupport: support }),
+    setSupportBlockId: (id) => set({ supportBlockId: id }),
     setDithering: (dithering) => set({
         dithering,
         manualEdits: {}, // Clear manual edits on dithering change

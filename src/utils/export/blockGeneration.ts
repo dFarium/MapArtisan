@@ -24,7 +24,8 @@ export function imageDataToBlockStates(
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
-    blockSupport: 'all' | 'needed' | 'gravity' = 'all'
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+    supportBlockId: string = 'minecraft:cobblestone'
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
     const { imageData: baseImageData, toneMap: baseToneMap, needsSupportMap: baseNeedsSupportMap } = processMapart(
@@ -161,7 +162,7 @@ export function imageDataToBlockStates(
 
                 if (addSupport) {
                     currentColumnBlocks.push({
-                        blockId: 'minecraft:stone',
+                        blockId: supportBlockId,
                         x: x,
                         y: finalY - 1,
                         z: rawBlock.z
@@ -170,10 +171,10 @@ export function imageDataToBlockStates(
             }
         }
 
-        // Add Noobline
+        // Add Noobline (Support Line)
         const finalNooblineY = is2D ? 0 : (nooblineY + shiftY);
         currentColumnBlocks.push({
-            blockId: 'minecraft:cobblestone',
+            blockId: supportBlockId,
             x: x,
             y: finalNooblineY,
             z: 0,
@@ -182,7 +183,7 @@ export function imageDataToBlockStates(
         // Support for Noobline
         if (!is2D && finalNooblineY > 0 && blockSupport === 'all') {
             currentColumnBlocks.push({
-                blockId: 'minecraft:stone',
+                blockId: supportBlockId,
                 x: x,
                 y: finalNooblineY - 1,
                 z: 0,

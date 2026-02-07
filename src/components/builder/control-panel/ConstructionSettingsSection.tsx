@@ -1,10 +1,12 @@
-
+import { useState, useEffect } from 'react';
 import { useMapart, type BuildMode, type BlockSupport } from '../../../context/useMapart';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Hammer, Layers, Box } from 'lucide-react';
 import { Label } from '../../ui/Label';
 import { Select } from '../../ui/Select';
+import { Button } from '../../ui/Button';
+import { Input } from '../../ui/Input';
 import { cn } from '../../../utils/cn';
 
 interface SectionProps {
@@ -16,8 +18,19 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
     const {
         buildMode, setBuildMode,
         threeDPrecision, setThreeDPrecision,
-        blockSupport, setBlockSupport
+        blockSupport, setBlockSupport,
+        supportBlockId, setSupportBlockId
     } = useMapart();
+
+    const [localSupportId, setLocalSupportId] = useState(supportBlockId);
+
+    useEffect(() => {
+        setLocalSupportId(supportBlockId);
+    }, [supportBlockId]);
+
+    const handleApplySupportId = () => {
+        setSupportBlockId(localSupportId);
+    };
 
     return (
         <CollapsibleSection
@@ -83,6 +96,32 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                     <option value="gravity">Support Where Needed</option>
                 </Select>
             </div>
+
+            {/* Support Block ID */}
+            {blockSupport !== 'needed' && (
+                <div className="space-y-2 pt-1 border-t border-zinc-800/50">
+                    <Label className="text-xs">Support Block ID</Label>
+                    <div className="flex gap-2">
+                        <Input
+                            value={localSupportId}
+                            onChange={(e) => setLocalSupportId(e.target.value)}
+                            className="h-8 text-xs font-mono"
+                            placeholder="minecraft:cobblestone"
+                        />
+                        <Button
+                            size="sm"
+                            onClick={handleApplySupportId}
+                            disabled={localSupportId === supportBlockId}
+                            className={cn(
+                                "h-8 px-3 text-xs",
+                                localSupportId !== supportBlockId ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-zinc-800 text-zinc-500"
+                            )}
+                        >
+                            Apply
+                        </Button>
+                    </div>
+                </div>
+            )}
         </CollapsibleSection>
     );
 };
