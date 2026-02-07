@@ -29,6 +29,7 @@ export function createLitematicaNBT(
     const paletteMap = new Map<string, number>();
     paletteMap.set('minecraft:air', 0);
 
+    // First Pass: Build Palette
     for (const block of blockStates) {
         const key = block.properties
             ? `${block.blockId}[${Object.entries(block.properties)
@@ -55,10 +56,16 @@ export function createLitematicaNBT(
         }
     }
 
-    // Create block index
-    const blockIndex = new Map<string, number>();
+    // Initialize BitArray (default 0 = Air)
+    let bitArrayData = bitArray.createBitArray(volume, paletteBlocks.length);
+
+    // Second Pass: Set Blocks directly
     for (const block of blockStates) {
-        const coordKey = `${block.x}:${block.y}:${block.z}`;
+        // Validation check for bounds if needed, but assuming valid inputs from blockGeneration
+        if (block.x < 0 || block.x >= maxX || block.y < 0 || block.y >= maxY || block.z < 0 || block.z >= maxZ) {
+            continue;
+        }
+
         const blockKey = block.properties
             ? `${block.blockId}[${Object.entries(block.properties)
                 .map(([k, v]) => `${k}=${v}`)
@@ -66,25 +73,12 @@ export function createLitematicaNBT(
             }]`
             : block.blockId;
 
-        const paletteIdx = paletteMap.get(blockKey) ?? 0;
+        const paletteIndex = paletteMap.get(blockKey) ?? 0;
 
-        const existing = blockIndex.get(coordKey);
-        if (existing === undefined || block.blockId !== 'minecraft:stone') {
-            blockIndex.set(coordKey, paletteIdx);
-        }
-    }
+        // Calculate linear index: (y * maxZ + z) * maxX + x
+        const blockCoord = (block.y * maxZ + block.z) * maxX + block.x;
 
-    // Pack blocks into bit array
-    let bitArrayData = bitArray.createBitArray(volume, paletteBlocks.length);
-    for (let x = 0; x < maxX; x++) {
-        for (let z = 0; z < maxZ; z++) {
-            for (let y = 0; y < maxY; y++) {
-                const coordKey = `${x}:${y}:${z}`;
-                const paletteIndex = blockIndex.get(coordKey) ?? 0;
-                const blockCoord = (y * maxZ + z) * maxX + x;
-                bitArrayData = bitArray.set(bitArrayData, blockCoord, paletteIndex);
-            }
-        }
+        bitArrayData = bitArray.set(bitArrayData, blockCoord, paletteIndex);
     }
 
     // Create NBT structure
