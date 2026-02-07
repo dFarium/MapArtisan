@@ -141,6 +141,7 @@ const api = {
         manualEdits: Record<number, ManualEdit>,
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
         supportBlockId: string = 'minecraft:cobblestone',
+        exportMode: 'full' | 'sections' = 'sections',
         targetVersion: string = '1.21.5'
     ) => {
         let imageData: ImageData;
@@ -168,6 +169,7 @@ const api = {
             manualEdits,
             blockSupport,
             supportBlockId,
+            exportMode,
             targetVersion
         );
     },

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MapartStats, ManualEdit, BuildMode } from '../types/mapart';
+import type { MapartStats, ManualEdit, BuildMode, ExportMode, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
@@ -35,6 +35,8 @@ export interface MapartState {
     buildMode: BuildMode;
     blockSupport: BlockSupport;
     supportBlockId: string;
+    exportMode: ExportMode;
+    previewSection: PreviewSection | null;
     dithering: string;
     uploadedImage: File | null;
     previewUrl: string | null;
@@ -60,6 +62,8 @@ export interface MapartState {
     setBuildMode: (mode: BuildMode) => void;
     setBlockSupport: (support: BlockSupport) => void;
     setSupportBlockId: (id: string) => void;
+    setExportMode: (mode: ExportMode) => void;
+    setPreviewSection: (section: PreviewSection | null) => void;
     setDithering: (dithering: string) => void;
     setUploadedImage: (file: File | null) => void;
     setImageFitMode: (mode: ImageFitMode) => void;
@@ -92,6 +96,8 @@ export const useMapartStore = create<MapartState>((set) => ({
     buildMode: '3d_valley',
     blockSupport: 'all',
     supportBlockId: 'minecraft:cobblestone',
+    exportMode: 'sections',
+    previewSection: null,
     dithering: 'hybrid',
     uploadedImage: null,
     previewUrl: null,
@@ -127,6 +133,8 @@ export const useMapartStore = create<MapartState>((set) => ({
     }),
     setBlockSupport: (support) => set({ blockSupport: support }),
     setSupportBlockId: (id) => set({ supportBlockId: id }),
+    setExportMode: (mode) => set({ exportMode: mode }),
+    setPreviewSection: (section) => set({ previewSection: section }),
     setDithering: (dithering) => set({
         dithering,
         manualEdits: {}, // Clear manual edits on dithering change

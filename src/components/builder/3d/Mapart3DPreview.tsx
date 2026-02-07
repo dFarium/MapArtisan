@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
 import { optimizeColumnHeights } from '../../../utils/mapartProcessing';
 import paletteData from '../../../data/palette.json';
-import { type PaletteData } from '../../../types/mapart';
+import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
@@ -13,6 +13,9 @@ interface Mapart3DPreviewProps {
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
+    exportMode?: 'full' | 'sections';
+    independentMaps?: boolean;
+    previewSection?: PreviewSection;
     needsSupportMap?: Uint8Array;
 }
 
@@ -31,7 +34,7 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
 );
 
 
-export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlockId, needsSupportMap }: Mapart3DPreviewProps) => {
+export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
@@ -41,7 +44,16 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
                 <ambientLight intensity={2.5} />
                 <directionalLight position={[10, 20, 10]} intensity={0.25} castShadow />
 
-                <MapartMesh imageData={imageData} toneMap={toneMap} blockSupport={blockSupport} supportBlockId={supportBlockId} needsSupportMap={needsSupportMap} />
+                <MapartMesh
+                    imageData={imageData}
+                    toneMap={toneMap}
+                    blockSupport={blockSupport}
+                    supportBlockId={supportBlockId}
+                    exportMode={exportMode}
+                    independentMaps={independentMaps}
+                    previewSection={previewSection}
+                    needsSupportMap={needsSupportMap}
+                />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
                 <gridHelper args={[200, 20]} position={[0, -0.1, 0]} />
@@ -60,7 +72,25 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
     );
 };
 
-const MapartMesh = ({ imageData, toneMap, blockSupport, supportBlockId, needsSupportMap }: { imageData: ImageData; toneMap?: Int8Array; blockSupport: 'all' | 'needed' | 'gravity'; supportBlockId?: string; needsSupportMap?: Uint8Array }) => {
+const MapartMesh = ({
+    imageData,
+    toneMap,
+    blockSupport,
+    supportBlockId,
+    exportMode,
+    independentMaps,
+    previewSection,
+    needsSupportMap
+}: {
+    imageData: ImageData;
+    toneMap?: Int8Array;
+    blockSupport: 'all' | 'needed' | 'gravity';
+    supportBlockId?: string;
+    exportMode?: 'full' | 'sections';
+    independentMaps?: boolean;
+    previewSection?: PreviewSection;
+    needsSupportMap?: Uint8Array
+}) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const { width, height, data } = imageData;
     const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -81,59 +111,135 @@ const MapartMesh = ({ imageData, toneMap, blockSupport, supportBlockId, needsSup
             }
         }
 
+        // 1. Generate all potentially visible blocks
         for (let x = 0; x < width; x++) {
+            // Filter by previewSection X if provided
+            if (previewSection) {
+                const sectionMinX = previewSection.x * 128;
+                const sectionMaxX = (previewSection.x + 1) * 128;
+                if (x < sectionMinX || x >= sectionMaxX) continue;
+            }
+
             const tones = [];
             for (let y = 0; y < height; y++) {
                 tones.push(toneMap ? toneMap[y * width + x] : 0);
             }
 
-            const { path } = optimizeColumnHeights(tones);
+            // Track baselines for independent maps to render nooblines correctly
+            const sectionBaselines: Record<number, number> = {};
 
-            // --- Column Grounding Logic (Match litematicaExport.ts) ---
-            // We want the lowest MAP block of the column to align with Y=0.
-            // shiftY = -min(0, min(path))
-            let minPathY = 0;
-            if (path.length > 0) {
-                minPathY = Math.min(...path);
+            // Path generation and Grounding
+            const path: number[] = new Array(height).fill(0);
+            if (independentMaps) {
+                const numMaps = Math.ceil(height / 128);
+                for (let m = 0; m < numMaps; m++) {
+                    const zStart = m * 128;
+                    const zEnd = Math.min((m + 1) * 128, height);
+                    const chunkTones = tones.slice(zStart, zEnd);
+                    const { path: mapPath } = optimizeColumnHeights(chunkTones);
+
+                    const minChunkY = Math.min(...mapPath, 0);
+                    const shiftY = -minChunkY;
+                    sectionBaselines[m] = shiftY;
+
+                    for (let i = 0; i < mapPath.length; i++) {
+                        path[zStart + i] = mapPath[i] + shiftY;
+                    }
+                }
+            } else {
+                const { path: globalPath } = optimizeColumnHeights(tones);
+                const minPathY = Math.min(...globalPath, 0);
+                const shiftY = -minPathY;
+                for (let i = 0; i < globalPath.length; i++) {
+                    path[i] = globalPath[i] + shiftY;
+                }
             }
-            const shiftY = -Math.min(0, minPathY);
 
-            for (let y = 0; y < height; y++) {
-                const blockY = path[y] + shiftY;
-                const r = data[(y * width + x) * 4] / 255;
-                const g = data[(y * width + x) * 4 + 1] / 255;
-                const b = data[(y * width + x) * 4 + 2] / 255;
+            for (let y = -1; y < height; y++) {
+                let isNoobline = false;
+                // Filter by previewSection Y if provided
+                if (previewSection) {
+                    const sectionMinY = previewSection.y * 128;
+                    const sectionMaxY = (previewSection.y + 1) * 128;
+                    const nooblineY = sectionMinY - 1;
 
-                const worldX = x - width / 2;
-                const worldZ = y - height / 2;
-                const worldY = blockY; // Y is height
+                    if (y < sectionMinY || y >= sectionMaxY) {
+                        if (y === nooblineY) {
+                            isNoobline = true;
+                        } else {
+                            continue;
+                        }
+                    }
+                } else if (y === -1) {
+                    // Global view: row -1 is the global noobline
+                    isNoobline = true;
+                }
 
-                // Add Map Block
+                let blockY = y === -1 ? 0 : path[y];
+                let blockColor: THREE.Color;
+
+                if (isNoobline) {
+                    // For any noobline row, determine the correct height
+                    if (independentMaps) {
+                        const m = previewSection ? previewSection.y : (y === -1 ? 0 : Math.floor(y / 128));
+                        blockY = sectionBaselines[m] ?? 0;
+                    } else {
+                        // Global mode: noobline is at shifts relative to 0
+                        // path already has shifts applied if we did it globally.
+                        // Actually, if y = -1, we use path[0]'s baseline? No, baseline is 0+shiftY.
+                        if (y === -1) {
+                            // Find any block in the column to get global shift
+                            // path[0] minus tones[0] is one way.
+                            // But cleaner: optimizeColumnHeights returns neutral if tones are 0.
+                            // Globally path = optimized(tones) + shiftY.
+                            // Baseline is shiftY.
+                            const { path: globalPath } = optimizeColumnHeights(tones);
+                            const minPathY = Math.min(...globalPath, 0);
+                            const shiftY = -minPathY;
+                            blockY = shiftY;
+                        } else {
+                            // Boundary sharing noobline (e.g. y=127 for map 1)
+                            blockY = path[y];
+                        }
+                    }
+                    blockColor = supportColor;
+                } else {
+                    const r = data[(y * width + x) * 4] / 255;
+                    const g = data[(y * width + x) * 4 + 1] / 255;
+                    const b = data[(y * width + x) * 4 + 2] / 255;
+                    blockColor = new THREE.Color(r, g, b);
+                }
+
+                // Centering Logic
+                let worldX, worldZ;
+                if (previewSection) {
+                    // Center the 128x128 section at (0,0)
+                    worldX = x - (previewSection.x * 128 + 64);
+                    worldZ = y - (previewSection.y * 128 + 64);
+                } else {
+                    worldX = x - width / 2;
+                    worldZ = y - height / 2;
+                }
+
                 blocks.push({
                     x: worldX,
-                    y: worldY,
+                    y: blockY,
                     z: worldZ,
-                    color: new THREE.Color(r, g, b)
+                    color: blockColor
                 });
 
-                // Add Support Block (if needed)
+                // Add Support Placeholder (will be grounded later)
                 if (blockY > 0) {
                     let addSupport = false;
-
-                    if (blockSupport === 'all') {
-                        // Include physical support for all elevated blocks
-                        addSupport = true;
-                    } else if (blockSupport === 'gravity' && needsSupportMap) {
-                        // Support only for blocks that need it (from palette.json)
-                        const pixelIndex = y * width + x;
-                        addSupport = needsSupportMap[pixelIndex] === 1;
+                    if (blockSupport === 'all') addSupport = true;
+                    else if (blockSupport === 'gravity' && needsSupportMap) {
+                        addSupport = needsSupportMap[y * width + x] === 1;
                     }
-                    // 'needed' mode: no supports (addSupport stays false)
 
                     if (addSupport) {
                         blocks.push({
                             x: worldX,
-                            y: worldY - 1,
+                            y: blockY - 1,
                             z: worldZ,
                             color: supportColor
                         });
@@ -141,8 +247,9 @@ const MapartMesh = ({ imageData, toneMap, blockSupport, supportBlockId, needsSup
                 }
             }
         }
+
         return { blocks, instanceCount: blocks.length };
-    }, [toneMap, width, height, data, blockSupport, supportBlockId, needsSupportMap]);
+    }, [toneMap, width, height, data, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap]);
 
     useEffect(() => {
         if (!meshRef.current) return;

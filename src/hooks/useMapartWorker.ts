@@ -23,6 +23,7 @@ interface UseMapartWorkerProps {
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId: string;
+    exportMode: 'full' | 'sections';
     paletteVersion: string;
 }
 
@@ -44,6 +45,7 @@ export const useMapartWorker = ({
     manualEdits,
     blockSupport,
     supportBlockId,
+    exportMode,
     paletteVersion,
 }: UseMapartWorkerProps) => {
     const workerRef = useRef<Worker | null>(null);
@@ -426,6 +428,7 @@ export const useMapartWorker = ({
                 manualEdits,
                 blockSupport,
                 supportBlockId,
+                exportMode,
                 paletteVersion
             );
 
@@ -436,7 +439,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, paletteVersion, isExporting, sourceImageVersion]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

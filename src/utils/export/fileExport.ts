@@ -30,10 +30,11 @@ export async function generateMapartExport(
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
     supportBlockId: string = 'minecraft:cobblestone',
+    exportMode: 'full' | 'sections' = 'sections',
     targetVersion: string = DEFAULT_VERSION
 ): Promise<{ blob: Blob; filename: string }> {
-    const { width, height, data } = imageData;
-    const isMultiMap = width > 128 || height > 128;
+    const { width, height } = imageData;
+    const isMultiMap = (width > 128 || height > 128) && exportMode === 'sections';
 
     if (!isMultiMap) {
         // Single Map Case
@@ -53,61 +54,98 @@ export async function generateMapartExport(
         return { blob, filename };
 
     } else {
-        // Multi Map Case - Split and Zip
+        // Multi Map Case - Global Processing then Split
+        // 1. Generate ALL blocks globally
+        const allBlocks = imageDataToBlockStates(
+            imageData, selectedPaletteItems, buildMode, true,
+            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId
+        );
+
         const zip = new JSZip();
         const baseName = filename.replace(/\.litematic$/, '');
         const mapsX = Math.ceil(width / 128);
         const mapsY = Math.ceil(height / 128);
 
-        for (let y = 0; y < mapsY; y++) {
-            for (let x = 0; x < mapsX; x++) {
-                const sectionWidth = 128;
-                const sectionHeight = 128;
-                const sectionData = new Uint8ClampedArray(sectionWidth * sectionHeight * 4);
-                const sectionManualEdits: typeof manualEdits = {};
+        // 2. Group blocks by section (with boundary sharing)
+        const sectionedBlocks: Map<string, typeof allBlocks> = new Map();
 
-                for (let sy = 0; sy < sectionHeight; sy++) {
-                    for (let sx = 0; sx < sectionWidth; sx++) {
-                        const globalX = x * 128 + sx;
-                        const globalY = y * 128 + sy;
+        for (const block of allBlocks) {
+            const mapXIndex = Math.floor(block.x / 128);
+            const targetMapsY: number[] = [];
 
-                        if (globalX < width && globalY < height) {
-                            const sourceIdx = (globalY * width + globalX) * 4;
-                            const targetIdx = (sy * sectionWidth + sx) * 4;
-                            sectionData[targetIdx] = data[sourceIdx];
-                            sectionData[targetIdx + 1] = data[sourceIdx + 1];
-                            sectionData[targetIdx + 2] = data[sourceIdx + 2];
-                            sectionData[targetIdx + 3] = data[sourceIdx + 3];
+            if (block.z === 0) {
+                targetMapsY.push(0);
+            } else if (independentMaps) {
+                // In Independent mode, blocks at z = m*128 are explicit nooblines for map m
+                if (block.z % 128 === 0) {
+                    const m = block.z / 128;
+                    if (m < mapsY) {
+                        targetMapsY.push(m);
+                    } else {
+                        // This might be the last row of the entire map art
+                        targetMapsY.push(m - 1);
+                    }
+                } else {
+                    const mapYIdx = Math.floor((block.z - 1) / 128);
+                    targetMapsY.push(mapYIdx);
+                }
+            } else {
+                // Global mode: Standard boundary sharing
+                const mapYIdx = Math.floor((block.z - 1) / 128);
+                targetMapsY.push(mapYIdx);
 
-                            const globalPixelIdx = globalY * width + globalX;
-                            if (manualEdits && manualEdits[globalPixelIdx]) {
-                                const localPixelIdx = sy * sectionWidth + sx;
-                                sectionManualEdits[localPixelIdx] = manualEdits[globalPixelIdx];
-                            }
-                        }
+                if (block.z > 0 && block.z % 128 === 0) {
+                    const nextMapY = mapYIdx + 1;
+                    if (nextMapY < mapsY) {
+                        targetMapsY.push(nextMapY);
                     }
                 }
+            }
 
-                const sectionImageData = new ImageData(sectionData, sectionWidth, sectionHeight);
+            for (const yIdx of targetMapsY) {
+                const key = `${mapXIndex}_${yIdx}`;
+                if (yIdx >= mapsY) continue; // Safety
 
-                const blockStates = imageDataToBlockStates(
-                    sectionImageData, selectedPaletteItems, buildMode, true,
-                    threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, sectionManualEdits, blockSupport, supportBlockId
-                );
+                if (!sectionedBlocks.has(key)) {
+                    sectionedBlocks.set(key, []);
+                }
+                sectionedBlocks.get(key)!.push({ ...block });
+            }
+        }
 
-                const sectionNbt = createLitematicaNBT(blockStates, {
+        // 3. Process each section (Grounding and NBT)
+        for (let sY = 0; sY < mapsY; sY++) {
+            for (let sX = 0; sX < mapsX; sX++) {
+                const key = `${sX}_${sY}`;
+                const blocks = sectionedBlocks.get(key) || [];
+
+                if (blocks.length === 0) continue;
+
+                // Re-ground this specific section
+                const minSectionY = Math.min(...blocks.map(b => b.y));
+                for (const b of blocks) {
+                    b.y -= minSectionY;
+                    // Make coordinates local to the section
+                    b.x -= sX * 128;
+                    // Z is trickier: global Z=0 is map 0 noobline.
+                    // Map sY starts its blocks at global Z = sY * 128 + 1.
+                    // BUT it includes global Z = sY * 128 as its local Z=0 noobline.
+                    b.z -= sY * 128;
+                }
+
+                const sectionNbt = createLitematicaNBT(blocks, {
                     ...metadata,
-                    name: `${metadata.name || 'MapArt'} (${x},${y})`,
-                    description: `Section ${x},${y} - ${metadata.description || 'MapArt created by MapArtisan'} `
+                    name: `${metadata.name || 'MapArt'} (${sX},${sY})`,
+                    description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`
                 }, targetVersion);
 
                 const sectionBuffer = serializeNBT(sectionNbt);
-                zip.file(`${baseName}_${x}_${y}.litematic`, sectionBuffer);
+                zip.file(`${baseName}_${sX}_${sY}.litematic`, sectionBuffer);
             }
         }
 
         const zipContent = await zip.generateAsync({ type: 'blob' });
-        return { blob: zipContent, filename: `${baseName} _package.zip` };
+        return { blob: zipContent, filename: `${baseName}_package.zip` };
     }
 }
 

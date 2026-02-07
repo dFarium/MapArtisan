@@ -23,7 +23,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         selectedPaletteItems,
         mapartStats,
         blockSupport,
-        supportBlockId
+        supportBlockId,
+        exportMode,
+        previewSection,
+        independentMaps
     } = useMapart();
 
     // Use passed worker state
@@ -185,6 +188,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     imageData={debounced3DImageData}
                                     blockSupport={blockSupport}
                                     supportBlockId={supportBlockId}
+                                    exportMode={exportMode}
+                                    independentMaps={independentMaps}
+                                    previewSection={previewSection || undefined}
                                     stats={mapartStats || undefined}
                                     toneMap={toneMap || undefined}
                                     needsSupportMap={needsSupportMap || undefined}

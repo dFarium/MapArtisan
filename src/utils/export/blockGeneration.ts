@@ -82,124 +82,134 @@ export function imageDataToBlockStates(
     // Process each column
     for (let x = 0; x < width; x++) {
         const currentColumnBlocks: BlockWithCoords[] = [];
-        const rawMapBlocks: { blockId: string; y: number; z: number }[] = [];
-        let currentHeight = 0;
-        const columnTones = new Int8Array(height).fill(0);
-        const nooblineY = 0;
+        const rawHeights = new Int32Array(height);
+        const columnTones = new Int8Array(height);
+        let h = 0;
 
-        // Process each row
+        // 1. Collect tones and raw incremental heights
         for (let y = 0; y < height; y++) {
             const idx = (y * width + x) * 4;
             const r = data[idx];
             const g = data[idx + 1];
             const b = data[idx + 2];
-
             const key = (r << 16) | (g << 8) | b;
+            const colorInfo = rgbToColor.get(key);
+
+            if (colorInfo) {
+                if (!is2D) {
+                    if (colorInfo.brightness === 'high') h++;
+                    else if (colorInfo.brightness === 'low') h--;
+                }
+                columnTones[y] = colorInfo.brightness === 'high' ? 1 : (colorInfo.brightness === 'low' ? -1 : 0);
+            }
+            rawHeights[y] = h;
+        }
+
+        // 2. Optimization and Grounding
+        const finalHeights = new Int32Array(height);
+        const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
+
+        if (applySD) {
+            if (independentMaps) {
+                // Ground each 128-row section independently
+                const numMaps = Math.ceil(height / 128);
+                for (let m = 0; m < numMaps; m++) {
+                    const zStart = m * 128;
+                    const zEnd = Math.min((m + 1) * 128, height);
+                    const chunkTones = Array.from(columnTones.slice(zStart, zEnd));
+                    const { path } = optimizeColumnHeights(chunkTones);
+
+                    const minChunkY = Math.min(...path, 0);
+                    const shiftY = -minChunkY;
+
+                    for (let i = 0; i < path.length; i++) {
+                        finalHeights[zStart + i] = path[i] + shiftY;
+                    }
+
+                    // Add Noobline for this section (at global Z = zStart)
+                    currentColumnBlocks.push({
+                        blockId: supportBlockId,
+                        x, y: 0 + shiftY, z: zStart
+                    });
+                    if (0 + shiftY > 0 && blockSupport === 'all') {
+                        currentColumnBlocks.push({
+                            blockId: supportBlockId,
+                            x, y: shiftY - 1, z: zStart
+                        });
+                    }
+                }
+            } else {
+                // Ground whole column
+                const tonesArray = Array.from(columnTones);
+                const { path } = optimizeColumnHeights(tonesArray);
+                const minPathY = Math.min(...path, 0);
+                const shiftY = -minPathY;
+
+                for (let i = 0; i < path.length; i++) {
+                    finalHeights[i] = path[i] + shiftY;
+                }
+
+                // Add Global Noobline
+                currentColumnBlocks.push({
+                    blockId: supportBlockId,
+                    x, y: 0 + shiftY, z: 0
+                });
+                if (0 + shiftY > 0 && blockSupport === 'all') {
+                    currentColumnBlocks.push({
+                        blockId: supportBlockId,
+                        x, y: shiftY - 1, z: 0
+                    });
+                }
+            }
+        } else {
+            // No optimization (2D or other)
+            for (let i = 0; i < height; i++) {
+                finalHeights[i] = rawHeights[i];
+            }
+            // Basic Noobline
+            currentColumnBlocks.push({
+                blockId: supportBlockId,
+                x, y: 0, z: 0
+            });
+        }
+
+        // 3. Create blocks with final heights
+        for (let y = 0; y < height; y++) {
+            const idx = (y * width + x) * 4;
+            const key = (data[idx] << 16) | (data[idx + 1] << 8) | data[idx + 2];
             const colorInfo = rgbToColor.get(key);
             if (!colorInfo) continue;
 
-            // Calculate height
-            if (!is2D) {
-                if (colorInfo.brightness === 'high') {
-                    currentHeight++;
-                    columnTones[y] = 1;
-                } else if (colorInfo.brightness === 'low') {
-                    currentHeight--;
-                    columnTones[y] = -1;
-                }
-            }
-
-            rawMapBlocks.push({
-                blockId: colorInfo.blockId,
-                y: currentHeight,
-                z: y + 1,
-            });
-        }
-
-        // Apply Smart Drop Optimization
-        if (!is2D && applyOptimization && buildMode === '3d_valley') {
-            const tonesArray = Array.from(columnTones);
-            const { path } = optimizeColumnHeights(tonesArray);
-
-            for (const block of rawMapBlocks) {
-                const index = block.z - 1;
-                if (index >= 0 && index < path.length) {
-                    block.y = path[index];
-                }
-            }
-        }
-
-        // Calculate shift for grounding
-        let shiftY = 0;
-        if (!is2D && applyOptimization && rawMapBlocks.length > 0) {
-            const minMapY = Math.min(...rawMapBlocks.map(b => b.y));
-            const minOverallY = Math.min(minMapY, nooblineY);
-            shiftY = -minOverallY;
-        }
-
-        // Add shifted blocks and supports
-        for (const rawBlock of rawMapBlocks) {
-            const finalY = rawBlock.y + shiftY;
-
+            const blockY = finalHeights[y];
             currentColumnBlocks.push({
-                blockId: rawBlock.blockId,
-                x: x,
-                y: finalY,
-                z: rawBlock.z
+                blockId: colorInfo.blockId,
+                x, y: blockY, z: y + 1
             });
 
-            // Add Support Block
-            if (!is2D && finalY > 0) {
+            // Support blocks
+            if (!is2D && blockY > 0) {
                 let addSupport = false;
-
-                if (blockSupport === 'all') {
-                    addSupport = true;
-                } else if (blockSupport === 'needed') {
-                    addSupport = false;
-                } else if (blockSupport === 'gravity') {
-                    addSupport = blocksNeedingSupport.has(rawBlock.blockId);
-                }
+                if (blockSupport === 'all') addSupport = true;
+                else if (blockSupport === 'gravity') addSupport = blocksNeedingSupport.has(colorInfo.blockId);
 
                 if (addSupport) {
                     currentColumnBlocks.push({
                         blockId: supportBlockId,
-                        x: x,
-                        y: finalY - 1,
-                        z: rawBlock.z
+                        x, y: blockY - 1, z: y + 1
                     });
                 }
             }
         }
-
-        // Add Noobline (Support Line)
-        const finalNooblineY = is2D ? 0 : (nooblineY + shiftY);
-        currentColumnBlocks.push({
-            blockId: supportBlockId,
-            x: x,
-            y: finalNooblineY,
-            z: 0,
-        });
-
-        // Support for Noobline
-        if (!is2D && finalNooblineY > 0 && blockSupport === 'all') {
-            currentColumnBlocks.push({
-                blockId: supportBlockId,
-                x: x,
-                y: finalNooblineY - 1,
-                z: 0,
-            });
-        }
-
         columnBlocks.set(x, currentColumnBlocks);
     }
 
-    // Flatten columns
+    // Flatten results
     for (const blocks of columnBlocks.values()) {
         blockStates.push(...blocks);
     }
 
-    // Global normalization
-    const globalMinY = Math.min(...blockStates.map(b => b.y), 0);
+    // Global normalization (ensure nothing below 0)
+    const globalMinY = blockStates.length > 0 ? Math.min(...blockStates.map(b => b.y), 0) : 0;
     if (globalMinY < 0) {
         for (const block of blockStates) {
             block.y -= globalMinY;

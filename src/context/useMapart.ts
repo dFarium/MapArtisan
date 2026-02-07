@@ -15,4 +15,4 @@ export type {
     MapartState
 } from '../store/useMapartStore';
 
-export type { BuildMode } from '../types/mapart';
+export type { BuildMode, ExportMode, PreviewSection } from '../types/mapart';

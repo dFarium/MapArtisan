@@ -37,3 +37,10 @@ export interface PaletteData {
 }
 
 export type BuildMode = '2d' | '3d_valley';
+
+export type ExportMode = 'full' | 'sections';
+
+export interface PreviewSection {
+    x: number;
+    y: number;
+}
