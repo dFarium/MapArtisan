@@ -1,4 +1,4 @@
-import { expose } from 'comlink';
+import { expose, transfer } from 'comlink';
 import { processMapart, applyManualEdits, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
 import type { ManualEdit, MapartStats } from '../types/mapart';
@@ -90,7 +90,15 @@ const api = {
             lastBaseResult.buildMode
         );
 
-        return { imageData: result.imageData, stats: result.stats, toneMap: result.toneMap, needsSupportMap: result.needsSupportMap };
+        return transfer(
+            {
+                imageData: result.imageData,
+                stats: result.stats,
+                toneMap: result.toneMap,
+                needsSupportMap: result.needsSupportMap
+            },
+            [result.imageData.data.buffer]
+        );
     },
 
     generateMapartExport: async (

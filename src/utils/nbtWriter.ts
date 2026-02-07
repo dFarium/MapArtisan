@@ -25,12 +25,14 @@ export type TagType = (typeof TagTypes)[keyof typeof TagTypes];
 
 export type NBTValue =
     | number
+    | bigint
     | string
     | number[]
     | [number, number] // For long (two 32-bit ints)
     | Uint8Array
     | Int8Array
     | Int32Array
+    | BigInt64Array
     | NBTCompound
     | NBTList;
 
@@ -144,6 +146,18 @@ export class NBTWriter {
     }
 
     /**
+     * Write BigInt64
+     */
+    private writeBigInt(value: bigint): void {
+        this.accommodate(8);
+        this.dataView.setBigInt64(this.offset, value, false); // Big-endian (default for DataView is big-endian? No, check docs. Actually DataView defaults to Big Endian!)
+        // Wait, DataView.setBigInt64(byteOffset, value, littleEndian)
+        // If littleEndian is undefined, it defaults to false (Big Endian).
+        // NBT is Big Endian. So false is correct.
+        this.offset += 8;
+    }
+
+    /**
      * Write data by NBT tag type
      */
     public writeByType(dataType: TagType, value: unknown): void {
@@ -165,11 +179,15 @@ export class NBTWriter {
                 break;
 
             case TagTypes.LONG: {
-                // JavaScript doesn't support native 64-bit ints
-                // Pass as array of two 32-bit ints [high, low]
-                const longVal = value as [number, number];
-                this.write('Int32', 4, longVal[0]);
-                this.write('Int32', 4, longVal[1]);
+                if (typeof value === 'bigint') {
+                    this.writeBigInt(value as bigint);
+                } else {
+                    // JavaScript doesn't support native 64-bit ints (legacy mode)
+                    // Pass as array of two 32-bit ints [high, low]
+                    const longVal = value as [number, number];
+                    this.write('Int32', 4, longVal[0]);
+                    this.write('Int32', 4, longVal[1]);
+                }
                 break;
             }
 
@@ -230,10 +248,17 @@ export class NBTWriter {
             }
 
             case TagTypes.LONG_ARRAY: {
-                const arr = value as [number, number][];
-                this.writeByType(TagTypes.INT, arr.length);
-                for (const item of arr) {
-                    this.writeByType(TagTypes.LONG, item);
+                if (value instanceof BigInt64Array) {
+                    this.writeByType(TagTypes.INT, value.length);
+                    for (let i = 0; i < value.length; i++) {
+                        this.writeBigInt(value[i]);
+                    }
+                } else {
+                    const arr = value as [number, number][];
+                    this.writeByType(TagTypes.INT, arr.length);
+                    for (const item of arr) {
+                        this.writeByType(TagTypes.LONG, item);
+                    }
                 }
                 break;
             }

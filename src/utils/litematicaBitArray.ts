@@ -2,15 +2,13 @@
  * Litematica bit-packing utilities
  * Adapted from cartographer's litematica-bit-array.ts
  * 
- * This implementation uses mutable operations for performance
+ * Optimized implementation using BigInt64Array
  */
 
-export type Long = [number, number]; // [high 32 bits, low 32 bits]
-
 export interface BitArray {
-    array: Long[];
+    array: BigInt64Array;
     num_bits: number;
-    mask: number;
+    mask: bigint;
     volume: number;
 }
 
@@ -27,13 +25,9 @@ export const getNeededBits = (size: number): number => {
 export function createBitArray(volume: number, paletteLength: number): BitArray {
     const num_bits = getNeededBits(paletteLength);
     const arrayLength = Math.ceil((volume * num_bits) / 64);
-    const array: Long[] = [];
+    const array = new BigInt64Array(arrayLength);
 
-    for (let i = 0; i < arrayLength; i++) {
-        array.push([0, 0]);
-    }
-
-    const mask = (1 << num_bits) - 1;
+    const mask = (1n << BigInt(num_bits)) - 1n;
 
     return {
         volume,
@@ -43,76 +37,39 @@ export function createBitArray(volume: number, paletteLength: number): BitArray 
     };
 }
 
-// Long arithmetic operations (treating two 32-bit ints as 64-bit long)
-
-function longAnd(a: Long, b: Long): Long {
-    return [a[0] & b[0], a[1] & b[1]];
-}
-
-function longOr(a: Long, b: Long): Long {
-    return [a[0] | b[0], a[1] | b[1]];
-}
-
-function longNot(a: Long): Long {
-    return [~a[0], ~a[1]];
-}
-
-function longShiftLeft(value: Long, shift: number): Long {
-    if (shift === 0) return value;
-    if (shift >= 64) return [0, 0];
-
-    if (shift >= 32) {
-        return [value[1] << (shift - 32), 0];
-    } else {
-        const high = (value[0] << shift) | (value[1] >>> (32 - shift));
-        const low = value[1] << shift;
-        return [high, low];
-    }
-}
-
-function longShiftRight(value: Long, shift: number): Long {
-    if (shift === 0) return value;
-    if (shift >= 64) return [0, 0];
-
-    if (shift >= 32) {
-        return [0, value[0] >>> (shift - 32)];
-    } else {
-        const high = value[0] >>> shift;
-        const low = (value[1] >>> shift) | (value[0] << (32 - shift));
-        return [high, low];
-    }
-}
+const ONE_64 = 0xFFFFFFFFFFFFFFFFn;
 
 /**
  * Set a value in the bit array (MUTABLE - modifies array in place)
  */
 export function set(bitArray: BitArray, index: number, value: number): BitArray {
+    const valueBI = BigInt(value);
     const startOffset = index * bitArray.num_bits;
     const startArrIndex = startOffset >> 6; // Divide by 64
     const endArrIndex = ((index + 1) * bitArray.num_bits - 1) >> 6;
-    const startBitOffset = startOffset & 0x3F; // Modulo 64
+    const startBitOffset = BigInt(startOffset & 0x3F); // Modulo 64
 
-    // Clear and set bits in first long
-    bitArray.array[startArrIndex] = longOr(
-        longAnd(
-            bitArray.array[startArrIndex],
-            longNot(longShiftLeft([0, bitArray.mask], startBitOffset))
-        ),
-        longShiftLeft([0, value & bitArray.mask], startBitOffset)
-    );
+    // Calculate shifts
+    const fullValueShifted = (valueBI & bitArray.mask) << startBitOffset;
+    const fullMaskShifted = bitArray.mask << startBitOffset;
+
+    // Update first word
+    // We clear bits using the mask and then OR the new value
+    // We must handle 64-bit wrapping manually for the mask inversion logic if we were using ~
+    // But since we use BigInts, ~ works on infinite bits.
+    // To clear bits in 64-bit word: word & ~(mask)
+    // We restrict mask to 64 bits: mask & ONE_64
+
+    const mask1 = fullMaskShifted & ONE_64;
+    bitArray.array[startArrIndex] = (bitArray.array[startArrIndex] & ~mask1) | (fullValueShifted & ONE_64);
 
     // Handle overflow into next long if needed
     if (startArrIndex !== endArrIndex) {
-        const endOffset = 64 - startBitOffset;
-        const j1 = bitArray.num_bits - endOffset;
+        const shiftRightAmount = 64n - startBitOffset;
+        const part2Value = (valueBI & bitArray.mask) >> shiftRightAmount;
+        const mask2 = bitArray.mask >> shiftRightAmount;
 
-        bitArray.array[endArrIndex] = longOr(
-            longShiftRight(
-                longShiftLeft(bitArray.array[endArrIndex], j1),
-                j1
-            ),
-            longShiftRight([0, value & bitArray.mask], endOffset)
-        );
+        bitArray.array[endArrIndex] = (bitArray.array[endArrIndex] & ~mask2) | part2Value;
     }
 
     return bitArray;
@@ -125,15 +82,26 @@ export function get(bitArray: BitArray, index: number): number {
     const startOffset = index * bitArray.num_bits;
     const startArrIndex = startOffset >> 6;
     const endArrIndex = ((index + 1) * bitArray.num_bits - 1) >> 6;
-    const startBitOffset = startOffset & 0x3F;
+    const startBitOffset = BigInt(startOffset & 0x3F);
 
     if (startArrIndex === endArrIndex) {
-        const shifted = longShiftRight(bitArray.array[startArrIndex], startBitOffset);
-        return longAnd(shifted, [0, bitArray.mask])[1];
+        const val = (bitArray.array[startArrIndex] >> startBitOffset) & bitArray.mask;
+        return Number(val);
     } else {
-        const endOffset = 64 - startBitOffset;
-        const part1 = longShiftRight(bitArray.array[startArrIndex], startBitOffset);
-        const part2 = longShiftLeft(bitArray.array[endArrIndex], endOffset);
-        return longAnd(longOr(part1, part2), [0, bitArray.mask])[1];
+        const endOffset = 64n - startBitOffset;
+
+        // Combine and mask
+        // Note: BigInt shifts on signed numbers fill with sign bit?
+        // Right shift: Yes (arithmetic). Left shift: adds zeros.
+        // To avoid sign extension issues with right shift on negative numbers (if high bit set), 
+        // we should mask `bitArray.array[startArrIndex]` with `ONE_64` (conceptually unsigned) before shifting?
+        // Yes, `BigInt.asUintN(64, ...)` or `& ONE_64`.
+        // `& ONE_64` converts negative BigInt to positive BigInt with same bits (for subsequent ops).
+
+        const word1Unsigned = bitArray.array[startArrIndex] & ONE_64;
+        const word2Unsigned = bitArray.array[endArrIndex] & ONE_64;
+
+        const val = ((word1Unsigned >> startBitOffset) | (word2Unsigned << endOffset)) & bitArray.mask;
+        return Number(val);
     }
 }
