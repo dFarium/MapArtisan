@@ -26,6 +26,14 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
 
     return (
         <div className="h-full flex flex-col space-y-3 text-sm">
+            {/* Branding */}
+            <div className="mb-6">
+                <h1 className="text-3xl font-black italic tracking-tight text-blue-400 mb-1">
+                    MapAr<span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">tisan</span>
+                </h1>
+                <p className="text-xs text-zinc-500 font-medium tracking-wide">MINECRAFT MAP ART TOOL</p>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-2">
                 <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-100 italic">

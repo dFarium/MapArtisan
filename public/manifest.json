@@ -1,7 +1,7 @@
 {
   "name": "MapArtisan",
   "short_name": "MapArtisan",
-  "description": "Transform images into Minecraft map art blueprints with 10 dithering algorithms, real-time 3D preview, custom block palettes, pixel editor, and Litematica export",
+  "description": "Advanced Minecraft Map Art generator. Convert images to schematics and blueprints instantly. Features 3D preview, custom palettes, Litematica export, and survival-friendly staircasing.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

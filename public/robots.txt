@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-
 Sitemap: https://mapartisan.com/sitemap.xml
