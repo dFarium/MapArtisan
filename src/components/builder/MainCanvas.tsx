@@ -142,7 +142,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
 
     return (
-        <div
+        <main
             className="flex-1 h-full relative bg-zinc-800 overflow-hidden flex flex-col"
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleMouseUp}
@@ -325,6 +325,6 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                     }}
                 />
             )}
-        </div>
+        </main>
     );
 };

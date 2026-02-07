@@ -396,7 +396,7 @@ export const useMapartWorker = ({
             console.error("Material calculation failed:", err);
             return null;
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion, exportMode]);
 
     const exportMapart = useCallback(async (
         filename: string,

@@ -35,12 +35,16 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
 
 
 
-const applyGridOffset = (factor: number) => (node: any) => {
+const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
     if (node?.material) {
-        node.material.polygonOffset = true;
-        node.material.polygonOffsetFactor = factor;
-        node.material.polygonOffsetUnits = factor;
-        node.material.needsUpdate = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        materials.forEach((m: any) => {
+            m.polygonOffset = true;
+            m.polygonOffsetFactor = factor;
+            m.polygonOffsetUnits = factor;
+            m.needsUpdate = true;
+        });
     }
 };
 

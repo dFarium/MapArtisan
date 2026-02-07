@@ -25,7 +25,7 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
     };
 
     return (
-        <div className="h-full flex flex-col space-y-3 text-sm">
+        <aside className="h-full flex flex-col space-y-3 text-sm">
             {/* Branding */}
             <div className="mb-6">
                 <h1 className="text-3xl font-black italic tracking-tight text-blue-400 mb-1">
@@ -77,6 +77,6 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
                 {/* Footer space */}
                 <div className="h-8" />
             </div>
-        </div>
+        </aside>
     );
 };

@@ -12,6 +12,7 @@ export const useCanvasInteraction = (
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const handleWheel = useCallback((e: React.WheelEvent) => {
+        console.log('[DEBUG] handleWheel called', { deltaY: e.deltaY });
         if (!uploadedImage) return;
         e.preventDefault();
 
@@ -86,17 +87,19 @@ export const useCanvasInteraction = (
     useEffect(() => {
         if (uploadedImage && uploadedImage !== prevImageRef.current) {
             prevImageRef.current = uploadedImage;
-            void Promise.resolve().then(() => setHasInteracted(false));
+            setHasInteracted(false);
         }
     }, [uploadedImage]);
 
     // Perform Centering logic
     useEffect(() => {
         // Centering should only run if user hasn't interacted or if image is brand new (and flag was just reset)
-        if (uploadedImage && !hasInteracted && containerRef?.current && imageDimensions) {
+        if (uploadedImage && !hasInteracted && containerRef?.current && imageDimensions?.width && imageDimensions?.height) {
             const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
-            const { width: imgWidth, height: imgHeight } = imageDimensions;
+            const { width: imgWidth, height: imgHeight } = imageDimensions; // Use destructured props? No, access safe one
 
+            // We destructured width/height in deps, but inside we can use object if we check?
+            // Actually imageDimensions is typed as Optional in args.
             if (containerWidth && containerHeight && imgWidth && imgHeight) {
                 const padding = 0.9;
                 const scaleX = (containerWidth * padding) / imgWidth;
@@ -110,7 +113,7 @@ export const useCanvasInteraction = (
                 setPosition({ x: newX, y: newY });
             }
         }
-    }, [uploadedImage, imageDimensions, hasInteracted, containerRef]);
+    }, [uploadedImage, imageDimensions?.width, imageDimensions?.height, hasInteracted, containerRef]);
 
     // Global mouse up to catch drags outside
     useEffect(() => {
