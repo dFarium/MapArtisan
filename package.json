@@ -1,6 +1,6 @@
 {
   "name": "mapartisan",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "private": true,
   "version": "0.0.0",
   "type": "module",

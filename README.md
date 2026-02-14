@@ -1,5 +1,7 @@
 # MapArtisan
 
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
+
 A powerful map art tool suite for Minecraft. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features. Supports Minecraft 1.16–1.21+.
 
 > **Designed for Minecraft 1.16+** — Modern block palettes and advanced 3D mechanics that simplify construction while maximizing visual fidelity.
