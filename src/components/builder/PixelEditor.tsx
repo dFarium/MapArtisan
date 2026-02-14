@@ -126,7 +126,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                                     ? 'bg-zinc-800 text-blue-400'
                                     : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                     }`}
-                                title={buildMode === '2d' ? "Not available in 2D mode" : "Low (Depth)"}
+                                title={buildMode === '2d' ? "Not available in 2D mode" : "Dark (Depth)"}
                             >
                                 <Moon size={14} />
                             </button>
@@ -147,7 +147,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                                     ? 'bg-zinc-800 text-amber-400'
                                     : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
                                     }`}
-                                title={buildMode === '2d' ? "Not available in 2D mode" : "High (Peak)"}
+                                title={buildMode === '2d' ? "Not available in 2D mode" : "Light (Peak)"}
                             >
                                 <Sun size={14} />
                             </button>

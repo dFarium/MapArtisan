@@ -92,7 +92,7 @@ export const CanvasToolbar = ({
                                 "p-2 rounded transition-colors flex justify-center",
                                 canDownloadPreview ? "hover:bg-blue-900/50 hover:text-blue-400 text-zinc-400 hover:text-zinc-200" : "text-zinc-700 cursor-not-allowed"
                             )}
-                            title="Save Preview as PNG"
+                            title="Download Preview as PNG"
                         >
                             <ImageDown size={16} />
                         </button>

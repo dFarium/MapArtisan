@@ -64,7 +64,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             {/* Dithering */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <Label icon={<Droplets size={14} />} className="text-xs">Quantization Algorithm</Label>
+                    <Label icon={<Droplets size={14} />} className="text-xs">Dithering</Label>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -129,7 +129,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
 
             {/* Game Version */}
             <div className="space-y-3">
-                <Label icon={<Eye size={14} />}>Target Minecraft Palette</Label>
+                <Label icon={<Eye size={14} />}>Minecraft Version</Label>
                 <Select
                     value={paletteVersion}
                     onChange={(e) => setPaletteVersion(e.target.value)}

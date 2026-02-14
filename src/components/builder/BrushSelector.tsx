@@ -135,7 +135,7 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
                                                                 : `${variant} brightness`}
                                                         />
                                                         <span className={`text-[10px] uppercase tracking-tighter transition-colors ${isVariantDisabled ? 'text-zinc-700' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
-                                                            {variant === 'high' ? 'High' : variant === 'low' ? 'Low' : 'Norm'}
+                                                            {variant === 'high' ? 'Light' : variant === 'low' ? 'Dark' : 'Normal'}
                                                         </span>
                                                     </div>
                                                 );

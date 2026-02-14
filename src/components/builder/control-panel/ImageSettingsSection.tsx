@@ -56,7 +56,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
 
             {/* Fit & Crop */}
             <div className="space-y-2">
-                <Label icon={<Crop size={14} />} className="text-xs mb-1">Fitting Strategy</Label>
+                <Label icon={<Crop size={14} />} className="text-xs mb-1">Image Fit</Label>
 
                 <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
                     <Button
@@ -101,11 +101,11 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
             {/* Color Grading */}
             <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
                 <div className="flex items-center justify-between">
-                    <Label className="mb-0 text-xs text-zinc-400">Pre-Processing Filters</Label>
+                    <Label className="mb-0 text-xs text-zinc-400">Color Adjustments</Label>
                     <button
                         onClick={() => setImageSettings({ saturation: 100, brightness: 0, contrast: 0 })}
                         className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
-                        title={`Reset Crop`}
+                        title={`Reset Adjustments`}
                     >
                         <RefreshCw size={14} />
                     </button>

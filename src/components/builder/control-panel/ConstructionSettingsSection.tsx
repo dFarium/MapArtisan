@@ -59,7 +59,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         >
             {/* Build Mode */}
             <div className="space-y-2">
-                <Label icon={<Layers size={14} />} className="text-xs">Placement Logic</Label>
+                <Label icon={<Layers size={14} />} className="text-xs">Build Mode</Label>
                 <div className="flex flex-col gap-1">
                     {(['2d', '3d_valley'] as BuildMode[]).map((mode) => (
                         <label key={mode} className={cn(
@@ -102,7 +102,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
 
             {/* Block Support */}
             <div className="space-y-2">
-                <Label icon={<Box size={14} />} className="text-xs">Structural Strategy</Label>
+                <Label icon={<Box size={14} />} className="text-xs">Block Support</Label>
                 <Select
                     value={blockSupport}
                     onChange={(e) => setBlockSupport(e.target.value as BlockSupport)}
@@ -194,7 +194,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                         disabled={exportMode === 'full'}
                     >
                         {exportMode === 'full' ? (
-                            <option value="all">Show Entire Mapart</option>
+                            <option value="all">Show Entire Map Art</option>
                         ) : (
                             <>
                                 {Array.from({ length: gridDimensions.y }).map((_, y) => (

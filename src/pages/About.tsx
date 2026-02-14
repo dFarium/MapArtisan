@@ -66,7 +66,7 @@ const About: React.FC = () => {
                     </h1>
 
                     <p className="text-xl md:text-2xl text-zinc-300 mb-12 leading-relaxed max-w-2xl mx-auto drop-shadow-lg">
-                        Powerful tools for Map Art making. Visualize in 3D, optimized materials and export schematics directly.
+                        Powerful tools for creating Map Art. Visualize in 3D, optimize materials, and export schematics directly.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -103,7 +103,7 @@ const About: React.FC = () => {
                         <FeatureCard
                             icon={<Move3d className="text-blue-400" size={32} />}
                             title="Real-time 3D Preview"
-                            description="Visualize your map art in 3D before you build. Toggle between 2D flat view and 3D staircased view instantly to catch errors."
+                            description="Visualize your Map Art in 3D before you build. Toggle between 2D flat view and 3D staircased view instantly to catch errors."
                             image="/img/3d-feature.webp"
                         />
                         <FeatureCard
@@ -140,7 +140,7 @@ const About: React.FC = () => {
             {/* How It Works */}
             <section className="py-20 px-6">
                 <div className="max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold mb-12 text-center">How to create a Map Art</h2>
+                    <h2 className="text-3xl font-bold mb-12 text-center">How to Create Map Art</h2>
 
                     <div className="space-y-0">
                         <Step
