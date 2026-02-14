@@ -6,7 +6,7 @@ const Builder = lazy(() => import('./pages/Builder'));
 const About = lazy(() => import('./pages/About'));
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+  <div className="min-h-screen bg-zinc-950 flex items-center justify-center opacity-0 animate-[fadeIn_0.3s_ease-in_0.3s_forwards]">
     <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
   </div>
 );
