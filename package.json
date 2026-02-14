@@ -2,7 +2,7 @@
   "name": "mapartisan",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "node scripts/generate-sw.mjs && vite",
