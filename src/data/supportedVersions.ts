@@ -3,7 +3,7 @@
  * Each version represents the minimum version that introduced new blocks.
  */
 export const SUPPORTED_VERSIONS = [
-    { value: '1.21.5', label: '1.21.5+' },
+    { value: '1.21.5', label: '1.21.5 - 1.21.11' },
     { value: '1.21.4', label: '1.21.4' },
     { value: '1.21.0', label: '1.21.0 - 1.21.3' },
     { value: '1.20.0', label: '1.20.0 - 1.20.6' },

@@ -57,7 +57,7 @@ const About: React.FC = () => {
                 <div className="max-w-4xl mx-auto relative z-10 text-center mt-32">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider mb-8 mx-auto shadow-lg backdrop-blur-md">
                         <Zap size={12} className="fill-current" />
-                        Modern Map Art Tool
+                        A Powerful Map Art Tool Suite
                     </div>
 
                     <h1 className="text-5xl md:text-8xl font-black tracking-tight mb-8 bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent drop-shadow-2xl">
@@ -66,7 +66,7 @@ const About: React.FC = () => {
                     </h1>
 
                     <p className="text-xl md:text-2xl text-zinc-300 mb-12 leading-relaxed max-w-2xl mx-auto drop-shadow-lg">
-                        Powerful tools for creating Map Art. Visualize in 3D, optimize materials, and export schematics directly.
+                        A powerful web-based tool for creating Minecraft Map Art. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">

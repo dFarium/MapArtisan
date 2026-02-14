@@ -1,6 +1,6 @@
 # MapArtisan
 
-A powerful, web-based tool for creating Minecraft Map Art. Originally inspired by `mapartcraft`, this tool has evolved to focus on a superior user experience and advanced features tailored for modern Minecraft (1.16+).
+A powerful map art tool suite for Minecraft. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features. Supports Minecraft 1.16–1.21+.
 
 > **Designed for Minecraft 1.16+** — Modern block palettes and advanced 3D mechanics that simplify construction while maximizing visual fidelity.
 
@@ -39,7 +39,7 @@ A powerful, web-based tool for creating Minecraft Map Art. Originally inspired b
 
 ### Version Support
 
-Supports **Minecraft 1.16.0 through 1.21.5**:
+Supports **Minecraft 1.16.0 through 1.21.11**:
 
 - **Dynamic Palette Filtering** — Shows only blocks available in your target version
 - **Automatic DataVersion** — Exports `.litematic` files with the correct internal version ID

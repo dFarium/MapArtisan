@@ -110,9 +110,9 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                         <RefreshCw size={14} />
                     </button>
                 </div>
-                <PrecisionSlider label="Sat" value={imageSettings.saturation} min={0} max={200} step={1} unit="%" onChange={(saturation) => setImageSettings({ saturation })} />
-                <PrecisionSlider label="Bri" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />
-                <PrecisionSlider label="Con" value={imageSettings.contrast} min={-100} max={100} step={1} onChange={(contrast) => setImageSettings({ contrast })} />
+                <PrecisionSlider label="Saturation" value={imageSettings.saturation} min={0} max={200} step={1} unit="%" onChange={(saturation) => setImageSettings({ saturation })} />
+                <PrecisionSlider label="Brightness" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />
+                <PrecisionSlider label="Contrast" value={imageSettings.contrast} min={-100} max={100} step={1} onChange={(contrast) => setImageSettings({ contrast })} />
             </div>
         </CollapsibleSection>
     );
