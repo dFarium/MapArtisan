@@ -28,9 +28,18 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
         <aside className="h-full flex flex-col space-y-3 text-sm">
             {/* Branding */}
             <div className="mb-6">
-                <h1 className="text-3xl font-black italic tracking-tight text-blue-400 mb-1">
-                    MapAr<span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">tisan</span>
-                </h1>
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-black italic tracking-tight text-blue-400 mb-1">
+                        MapAr<span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">tisan</span>
+                    </h1>
+                    <Link
+                        to="/about"
+                        className="p-1.5 hover:bg-blue-500/10 text-zinc-500 hover:text-blue-400 rounded transition-colors mb-1"
+                        title="About"
+                    >
+                        <Info size={20} />
+                    </Link>
+                </div>
                 <p className="text-xs text-zinc-500 font-medium tracking-wide">MINECRAFT MAP ART TOOL</p>
             </div>
 
@@ -50,13 +59,6 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
                         <ClipboardList size={20} />
                     </button>
 
-                    <Link
-                        to="/about"
-                        className="p-1.5 hover:bg-blue-500/10 text-zinc-500 hover:text-blue-400 rounded transition-colors"
-                        title="About"
-                    >
-                        <Info size={20} />
-                    </Link>
                 </div>
             </div>
 
