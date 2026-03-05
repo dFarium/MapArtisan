@@ -3,7 +3,7 @@ import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
-import { optimizeColumnHeights } from '../../../utils/mapartProcessing';
+import { build3DGeometry } from './build3DGeometry';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 
@@ -55,7 +55,7 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
         <div className="w-full h-full bg-zinc-900 relative">
             <Canvas
                 shadows
-                dpr={[1, 2]}
+                dpr={[1, 1.5]}
                 gl={{
                     toneMapping: THREE.NoToneMapping,
                     antialias: true,
@@ -144,188 +144,78 @@ const MapartMesh = ({
     needsSupportMap?: Uint8Array
 }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
-    const { width, height, data } = imageData;
-    const dummy = useMemo(() => new THREE.Object3D(), []);
 
-    const { blocks, instanceCount } = useMemo(() => {
-        const blocks: { x: number, y: number, z: number, color: THREE.Color }[] = [];
-
-        // Find support block color from palette
-        let supportColor = new THREE.Color(0.5, 0.5, 0.5);
+    // ── Build typed array buffers (positions + colors) ─────────────────────
+    // supportColor is computed inline here rather than in a separate useMemo
+    // to avoid the React Compiler "memoization could not be preserved" warning
+    // (returning a new object literal from useMemo breaks reference identity).
+    const geometry = useMemo(() => {
+        // Resolve support block color from palette
+        let supportColor = { r: 128, g: 128, b: 128 };
         if (supportBlockId) {
             const palette = (paletteData as unknown as PaletteData).colors;
             for (const color of palette) {
                 if (color.blocks.some(b => b.id === supportBlockId)) {
                     const { r, g, b } = color.brightnessValues.normal;
-                    supportColor = new THREE.Color(r / 255, g / 255, b / 255);
+                    supportColor = { r, g, b };
                     break;
                 }
             }
         }
 
-        // 1. Generate all potentially visible blocks
-        for (let x = 0; x < width; x++) {
-            // Filter by previewSection X if provided
-            if (previewSection) {
-                const sectionMinX = previewSection.x * 128;
-                const sectionMaxX = (previewSection.x + 1) * 128;
-                if (x < sectionMinX || x >= sectionMaxX) continue;
-            }
+        return build3DGeometry({
+            imageData,
+            toneMap: toneMap ?? null,
+            blockSupport,
+            supportColor,
+            exportMode,
+            independentMaps,
+            previewSection,
+            needsSupportMap: needsSupportMap ?? null,
+        });
+    }, [imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap]);
 
-            const tones = [];
-            for (let y = 0; y < height; y++) {
-                tones.push(toneMap ? toneMap[y * width + x] : 0);
-            }
+    // ── Upload buffers to GPU in one shot ──────────────────────────────────
+    useEffect(() => {
+        const mesh = meshRef.current;
+        if (!mesh || geometry.count === 0) return;
 
-            // Track baselines for independent maps to render nooblines correctly
-            const sectionBaselines: Record<number, number> = {};
-
-            // Path generation and Grounding
-            const path: number[] = new Array(height).fill(0);
-            const useIndependentSD = independentMaps && exportMode === 'sections';
-
-            if (useIndependentSD) {
-                const numMaps = Math.ceil(height / 128);
-                for (let m = 0; m < numMaps; m++) {
-                    const zStart = m * 128;
-                    const zEnd = Math.min((m + 1) * 128, height);
-                    const chunkTones = tones.slice(zStart, zEnd);
-                    const { path: mapPath } = optimizeColumnHeights(chunkTones);
-
-                    const minChunkY = Math.min(...mapPath, 0);
-                    const shiftY = -minChunkY;
-                    sectionBaselines[m] = shiftY;
-
-                    for (let i = 0; i < mapPath.length; i++) {
-                        path[zStart + i] = mapPath[i] + shiftY;
-                    }
-                }
-            } else {
-                const { path: globalPath } = optimizeColumnHeights(tones);
-                const minPathY = Math.min(...globalPath, 0);
-                const shiftY = -minPathY;
-                for (let i = 0; i < globalPath.length; i++) {
-                    path[i] = globalPath[i] + shiftY;
-                }
-            }
-
-            for (let y = -1; y < height; y++) {
-                let isNoobline = false;
-                // Filter by previewSection Y if provided
-                if (exportMode === 'sections' && previewSection) {
-                    const sectionMinY = previewSection.y * 128;
-                    const sectionMaxY = (previewSection.y + 1) * 128;
-                    const nooblineY = sectionMinY - 1;
-
-                    if (y < sectionMinY || y >= sectionMaxY) {
-                        if (y === nooblineY) {
-                            isNoobline = true;
-                        } else {
-                            continue;
-                        }
-                    }
-                } else if (y === -1) {
-                    // row -1 is the global noobline
-                    isNoobline = true;
-                }
-
-                let blockY = y === -1 ? 0 : path[y];
-                let blockColor: THREE.Color;
-
-                if (isNoobline) {
-                    // For any noobline row, determine the correct height
-                    if (independentMaps) {
-                        const m = previewSection ? previewSection.y : (y === -1 ? 0 : Math.floor(y / 128));
-                        blockY = sectionBaselines[m] ?? 0;
-                    } else {
-                        // Global mode: noobline is at shifts relative to 0
-                        // path already has shifts applied if we did it globally.
-                        // Actually, if y = -1, we use path[0]'s baseline? No, baseline is 0+shiftY.
-                        if (y === -1) {
-                            // Find any block in the column to get global shift
-                            // path[0] minus tones[0] is one way.
-                            // But cleaner: optimizeColumnHeights returns neutral if tones are 0.
-                            // Globally path = optimized(tones) + shiftY.
-                            // Baseline is shiftY.
-                            const { path: globalPath } = optimizeColumnHeights(tones);
-                            const minPathY = Math.min(...globalPath, 0);
-                            const shiftY = -minPathY;
-                            blockY = shiftY;
-                        } else {
-                            // Boundary sharing noobline (e.g. y=127 for map 1)
-                            blockY = path[y];
-                        }
-                    }
-                    blockColor = supportColor;
-                } else {
-                    const r = data[(y * width + x) * 4] / 255;
-                    const g = data[(y * width + x) * 4 + 1] / 255;
-                    const b = data[(y * width + x) * 4 + 2] / 255;
-                    blockColor = new THREE.Color(r, g, b);
-                }
-
-                // Centering Logic (Half-pixel offset to align boundaries with integer grid lines)
-                let worldX, worldZ;
-                if (previewSection) {
-                    worldX = x - (previewSection.x * 128 + 63.5);
-                    worldZ = y - (previewSection.y * 128 + 63.5);
-                } else {
-                    worldX = x - (width - 1) / 2;
-                    worldZ = y - (height - 1) / 2;
-                }
-
-                blocks.push({
-                    x: worldX,
-                    y: blockY,
-                    z: worldZ,
-                    color: blockColor
-                });
-
-                // Add Support Placeholder (will be grounded later)
-                if (blockY > 0) {
-                    let addSupport = false;
-                    if (blockSupport === 'all') addSupport = true;
-                    else if (blockSupport === 'gravity' && needsSupportMap) {
-                        addSupport = needsSupportMap[y * width + x] === 1;
-                    }
-
-                    if (addSupport) {
-                        blocks.push({
-                            x: worldX,
-                            y: blockY - 1,
-                            z: worldZ,
-                            color: supportColor
-                        });
-                    }
-                }
-            }
+        // Build 4×4 translation-only matrices (identity + position) directly
+        // in a Float32Array — no THREE.Object3D, no dummy.updateMatrix() per block.
+        const matrices = new Float32Array(geometry.count * 16);
+        const { positions } = geometry;
+        for (let i = 0; i < geometry.count; i++) {
+            const m = i * 16;
+            const p = i * 3;
+            // Column-major identity matrix with translation in column 3
+            matrices[m] = 1; matrices[m + 1] = 0; matrices[m + 2] = 0; matrices[m + 3] = 0;
+            matrices[m + 4] = 0; matrices[m + 5] = 1; matrices[m + 6] = 0; matrices[m + 7] = 0;
+            matrices[m + 8] = 0; matrices[m + 9] = 0; matrices[m + 10] = 1; matrices[m + 11] = 0;
+            matrices[m + 12] = positions[p]; matrices[m + 13] = positions[p + 1]; matrices[m + 14] = positions[p + 2]; matrices[m + 15] = 1;
         }
 
-        return { blocks, instanceCount: blocks.length };
-    }, [toneMap, width, height, data, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap]);
+        // Single attribute upload for matrices
+        mesh.instanceMatrix = new THREE.InstancedBufferAttribute(matrices, 16);
+        mesh.instanceMatrix.needsUpdate = true;
 
-    useEffect(() => {
-        if (!meshRef.current) return;
+        // Single attribute upload for colors (r,g,b normalized 0-1)
+        mesh.instanceColor = new THREE.InstancedBufferAttribute(geometry.colors.slice(), 3);
+        mesh.instanceColor.needsUpdate = true;
 
-        blocks.forEach((block, i) => {
-            dummy.position.set(block.x, block.y, block.z);
-            dummy.updateMatrix();
-            meshRef.current!.setMatrixAt(i, dummy.matrix);
-            meshRef.current!.setColorAt(i, block.color);
-        });
-        meshRef.current.instanceMatrix.needsUpdate = true;
-        if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-    }, [blocks, dummy]);
+        // Compute bounding sphere so frustum culling works correctly (see Opt #3)
+        mesh.computeBoundingSphere();
+
+    }, [geometry]);
 
     return (
         <instancedMesh
             ref={meshRef}
-            args={[undefined, undefined, instanceCount]}
+            args={[undefined, undefined, geometry.count]}
             position={[0, 0.5, 0]}
-            frustumCulled={false}
         >
             <boxGeometry args={[1, 1, 1]} />
             <meshStandardMaterial roughness={1} metalness={0} />
         </instancedMesh>
     );
 }
+
