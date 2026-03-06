@@ -6,6 +6,8 @@ import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
 import { build3DGeometry } from './build3DGeometry';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
+import { getValidColors } from '../../../utils/mapartProcessing';
+import { useMapartStore } from '../../../store/useMapartStore';
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
@@ -32,8 +34,6 @@ const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
         <span className="text-white font-semibold">{bind}</span>
     </div>
 );
-
-
 
 const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
     if (node?.material) {
@@ -124,6 +124,81 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
     );
 };
 
+// ── Texture atlas loader ───────────────────────────────────────────────────────
+// Loads all block textures into a single DataArrayTexture (WebGL2 texture array).
+// One load per unique blockId, cached globally. Returns the atlas + index map.
+const imageCache = new Map<string, HTMLImageElement | null>();
+
+function loadTextureAtlas(
+    blockIds: string[],
+    onReady: (atlas: THREE.DataArrayTexture, idxMap: Int16Array) => void
+): void {
+    if (blockIds.length === 0) return;
+
+    const SIZE = 16;
+    const idxMap = new Int16Array(blockIds.length).fill(-1);
+    let pending = 0;
+
+    const tryBuild = () => {
+        if (pending > 0) return;
+
+        // Build atlas from loaded images
+        const data = new Uint8Array(blockIds.length * SIZE * SIZE * 4);
+        for (let layer = 0; layer < blockIds.length; layer++) {
+            const img = imageCache.get(blockIds[layer]);
+            if (img) {
+                // Draw to offscreen canvas to get pixel data
+                const canvas = document.createElement('canvas');
+                canvas.width = SIZE;
+                canvas.height = SIZE;
+                const ctx = canvas.getContext('2d')!;
+                ctx.drawImage(img, 0, 0, SIZE, SIZE);
+                const pixels = ctx.getImageData(0, 0, SIZE, SIZE).data;
+                data.set(pixels, layer * SIZE * SIZE * 4);
+                idxMap[layer] = layer;
+            }
+            // If img is null (missing texture), layer stays as -1, gray fallback via vertex color
+        }
+
+        const atlas = new THREE.DataArrayTexture(data, SIZE, SIZE, blockIds.length);
+        atlas.format = THREE.RGBAFormat;
+        atlas.type = THREE.UnsignedByteType;
+        atlas.magFilter = THREE.NearestFilter;
+        atlas.minFilter = THREE.NearestFilter;
+        atlas.generateMipmaps = false;
+        atlas.colorSpace = THREE.SRGBColorSpace;
+        atlas.needsUpdate = true;
+
+        onReady(atlas, idxMap);
+    };
+
+    pending = blockIds.length;
+
+    for (const blockId of blockIds) {
+        if (imageCache.has(blockId)) {
+            pending--;
+            tryBuild();
+            continue;
+        }
+
+        const name = blockId.replace(/^minecraft:/, '');
+        const img = new Image();
+        img.onload = () => {
+            imageCache.set(blockId, img);
+            pending--;
+            tryBuild();
+        };
+        img.onerror = () => {
+            imageCache.set(blockId, null); // null = missing, gray fallback
+            pending--;
+            tryBuild();
+        };
+        img.src = `/textures/${name}.png`;
+    }
+}
+
+// ── MapartMesh ──────────────────────────────────────────────────────────────────
+
 const MapartMesh = ({
     imageData,
     toneMap,
@@ -144,13 +219,29 @@ const MapartMesh = ({
     needsSupportMap?: Uint8Array
 }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
+    const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
+    const atlasRef = useRef<THREE.DataArrayTexture | null>(null);
+    const texIdxAttrRef = useRef<THREE.InstancedBufferAttribute | null>(null);
 
-    // ── Build typed array buffers (positions + colors) ─────────────────────
-    // supportColor is computed inline here rather than in a separate useMemo
-    // to avoid the React Compiler "memoization could not be preserved" warning
-    // (returning a new object literal from useMemo breaks reference identity).
+    // Subscribe only to palette-relevant state
+    const selectedPaletteItems = useMapartStore(s => s.selectedPaletteItems);
+    const buildMode = useMapartStore(s => s.buildMode);
+
+    // Build blockIdMap: RGB-hex → blockId
+    const blockIdMap = useMemo(() => {
+        const candidates = getValidColors(selectedPaletteItems, buildMode);
+        const map: Record<string, string> = {};
+        for (const c of candidates) {
+            const r = c.rgb.r.toString(16).padStart(2, '0');
+            const g = c.rgb.g.toString(16).padStart(2, '0');
+            const b = c.rgb.b.toString(16).padStart(2, '0');
+            map[`#${r}${g}${b}`] = c.blockId;
+        }
+        return map;
+    }, [selectedPaletteItems, buildMode]);
+
+    // Build geometry (positions, colors, textureIds)
     const geometry = useMemo(() => {
-        // Resolve support block color from palette
         let supportColor = { r: 128, g: 128, b: 128 };
         if (supportBlockId) {
             const palette = (paletteData as unknown as PaletteData).colors;
@@ -162,7 +253,6 @@ const MapartMesh = ({
                 }
             }
         }
-
         return build3DGeometry({
             imageData,
             toneMap: toneMap ?? null,
@@ -172,50 +262,157 @@ const MapartMesh = ({
             independentMaps,
             previewSection,
             needsSupportMap: needsSupportMap ?? null,
+            blockIdMap,
+            supportBlockId,
         });
-    }, [imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap]);
+    }, [imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap, blockIdMap]);
 
-    // ── Upload buffers to GPU in one shot ──────────────────────────────────
+    // Create stable material with atlas shader set up ONCE.
+    // onBeforeCompile is called by Three.js the first time the shader compiles.
+    // We save a ref to the compiled shader's uniforms so we can update them
+    // dynamically (new atlas) without triggering a shader recompile.
+    const shaderUniformsRef = useRef<Record<string, THREE.IUniform> | null>(null);
+    // Pending atlas: in case the atlas arrives BEFORE onBeforeCompile runs.
+    const pendingAtlasRef = useRef<THREE.DataArrayTexture | null>(null);
+    const pendingLayersRef = useRef<number>(0);
+
+    if (!matRef.current) {
+        const mat = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, vertexColors: true });
+
+        mat.onBeforeCompile = (shader) => {
+            // Use any atlas already available, or null placeholder
+            shader.uniforms.uAtlas = { value: pendingAtlasRef.current };
+            shader.uniforms.uAtlasLayers = { value: pendingLayersRef.current };
+
+            // Save ref so future atlas updates can write directly to .value
+            shaderUniformsRef.current = shader.uniforms;
+
+            // Vertex: inject per-instance attribute + varyings
+            shader.vertexShader = `
+attribute float aTexLayer;
+varying float vTexLayer;
+varying vec2 vAtlasUv;
+` + shader.vertexShader.replace(
+                '#include <uv_vertex>',
+                `#include <uv_vertex>
+vTexLayer = aTexLayer;
+vAtlasUv = uv;`
+            );
+
+            // Fragment: inject atlas sampling pre-lighting (after color_fragment)
+            // so the texture color participates in PBR lighting normally.
+            shader.fragmentShader = `
+uniform sampler2DArray uAtlas;
+uniform int uAtlasLayers;
+varying float vTexLayer;
+varying vec2 vAtlasUv;
+` + shader.fragmentShader.replace(
+                '#include <color_fragment>',
+                `#include <color_fragment>
+if (vTexLayer >= 0.0) {
+    int layer = int(vTexLayer);
+    if (layer < uAtlasLayers) {
+        diffuseColor.rgb = texture(uAtlas, vec3(vAtlasUv, float(layer))).rgb;
+    }
+}`
+            );
+        };
+
+        matRef.current = mat;
+    }
+
+
+    // ── Upload geometry (matrices + colors + textureIdx attribute) ────────────
     useEffect(() => {
         const mesh = meshRef.current;
-        if (!mesh || geometry.count === 0) return;
+        const mat = matRef.current;
+        if (!mesh || !mat || geometry.count === 0) return;
 
-        // Build 4×4 translation-only matrices (identity + position) directly
-        // in a Float32Array — no THREE.Object3D, no dummy.updateMatrix() per block.
-        const matrices = new Float32Array(geometry.count * 16);
-        const { positions } = geometry;
-        for (let i = 0; i < geometry.count; i++) {
+        const { positions, colors, textureIds, count } = geometry;
+
+        // Build matrix buffer
+        const matrices = new Float32Array(count * 16);
+        for (let i = 0; i < count; i++) {
             const m = i * 16;
             const p = i * 3;
-            // Column-major identity matrix with translation in column 3
-            matrices[m] = 1; matrices[m + 1] = 0; matrices[m + 2] = 0; matrices[m + 3] = 0;
-            matrices[m + 4] = 0; matrices[m + 5] = 1; matrices[m + 6] = 0; matrices[m + 7] = 0;
-            matrices[m + 8] = 0; matrices[m + 9] = 0; matrices[m + 10] = 1; matrices[m + 11] = 0;
-            matrices[m + 12] = positions[p]; matrices[m + 13] = positions[p + 1]; matrices[m + 14] = positions[p + 2]; matrices[m + 15] = 1;
+            matrices[m] = 1; matrices[m + 5] = 1; matrices[m + 10] = 1; matrices[m + 15] = 1;
+            matrices[m + 12] = positions[p];
+            matrices[m + 13] = positions[p + 1];
+            matrices[m + 14] = positions[p + 2];
         }
 
-        // Single attribute upload for matrices
+        // Free old GPU buffers
+        if (mesh.instanceMatrix) mesh.instanceMatrix.array = new Float32Array(0);
+        if (mesh.instanceColor) mesh.instanceColor.array = new Float32Array(0);
+        if (texIdxAttrRef.current) texIdxAttrRef.current.array = new Float32Array(0);
+
         mesh.instanceMatrix = new THREE.InstancedBufferAttribute(matrices, 16);
         mesh.instanceMatrix.needsUpdate = true;
 
-        // Single attribute upload for colors (r,g,b normalized 0-1)
-        mesh.instanceColor = new THREE.InstancedBufferAttribute(geometry.colors.slice(), 3);
+        // CRITICAL: update mesh.count — args=[...count] is constructor-only in R3F
+        // and won't update on re-renders when geometry.count changes.
+        mesh.count = count;
+
+        // Per-instance color (used as fallback when texture layer = -1)
+        mesh.instanceColor = new THREE.InstancedBufferAttribute(colors.slice(), 3);
         mesh.instanceColor.needsUpdate = true;
 
-        // Compute bounding sphere so frustum culling works correctly (see Opt #3)
-        mesh.computeBoundingSphere();
+        // Per-instance textureLayer attribute (float, -1.0 = no texture)
+        const texLayers = new Float32Array(count);
+        for (let i = 0; i < count; i++) {
+            texLayers[i] = textureIds[i]; // -1 or atlas layer index
+        }
+        const texAttr = new THREE.InstancedBufferAttribute(texLayers, 1);
+        texAttr.needsUpdate = true;
+        texIdxAttrRef.current = texAttr;
+        mesh.geometry.setAttribute('aTexLayer', texAttr);
 
+        mesh.computeBoundingSphere();
     }, [geometry]);
+
+    // ── Load texture atlas asynchronously (doesn't block geometry render) ─────
+    useEffect(() => {
+        const { uniqueTextureIds } = geometry;
+        if (uniqueTextureIds.length === 0) return;
+
+        loadTextureAtlas(uniqueTextureIds, (atlas) => {
+            if (!meshRef.current) return;
+
+            // Dispose old atlas
+            if (atlasRef.current) atlasRef.current.dispose();
+            atlasRef.current = atlas;
+
+            // Always store as pending so onBeforeCompile picks it up even if not compiled yet
+            pendingAtlasRef.current = atlas;
+            pendingLayersRef.current = uniqueTextureIds.length;
+
+            if (shaderUniformsRef.current) {
+                // Shader already compiled — update uniform values directly (no recompile).
+                shaderUniformsRef.current.uAtlas.value = atlas;
+                shaderUniformsRef.current.uAtlasLayers.value = uniqueTextureIds.length;
+            }
+            // If shader not compiled yet: onBeforeCompile will read from pendingAtlasRef.
+        });
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [geometry.uniqueTextureIds.join(',')]);
+
+
+    // ── Dispose on unmount ─────────────────────────────────────────────────────
+    useEffect(() => {
+        return () => {
+            matRef.current?.dispose();
+            atlasRef.current?.dispose();
+        };
+    }, []);
 
     return (
         <instancedMesh
             ref={meshRef}
-            args={[undefined, undefined, geometry.count]}
+            args={[undefined, matRef.current, geometry.count]}
             position={[0, 0.5, 0]}
         >
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial roughness={1} metalness={0} />
         </instancedMesh>
     );
-}
-
+};

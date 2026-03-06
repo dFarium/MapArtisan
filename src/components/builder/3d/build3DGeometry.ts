@@ -42,6 +42,14 @@ export interface GeometryParams {
     previewSection?: PreviewSection;
     /** Gravity-based support bitmap (1 = needs support) */
     needsSupportMap?: Uint8Array | null;
+    /**
+     * Maps an RGB hex string (e.g. '#6d9930') to the selected block ID for that color.
+     * Build this from selectedPaletteItems + palette color values on the caller side.
+     * When provided, enables per-block texture assignment in the output.
+     */
+    blockIdMap?: Record<string, string>;
+    /** Block ID used for support/noobline blocks (e.g. 'minecraft:cobblestone') */
+    supportBlockId?: string;
 }
 
 /** Output buffers ready for GPU upload */
@@ -52,6 +60,16 @@ export interface InstanceGeometry {
     colors: Float32Array;
     /** Number of instances (valid entries in positions/colors) */
     count: number;
+    /**
+     * Texture index per instance (index into uniqueTextureIds).
+     * -1 means no texture available → fall back to solid color.
+     */
+    textureIds: Int16Array;
+    /**
+     * Ordered list of unique block IDs referenced by textureIds.
+     * E.g. ['minecraft:stone', 'minecraft:dirt', '__support__']
+     */
+    uniqueTextureIds: string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,9 +99,45 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
         independentMaps,
         previewSection,
         needsSupportMap,
+        blockIdMap,
+        supportBlockId,
     } = params;
 
     const { width, height, data } = imageData;
+
+    // ── Texture ID registry ────────────────────────────────────────────────
+    // We build a compact list of unique block IDs encountered, and assign each
+    // instance a short index into that list. -1 = no texture (solid color fallback).
+    const textureIdRegistry = new Map<string, number>();
+    const uniqueTextureIds: string[] = [];
+
+    const registerTexture = (blockId: string): number => {
+        let idx = textureIdRegistry.get(blockId);
+        if (idx === undefined) {
+            idx = uniqueTextureIds.length;
+            uniqueTextureIds.push(blockId);
+            textureIdRegistry.set(blockId, idx);
+        }
+        return idx;
+    };
+
+    // Resolve the support block texture index once
+    const supportTextureIdx = supportBlockId ? registerTexture(supportBlockId) : -1;
+
+    // ── RGB-hex → textureIdx lookup (built from blockIdMap) ──────────────────
+    // blockIdMap maps '#rrggbb' → blockId. We pre-register all textures and
+    // build a fast Map for O(1) lookup inside the pixel loop.
+    const rgbToTextureIdx = new Map<number, number>(); // packed RGB (24-bit) → textureIdx
+    if (blockIdMap) {
+        for (const [hex, blockId] of Object.entries(blockIdMap)) {
+            // hex is '#rrggbb'
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            const packed = (r << 16) | (g << 8) | b;
+            rgbToTextureIdx.set(packed, registerTexture(blockId));
+        }
+    }
 
     // ── Upper-bound allocation ─────────────────────────────────────────────
     // Worst case: every pixel + a support block below it = 2× pixels.
@@ -91,6 +145,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
     const maxInstances = width * height * 2 + width; // +width for noobline column
     const positions = new Float32Array(maxInstances * 3);
     const colors = new Float32Array(maxInstances * 3);
+    const textureIds = new Int16Array(maxInstances).fill(-1);
     let count = 0;
 
     // Normalised support color (0-1)
@@ -196,11 +251,18 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                     colors[base] = sr;
                     colors[base + 1] = sg;
                     colors[base + 2] = sb;
+                    textureIds[count] = supportTextureIdx;
                 } else {
                     const pxIdx = (y * width + x) * 4;
                     colors[base] = data[pxIdx] / 255;
                     colors[base + 1] = data[pxIdx + 1] / 255;
                     colors[base + 2] = data[pxIdx + 2] / 255;
+
+                    // Look up texture by the pixel's exact quantized RGB
+                    if (rgbToTextureIdx.size > 0) {
+                        const packed = (data[pxIdx] << 16) | (data[pxIdx + 1] << 8) | data[pxIdx + 2];
+                        textureIds[count] = rgbToTextureIdx.get(packed) ?? -1;
+                    }
                 }
                 count++;
             }
@@ -223,6 +285,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                     colors[base] = sr;
                     colors[base + 1] = sg;
                     colors[base + 2] = sb;
+                    textureIds[count] = supportTextureIdx;
                     count++;
                 }
             }
@@ -233,6 +296,8 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
     return {
         positions: positions.subarray(0, count * 3),
         colors: colors.subarray(0, count * 3),
+        textureIds: textureIds.subarray(0, count),
+        uniqueTextureIds,
         count,
     };
 }
