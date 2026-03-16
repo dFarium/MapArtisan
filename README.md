@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
 
-A powerful map art tool suite for Minecraft. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features. Supports Minecraft 1.16–1.21+.
+A powerful map art tool suite for Minecraft. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features. Supports Minecraft 1.16 through 26.1.
 
 > **Designed for Minecraft 1.16+** — Modern block palettes and advanced 3D mechanics that simplify construction while maximizing visual fidelity.
 
@@ -41,7 +41,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 
 ### Version Support
 
-Supports **Minecraft 1.16.0 through 1.21.11**:
+Supports **Minecraft 1.16.0 through 26.1**:
 
 - **Dynamic Palette Filtering** — Shows only blocks available in your target version
 - **Automatic DataVersion** — Exports `.litematic` files with the correct internal version ID

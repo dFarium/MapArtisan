@@ -20,12 +20,16 @@ describe('filterPaletteByVersion', () => {
             expect(isVersionLessOrEqual('1.16.0', '1.17.0')).toBe(true);
             expect(isVersionLessOrEqual('1.16.0', '1.21.4')).toBe(true);
             expect(isVersionLessOrEqual('1.20.0', '1.21.0')).toBe(true);
+            expect(isVersionLessOrEqual('1.21.11', '26.1')).toBe(true);
+            expect(isVersionLessOrEqual('26.1', '26.2')).toBe(true);
         });
 
         it('returns false when first version is greater', () => {
             expect(isVersionLessOrEqual('1.21.4', '1.16.0')).toBe(false);
             expect(isVersionLessOrEqual('1.17.0', '1.16.0')).toBe(false);
             expect(isVersionLessOrEqual('1.21.0', '1.20.0')).toBe(false);
+            expect(isVersionLessOrEqual('26.1', '1.21.11')).toBe(false);
+            expect(isVersionLessOrEqual('26.2', '26.1')).toBe(false);
         });
 
         it('handles different version lengths', () => {

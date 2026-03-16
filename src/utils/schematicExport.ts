@@ -2,8 +2,7 @@ import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWri
 import type { BrightnessLevel, PaletteData } from '../types/mapart';
 import paletteData from '../data/palette.json';
 
-// Minecraft version (1.21.4 / 1.21.11)
-const MINECRAFT_DATA_VERSION = 4671; // 1.21.11
+import { getDataVersion, DEFAULT_VERSION } from '../data/supportedVersions';
 
 export interface BlockPosition {
     x: number;
@@ -109,7 +108,8 @@ export function imageDataToBlockStates(
  */
 export function createSchematicNBT(
     blockStates: BlockState[],
-    metadata: SchematicMetadata = {}
+    metadata: SchematicMetadata = {},
+    targetVersion: string = DEFAULT_VERSION
 ): NBTRoot {
     // Build palette: unique blocks
     const paletteMap = new Map<string, number>();
@@ -218,7 +218,7 @@ export function createSchematicNBT(
             },
             DataVersion: {
                 type: TagTypes.INT,
-                value: MINECRAFT_DATA_VERSION,
+                value: getDataVersion(targetVersion),
             },
         },
     };
@@ -233,10 +233,11 @@ export function exportSchematic(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
     buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
-    metadata: SchematicMetadata = {}
+    metadata: SchematicMetadata = {},
+    targetVersion: string = DEFAULT_VERSION
 ): Uint8Array {
     const blockStates = imageDataToBlockStates(imageData, selectedPaletteItems, buildMode);
-    const nbt = createSchematicNBT(blockStates, metadata);
+    const nbt = createSchematicNBT(blockStates, metadata, targetVersion);
     return serializeNBT(nbt);
 }
 
@@ -245,11 +246,13 @@ export function exportSchematic(
  */
 export function downloadSchematic(
     imageData: ImageData,
-    selectedPaletteItems: Record<number, string | null>, buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
+    selectedPaletteItems: Record<number, string | null>,
+    buildMode: '2d' | '3d_valley' | '3d_valley_lossy',
     filename: string = 'mapart.nbt',
-    metadata: SchematicMetadata = {}
+    metadata: SchematicMetadata = {},
+    targetVersion: string = DEFAULT_VERSION
 ): void {
-    const nbtData = exportSchematic(imageData, selectedPaletteItems, buildMode, metadata);
+    const nbtData = exportSchematic(imageData, selectedPaletteItems, buildMode, metadata, targetVersion);
     // nbtData is already a Uint8Array, cast to BlobPart for type compatibility
     const blob = new Blob([nbtData as BlobPart], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
