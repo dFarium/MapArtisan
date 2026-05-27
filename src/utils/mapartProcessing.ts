@@ -69,6 +69,25 @@ export type { BuildMode };
 // Main Processing Function
 // ============================================================================
 
+/**
+ * Coordinates and runs the full image-to-mapart conversion pipeline.
+ *
+ * Execution flow:
+ * 1. Resolves color candidates matching selection filters.
+ * 2. Allocates a padded Float32Array working buffer (left/right/bottom padding) to eliminate boundary checks in error diffusion.
+ * 3. Compiles a flat 1D representation of the dithering error distribution kernel.
+ * 4. Loops through pixels, performing color matching, ordered/diffusion dithering, and packing results.
+ * 5. Runs the "Smart Drop" height optimization algorithm to compute vertical layout offsets.
+ *
+ * @param imageData Raw input pixel data.
+ * @param buildMode Structural target layout (2D flat vs 3D valley steps).
+ * @param selectedPaletteItems Selected color indices mapped to block namespaces.
+ * @param threeDPrecision Height limits/precision slider percentage.
+ * @param dithering Pixel thresholding and error diffusion strategy.
+ * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
+ * @param independentMaps Separate map layouts for individual centering grids.
+ */
 export function processMapart(
     imageData: ImageData,
     buildMode: BuildMode,
@@ -157,7 +176,7 @@ export function processMapart(
         activeKernel = buildFlatDitherKernel(matrixToUse, paddedWidth);
     }
 
-    // Packed results array (Opt#9)
+    // Packed results buffer (stores candidateIndex, tone/brightness adjustments, and support flag in a single Uint32 per pixel)
     const packedResults = new Uint32Array(width * height);
 
 
@@ -213,7 +232,7 @@ export function processMapart(
                 output[idx + 2] = bestRGB.b;
                 output[idx + 3] = 255;
 
-                // Save Block Index, Tone and NeedsSupport into packedResults (Opt#9)
+                // Pack block candidate, relative tone, and support requirement into packedResults
                 let tone = 0;
                 if (buildMode === '3d_valley') {
                     if (bestBrightness === 'high') tone = 1;
@@ -282,8 +301,8 @@ export function processMapart(
             }
         }
 
-        // Unpack packedResults for compatibility with Smart Drop and return signature (Opt#9)
-        // Unpack toneMap locally only for Phase 2 (Smart Drop) when buildMode is 3d_valley (Opt#9 Option B)
+        // Reconstruct the 1D tone map for height optimization (Smart Drop).
+        // Tones are unpacked using bitwise shifting from the unified packedResults.
         let toneMap: Int8Array | null = null;
         if (buildMode === '3d_valley') {
             toneMap = new Int8Array(width * height);
@@ -364,8 +383,11 @@ export function processMapart(
 // ============================================================================
 
 /**
- * Applies manual edits to the existing image data and updates stats.
- * This is a lighter operation than full reprocessing.
+ * Super lightweight operations that overlays painted color corrections
+ * directly onto a cloned copy of the quantized base image.
+ * 
+ * This avoids reprocessing the entire source image, keeping paint strokes instantaneous.
+ * Re-runs vertical height profiles immediately after applying the modifications.
  */
 export function applyManualEdits(
     baseImageData: ImageData,
@@ -432,7 +454,7 @@ export function applyManualEdits(
         };
 
         for (let x = 0; x < width; x++) {
-            // Updated to use zero-allocation call
+            // Run height optimization using shared workspace buffers to avoid GC pressure
             const { min, max } = optimizeColumnHeights(
                 toneMap,
                 x,      // startIndex
@@ -463,7 +485,8 @@ export function applyManualEdits(
 // ============================================================================
 
 /**
- * Suggests a dithering mode based on image characteristics.
+ * Evaluates source image color variance standard deviation (by sampling a subset of pixels)
+ * to suggest the optimal dithering mode and diffusion strength.
  */
 export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMode; strength: number } {
     const { width, height, data } = imageData;

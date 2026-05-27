@@ -3,14 +3,19 @@ import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, ty
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
 import type { ManualEdit, MapartStats } from '../types/mapart';
 
-// State to cache the last base processing result
-// State to cache the last base processing result
+/**
+ * In-memory thread state caching the results of the last base color quantization.
+ * 
+ * By caching the base result:
+ * 1. We avoid reprocessing the entire image when applying light manual pixel edits.
+ * 2. We avoid recalculating material counts from scratch during export requests.
+ */
 let lastBaseResult: {
-    sourceImage: ImageData; // Raw unprocessed image
-    processedImage: ImageData; // Output image (quantized)
-    packedResults: Uint32Array;
-    candidates: ColorCandidate[];
-    stats: MapartStats;
+    sourceImage: ImageData;   // Original user uploaded image (preprocessed filters applied)
+    processedImage: ImageData;  // Quantized output image containing pixel color candidates
+    packedResults: Uint32Array; // Unified pixel result buffer (candidate index, tone, support flags)
+    candidates: ColorCandidate[]; // Valid color list generated from active palette
+    stats: MapartStats;        // Global layout dimension statistics
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -19,8 +24,20 @@ let lastBaseResult: {
 
 const api = {
     /**
-     * Heavy processing step. Generates the base mapart from settings.
-     * Caches the result to allow fast manual editing later.
+     * Performs color matching, error diffusion, and height profile calculations.
+     * Caches the results in thread memory to accelerate subsequent paint actions.
+     * 
+     * @param imageDataBuffer Transferable buffer of the preprocessed image data.
+     * @param width Width of the image.
+     * @param height Height of the image.
+     * @param version Unique version timestamp tracking image state.
+     * @param buildMode Target layout configuration (2D flat vs 3D valley).
+     * @param selectedPaletteItems Palette selection mapping IDs to minecraft blocks.
+     * @param threeDPrecision Height optimizations slider limits.
+     * @param dithering Pixel error diffusion/threshold matrix strategy.
+     * @param useCielab Flag to compare colors using CIELAB distance instead of RGB.
+     * @param hybridStrength Weighting factor for hybrid/adaptive dithering.
+     * @param independentMaps Separate centering grids for multi-map setups.
      */
     processMapart: (
         imageDataBuffer: ArrayBuffer | null,
@@ -90,7 +107,10 @@ const api = {
     },
 
     /**
-     * Light step. Applies manual edits to the cached base result.
+     * Lightweight operation that overlays a map of manual pixel overrides
+     * directly onto the quantized base, re-calculating stats immediately.
+     * 
+     * @param manualEdits Map of indices to manual painted color overrides.
      */
     applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } => {
         if (!lastBaseResult) {
@@ -116,6 +136,10 @@ const api = {
         );
     },
 
+    /**
+     * Generates a fully packaged Litematica structure.
+     * Uses precomputed packed results if cached version matches settings.
+     */
     generateMapartExport: async (
         imageDataBuffer: ArrayBuffer | null,
         width: number,
@@ -175,9 +199,9 @@ const api = {
     },
 
     /**
-     * Calculates the materials required for the mapart.
+     * Calculates the exact block counts required to assemble this schematic.
+     * Returns total counts and reusable section counts.
      */
-
     calculateMaterialCounts: async (
         imageDataBuffer: ArrayBuffer | null,
         width: number,
@@ -230,8 +254,7 @@ const api = {
     },
 
     /**
-     * Get the block information at a specific coordinate.
-     * Checks manual edits first, then falls back to the processed base map.
+     * Retrieves the block representation at a selected pixel index.
      */
     getBlockAt: (x: number, y: number, manualEdits: Record<number, ManualEdit>) => {
         if (!lastBaseResult) {
@@ -240,8 +263,6 @@ const api = {
         }
 
         const { width, packedResults, candidates } = lastBaseResult;
-        // console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Candidates len: ${candidates?.length}`);
-
         const index = y * width + x;
 
         // Check manual edits first

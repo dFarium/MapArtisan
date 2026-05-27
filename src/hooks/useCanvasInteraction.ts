@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback, type RefObject } from 'react';
 
+/**
+ * Hook to manage interactive canvas operations including zooming, panning, dragging, and automatic centering.
+ * 
+ * Zooming uses an exponential-like multiplier centered around the user's cursor position.
+ * Centering measures container dimensions against actual image dimensions to fit and center the view.
+ * 
+ * @param uploadedImage The raw user uploaded file, used to enable/disable interaction.
+ * @param isPainting State flag indicating if painting is currently active (suspends drag/pan).
+ * @param containerRef Reference to the viewport container element used for boundary calculations.
+ * @param imageDimensions Width and height of the target rendering layout for alignment.
+ */
 export const useCanvasInteraction = (
     uploadedImage: File | null,
     isPainting: boolean = false,
@@ -12,7 +23,6 @@ export const useCanvasInteraction = (
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
     const handleWheel = useCallback((e: React.WheelEvent) => {
-        console.log('[DEBUG] handleWheel called', { deltaY: e.deltaY });
         if (!uploadedImage) return;
         e.preventDefault();
 

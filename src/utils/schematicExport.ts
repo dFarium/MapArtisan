@@ -1,3 +1,10 @@
+/**
+ * Legacy Schematic Export Backup
+ * 
+ * Note: This module is currently NOT imported or used by the application UI.
+ * It remains as a backup reference for exporting old legacy schematic NBT structures.
+ */
+
 import { TagTypes, serializeNBT, type NBTRoot, type NBTCompound } from './nbtWriter';
 import type { BrightnessLevel, PaletteData } from '../types/mapart';
 import paletteData from '../data/palette.json';
@@ -21,7 +28,8 @@ export interface SchematicMetadata {
 }
 
 /**
- * Convert canvas ImageData to block states for NBT export
+ * Convert canvas ImageData to block states for legacy NBT export.
+ * Note: Uses old array-of-objects structure for historical compatibility.
  */
 export function imageDataToBlockStates(
     imageData: ImageData,
@@ -104,7 +112,7 @@ export function imageDataToBlockStates(
 }
 
 /**
- * Create schematic NBT structure
+ * Compiles a legacy NBT compound representation for classic schematic format.
  */
 export function createSchematicNBT(
     blockStates: BlockState[],

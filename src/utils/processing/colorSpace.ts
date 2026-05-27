@@ -26,14 +26,24 @@ const labCache = new Map<number, LAB>();
 // Color cache: RGB binary -> best candidate index (cleared per processMapart call)
 const colorCache = new Map<number, number>();
 
+/**
+ * Converts an RGB color object into a single 24-bit binary integer key.
+ * Used for fast lookup table indexing in color matching caches.
+ */
 export function rgbToBinary(rgb: RGB): number {
     return (Math.round(rgb.r) << 16) + (Math.round(rgb.g) << 8) + Math.round(rgb.b);
 }
 
+/**
+ * Resets the transient query-to-candidate cache before starting a new image quantization.
+ */
 export function clearColorCache(): void {
     colorCache.clear();
 }
 
+/**
+ * Gets reference to the active query-to-candidate cache.
+ */
 export function getColorCache(): Map<number, number> {
     return colorCache;
 }
@@ -65,12 +75,13 @@ const GAMMA_LUT: Float64Array = (() => {
 // ============================================================================
 
 /**
- * RGB to LAB conversion - exact copy from mapartcraft (redstonehelper's program).
- * This version scales L to 0-255 range for consistent distance calculations.
- *
- * Optimizations (Opt#2):
- *   - sRGB gamma step uses GAMMA_LUT[256] instead of Math.pow(x, 2.4)
- *   - XYZ→Lab cube root uses Math.cbrt instead of Math.pow(x, 1/3)
+ * Transforms an RGB color into the CIELAB (L*a*b*) color space.
+ * Matches mapartcraft's behavior to output matching shade calculations.
+ * 
+ * Performance features:
+ * 1. Uses a precomputed 256-index gamma lookup table (`GAMMA_LUT`) to bypass sRGB to linear conversion.
+ * 2. Employs the native `Math.cbrt` (cube root) operation to avoid `Math.pow(x, 1/3)` overhead.
+ * 3. Scales L to a 0-255 range to preserve equal weight during Euclidean distance metrics.
  */
 export function rgbToLab(rgb: RGB): LAB {
     const key = rgbToBinary(rgb);
@@ -83,7 +94,7 @@ export function rgbToLab(rgb: RGB): LAB {
     const g1 = GAMMA_LUT[Math.round(rgb.g) & 0xFF];
     const b1 = GAMMA_LUT[Math.round(rgb.b) & 0xFF];
 
-    // Linear RGB to XYZ
+    // Linear RGB to XYZ using coefficients defined in Constants
     const { XYZ_R_COEFFS: Rc, XYZ_G_COEFFS: Gc, XYZ_B_COEFFS: Bc, XYZ_WHITE_REF: Wr } = MAPART;
 
     const f = (Rc[0] * r1 + Rc[1] * g1 + Rc[2] * b1) / Wr.X;
@@ -101,7 +112,7 @@ export function rgbToLab(rgb: RGB): LAB {
     const m = MAPART.LAB_A_FACTOR * (cbrtF - l);
     const n = MAPART.LAB_B_FACTOR * (l - cbrtK);
 
-    // Scale L to 0-255 range
+    // Scale L to 0-255 range and offset coordinates
     const lab: LAB = {
         L: MAPART.CIELAB_SCALE / 100 * (MAPART.LAB_L_FACTOR * l - MAPART.LAB_L_OFFSET) + 0.5,
         a: m + 0.5,
@@ -116,6 +127,9 @@ export function rgbToLab(rgb: RGB): LAB {
 // Distance Calculations
 // ============================================================================
 
+/**
+ * Calculates the standard Delta E 1976 distance between two CIELAB colors.
+ */
 export function deltaE(lab1: LAB, lab2: LAB): number {
     const dL = lab1.L - lab2.L;
     const da = lab1.a - lab2.a;
@@ -124,8 +138,8 @@ export function deltaE(lab1: LAB, lab2: LAB): number {
 }
 
 /**
- * Squared Euclidean distance in LAB space (like mapartcraft).
- * Using squared values avoids sqrt and works better for comparisons.
+ * Calculates the squared Delta E distance between two CIELAB colors.
+ * Eliminating the Math.sqrt operation makes this significantly faster for comparative searches.
  */
 export function labDistanceSq(lab1: LAB, lab2: LAB): number {
     const dL = lab1.L - lab2.L;
@@ -134,6 +148,9 @@ export function labDistanceSq(lab1: LAB, lab2: LAB): number {
     return dL * dL + da * da + db * db;
 }
 
+/**
+ * Calculates the squared Euclidean distance in RGB color space.
+ */
 export function colorDistanceSq(a: RGB, b: RGB): number {
     const dr = a.r - b.r;
     const dg = a.g - b.g;
@@ -142,29 +159,47 @@ export function colorDistanceSq(a: RGB, b: RGB): number {
 }
 
 // ============================================================================
-// Bitpacking Result Utilities (Opt#9)
+// Bitpacking Result Utilities
 // ============================================================================
 
+// Bit-packing metadata bit offsets:
+// bits 0..12: Unused
+// bit 13: Needs support block flag (gravity blocks)
+// bits 14..15: Relative height adjustments (-1, 0, or 1 represented as unsigned 0..2)
+// bits 16..23: Palette candidate selection index (0..255)
 const CANDIDATE_SHIFT = 16;
 const CANDIDATE_MASK = 0xFF;
 const TONE_SHIFT = 14;
 const TONE_MASK = 0x3;
 const SUPPORT_BIT = 13;
 
+/**
+ * Packs processing results for a single pixel into a 32-bit unsigned integer.
+ * This represents a 4x reduction in memory compared to objects, eliminating GC allocations.
+ */
 export function packPixel(candidateIdx: number, tone: number, needsSupport: boolean): number {
     return ((candidateIdx & CANDIDATE_MASK) << CANDIDATE_SHIFT)
          | (((tone + 1) & TONE_MASK) << TONE_SHIFT)
          | (needsSupport ? (1 << SUPPORT_BIT) : 0);
 }
 
+/**
+ * Unpacks the palette candidate index from the packed 32-bit pixel value.
+ */
 export function unpackCandidateIdx(packed: number): number {
     return (packed >> CANDIDATE_SHIFT) & CANDIDATE_MASK;
 }
 
+/**
+ * Unpacks the relative tone offset (-1, 0, or 1) from the packed 32-bit pixel value.
+ */
 export function unpackTone(packed: number): number {
     return ((packed >> TONE_SHIFT) & TONE_MASK) - 1;
 }
 
+/**
+ * Unpacks the gravity support block requirement from the packed 32-bit pixel value.
+ */
 export function unpackNeedsSupport(packed: number): boolean {
     return (packed & (1 << SUPPORT_BIT)) !== 0;
 }

@@ -98,8 +98,17 @@ export const BAYER_8X8 = [
 // ============================================================================
 
 /**
- * Calculate local variance in a 3x3 window around a pixel.
- * Returns the sum of squared differences from the center pixel.
+ * Calculates the local color variance in a 3x3 window centered at (x, y).
+ * 
+ * In hybrid dithering, areas with high detail/high variance use normal error diffusion,
+ * whereas flat/low variance areas scale down the error distribution to avoid dithering artifacts (worms).
+ * 
+ * @param floatBuffer Padded Float32 buffer containing floating-point RGB pixel values.
+ * @param x Current pixel X coordinate (unpadded).
+ * @param y Current pixel Y coordinate.
+ * @param width Image width.
+ * @param height Image height.
+ * @param paddedWidth Padded width of the buffer (including left/right boundaries).
  */
 export function calculateLocalVariance(
     floatBuffer: Float32Array,
@@ -144,14 +153,24 @@ export function calculateLocalVariance(
 // Flat Dither Kernel Optimization
 // ============================================================================
 
+/**
+ * Represents a compiled flat 1D representation of a dither error distribution matrix.
+ */
 export interface FlatDitherKernel {
-    offsets: Int32Array;
-    weights: Float32Array;
-    dx: Int8Array;
-    dy: Int8Array;
-    count: number;
+    offsets: Int32Array;   // Precomputed 1D linear buffer offsets to target pixels
+    weights: Float32Array; // Fractional error weight scaled by the matrix divisor
+    dx: Int8Array;         // Relative pixel delta X offsets
+    dy: Int8Array;         // Relative pixel delta Y offsets
+    count: number;         // Active non-zero cell count in the distribution matrix
 }
 
+/**
+ * Pre-compiles 2D error diffusion matrices into a flat 1D layout based on row strides.
+ * This completely avoids 2D coordinate calculations in the hot processing loops.
+ * 
+ * @param ditherMatrix The 2D matrix structure to compile.
+ * @param width The layout width (typically the padded buffer width).
+ */
 export function buildFlatDitherKernel(ditherMatrix: DitherMatrix, width: number): FlatDitherKernel {
     const matrix = ditherMatrix.matrix;
     const divisor = ditherMatrix.divisor;

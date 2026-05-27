@@ -5,17 +5,26 @@ import { DEFAULT_VERSION } from '../data/supportedVersions';
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
 
+/**
+ * Filter settings applied to the source image before processing.
+ */
 export interface ImageSettings {
     saturation: number;
     brightness: number;
     contrast: number;
 }
 
+/**
+ * Dimensions of the mapart in Minecraft maps grid (e.g. 1x1, 2x2 maps).
+ */
 export interface GridDimensions {
     x: number;
     y: number;
 }
 
+/**
+ * Zoom and offsets configuration for cropping and viewport adjustment.
+ */
 export interface CropSettings {
     zoom: number;
     offsetX: number;
@@ -28,31 +37,59 @@ const defaultCropSettings: CropSettings = {
     offsetY: 0
 };
 
+/**
+ * Zustand global application state for Mapart Creator.
+ */
 export interface MapartState {
+    /** Target Minecraft version to filter palettes */
     paletteVersion: string;
+    /** Image adjustment filters */
     imageSettings: ImageSettings;
+    /** Layout grid size in maps */
     gridDimensions: GridDimensions;
+    /** Output build layout strategy (2D flat vs 3D valley steps) */
     buildMode: BuildMode;
+    /** Support block placement strategy */
     blockSupport: BlockSupport;
+    /** Namespace-key of the block used for nooblines and underneath supports */
     supportBlockId: string;
+    /** Export format splitting (export as whole map or split region sections) */
     exportMode: ExportMode;
+    /** Specific section focused for preview and isolated exports */
     previewSection: PreviewSection | null;
+    /** Pixel color dithering algorithm */
     dithering: string;
+    /** Raw user uploaded image file */
     uploadedImage: File | null;
+    /** ObjectURL representing the preview source */
     previewUrl: string | null;
+    /** Fit adjustment style */
     imageFitMode: ImageFitMode;
+    /** Viewport cropping parameters */
     cropSettings: CropSettings;
+    /** Map color index mapping to minecraft block IDs */
     selectedPaletteItems: Record<number, string | null>;
+    /** Height penalty threshold for 3D steps (0% to 100%) */
     threeDPrecision: number;
+    /** Use CIELAB color delta E (true) or RGB Euclidean distance (false) */
     useCielab: boolean;
+    /** Error diffusion threshold scale for adaptive/hybrid dithering */
     hybridStrength: number;
+    /** Computed output structure dimensions and height limits stats */
     mapartStats: MapartStats | null;
+    /** Treat grid maps as standalone entities for grounding and borders */
     independentMaps: boolean;
+    /** Manually painted block edits over the base mapart image */
     manualEdits: Record<number, ManualEdit>;
+    /** Current tool active: painting brush */
     isPainting: boolean;
+    /** Current tool active: color picker eye-dropper */
     isPicking: boolean;
+    /** The block template loaded in the paint brush */
     brushBlock: ManualEdit | null;
+    /** Undo history stack */
     history: Record<number, ManualEdit>[];
+    /** History index pointer */
     historyIndex: number;
 
     // Actions

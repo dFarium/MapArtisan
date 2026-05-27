@@ -20,7 +20,13 @@ export const getNeededBits = (size: number): number => {
 };
 
 /**
- * Create a new bit array for Litematica
+ * Allocates a new Litematica BitArray structure.
+ * 
+ * Litematica stores palette block index values bitpacked consecutively in a 64-bit integer array.
+ * Values are stored sequentially and can cross the 64-bit boundaries between elements.
+ * 
+ * @param volume The total size (width * height * depth) of the region.
+ * @param paletteLength The number of items in the palette (used to calculate bits needed).
  */
 export function createBitArray(volume: number, paletteLength: number): BitArray {
     const num_bits = getNeededBits(paletteLength);
@@ -37,33 +43,35 @@ export function createBitArray(volume: number, paletteLength: number): BitArray 
     };
 }
 
+// 64-bit unsigned maximum bitmask (equivalent to 0xFFFFFFFFFFFFFFFF)
+// Used to wrap JavaScript BigInt operations to exactly 64 bits.
 const ONE_64 = 0xFFFFFFFFFFFFFFFFn;
 
 /**
- * Set a value in the bit array (MUTABLE - modifies array in place)
+ * Packs a value into the target index of the BitArray.
+ * Mutates the underlying BigInt64Array buffer in place.
+ * 
+ * Handles boundary crossing: if the bit field crosses a 64-bit boundary, 
+ * the value is split: the lower bits go to array[startIdx], and the upper bits go to array[endIdx].
+ * 
+ * Uses `& ONE_64` to simulate unsigned bit operations on JavaScript signed BigInts.
  */
 export function set(bitArray: BitArray, index: number, value: number): BitArray {
     const valueBI = BigInt(value);
     const startOffset = index * bitArray.num_bits;
-    const startArrIndex = startOffset >> 6; // Divide by 64
+    const startArrIndex = startOffset >> 6; // Divide by 64 (using shift)
     const endArrIndex = ((index + 1) * bitArray.num_bits - 1) >> 6;
-    const startBitOffset = BigInt(startOffset & 0x3F); // Modulo 64
+    const startBitOffset = BigInt(startOffset & 0x3F); // Modulo 64 (using mask)
 
     // Calculate shifts
     const fullValueShifted = (valueBI & bitArray.mask) << startBitOffset;
     const fullMaskShifted = bitArray.mask << startBitOffset;
 
-    // Update first word
-    // We clear bits using the mask and then OR the new value
-    // We must handle 64-bit wrapping manually for the mask inversion logic if we were using ~
-    // But since we use BigInts, ~ works on infinite bits.
-    // To clear bits in 64-bit word: word & ~(mask)
-    // We restrict mask to 64 bits: mask & ONE_64
-
+    // Clear bits in the first word using the mask and then OR the new value
     const mask1 = fullMaskShifted & ONE_64;
     bitArray.array[startArrIndex] = (bitArray.array[startArrIndex] & ~mask1) | (fullValueShifted & ONE_64);
 
-    // Handle overflow into next long if needed
+    // Handle overflow into next 64-bit word if needed
     if (startArrIndex !== endArrIndex) {
         const shiftRightAmount = 64n - startBitOffset;
         const part2Value = (valueBI & bitArray.mask) >> shiftRightAmount;
@@ -76,7 +84,8 @@ export function set(bitArray: BitArray, index: number, value: number): BitArray 
 }
 
 /**
- * Get a value from the bit array
+ * Unpacks and retrieves a value from the target index of the BitArray.
+ * Recombines split bits if the field crosses a 64-bit word boundary.
  */
 export function get(bitArray: BitArray, index: number): number {
     const startOffset = index * bitArray.num_bits;
@@ -90,14 +99,8 @@ export function get(bitArray: BitArray, index: number): number {
     } else {
         const endOffset = 64n - startBitOffset;
 
-        // Combine and mask
-        // Note: BigInt shifts on signed numbers fill with sign bit?
-        // Right shift: Yes (arithmetic). Left shift: adds zeros.
-        // To avoid sign extension issues with right shift on negative numbers (if high bit set), 
-        // we should mask `bitArray.array[startArrIndex]` with `ONE_64` (conceptually unsigned) before shifting?
-        // Yes, `BigInt.asUintN(64, ...)` or `& ONE_64`.
-        // `& ONE_64` converts negative BigInt to positive BigInt with same bits (for subsequent ops).
-
+        // Mask negative signed BigInt values with `ONE_64` to convert them
+        // to positive logical equivalents for correct right-shifting.
         const word1Unsigned = bitArray.array[startArrIndex] & ONE_64;
         const word2Unsigned = bitArray.array[endArrIndex] & ONE_64;
 

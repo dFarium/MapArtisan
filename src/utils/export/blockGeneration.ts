@@ -16,8 +16,28 @@ import {
 import type { BlockStatesBuffers } from './types';
 
 /**
- * Generate block positions from processed image data.
- * If precomputedPackedResults is provided, avoids redundant image reprocessing.
+ * Transforms quantized 2D canvas pixel coordinates into a 3D block representation.
+ * Computes individual heights, grounds the columns (reducing structural depth),
+ * places scaffolding/nooblines, and handles block support for gravity/floating blocks.
+ * 
+ * Performance features:
+ * 1. Accepts a flat precomputed PackedResults array to avoid re-quantization overhead.
+ * 2. Compiles block outputs into flat coordinate buffers (`BlockStatesBuffers`) instead of allocating separate block objects.
+ * 
+ * @param imageData Raw input pixel data.
+ * @param selectedPaletteItems Selected color indices mapped to block namespaces.
+ * @param buildMode Structural target layout (2D flat vs 3D valley steps).
+ * @param applyOptimization True to optimize structural height utilizing Smart Drop.
+ * @param threeDPrecision Height optimizations slider limits.
+ * @param dithering Pixel error diffusion/threshold matrix strategy.
+ * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
+ * @param independentMaps Separate centering grids for independent map pieces.
+ * @param manualEdits Map of indices to manual painted color overrides.
+ * @param blockSupport Support block strategy (all, needed, gravity).
+ * @param supportBlockId Namespace-key of the block used for scaffolding.
+ * @param exportMode Export format splitting (export as whole map or split region sections).
+ * @param precomputedPackedResults Optional pre-computed packed index buffer.
  */
 export function imageDataToBlockStates(
     imageData: ImageData,

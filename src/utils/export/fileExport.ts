@@ -13,8 +13,32 @@ import { imageDataToBlockStates } from './blockGeneration';
 import { createLitematicaNBT } from './nbtBuilder';
 
 /**
- * Generate Litematica export data (Blob)
- * If map is larger than 128x128, it will be split into multiple files and zipped.
+ * Generates the binary Litematica export data (Blob).
+ * 
+ * If the layout is larger than a single 128x128 map grid and sections mode is enabled:
+ * 1. The image is processed as a unified layout.
+ * 2. Generated block coordinates are grouped by their corresponding 128x128 map sections.
+ * 3. In Global mode, boundaries are shared (the block at z = m*128 is placed in both map m and map m+1).
+ *    In Independent mode, z = m*128 is the explicit start/noobline for map m.
+ * 4. Each section's blocks are shifted to local coordinates (0..127) and compiled into standalone NBT structures.
+ * 5. All section files are compressed into a single ZIP archive.
+ * 
+ * @param imageData Raw input pixel data.
+ * @param selectedPaletteItems Selected color indices mapped to block namespaces.
+ * @param buildMode Structural target layout (2D flat vs 3D valley steps).
+ * @param filename Default filename prefix.
+ * @param metadata Title, author, and description fields.
+ * @param threeDPrecision Height optimizations slider limits.
+ * @param dithering Pixel error diffusion/threshold matrix strategy.
+ * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
+ * @param independentMaps Separate centering grids for independent map pieces.
+ * @param manualEdits Map of indices to manual painted color overrides.
+ * @param blockSupport Support block strategy (all, needed, gravity).
+ * @param supportBlockId Namespace-key of the block used for scaffolding.
+ * @param exportMode Export format splitting (export as whole map or split region sections).
+ * @param targetVersion Target Minecraft version to compile data version.
+ * @param precomputedPackedResults Optional pre-computed packed index buffer.
  */
 export async function generateMapartExport(
     imageData: ImageData,

@@ -45,7 +45,18 @@ function convertToBuffers(blockStates: BlockWithCoords[]): BlockStatesBuffers {
 }
 
 /**
- * Create Litematica NBT structure from block states
+ * Compiles a Litematica schematic structure into NBT tags.
+ * 
+ * Flow:
+ * 1. Computes total volume boundary dimensions (maxX, maxY, maxZ).
+ * 2. Compiles a BlockStatePalette of unique block types (always starting with minecraft:air at index 0).
+ * 3. Allocates and writes a packed Litematica BitArray (repacking values using BigInt word limits).
+ * 4. Fills metadata fields including TotalBlocks, TotalVolume, name, description, author, and time stamps.
+ * 5. Generates the single Region structure ("map") containing the BlockStates and BlockStatePalette lists.
+ * 
+ * @param blockStates Flat block buffers or legacy list of blocks.
+ * @param metadata Title, description, and author fields.
+ * @param targetVersion Minecraft version (used to pull corresponding DataVersion key).
  */
 export function createLitematicaNBT(
     blockStates: BlockStatesBuffers | BlockWithCoords[],

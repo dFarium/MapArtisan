@@ -8,13 +8,34 @@ import type { DitheringMode } from '../mapartProcessing';
 import { imageDataToBlockStates } from './blockGeneration';
 
 /**
- * Calculate total materials needed
+ * Accumulated counts of required blocks.
+ * - `total` contains the absolute amount of blocks needed to build all sections.
+ * - `reusable` contains the peak amount of each block needed across any individual 128x128 section.
+ *   This is extremely useful for survival players building the sections sequentially, as they
+ *   only need to acquire the peak quantity and can tear down / reuse blocks for subsequent sections.
  */
 export type MaterialCounts = {
     total: Record<string, number>;
     reusable: Record<string, number>;
 };
 
+/**
+ * Iterates through all output blocks to aggregate total quantities and peak quantities.
+ *
+ * @param imageData Raw input pixel data.
+ * @param selectedPaletteItems Selected color indices mapped to block namespaces.
+ * @param buildMode Structural target layout (2D flat vs 3D valley steps).
+ * @param threeDPrecision Height optimizations slider limits.
+ * @param dithering Pixel error diffusion/threshold matrix strategy.
+ * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
+ * @param independentMaps Separate centering grids for independent map pieces.
+ * @param manualEdits Map of indices to manual painted color overrides.
+ * @param blockSupport Support block strategy (all, needed, gravity).
+ * @param supportBlockId Namespace-key of the block used for scaffolding.
+ * @param exportMode Export format splitting (export as whole map or split region sections).
+ * @param precomputedPackedResults Optional pre-computed packed index buffer.
+ */
 export function calculateMaterialCounts(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,

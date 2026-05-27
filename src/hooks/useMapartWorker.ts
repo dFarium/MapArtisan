@@ -28,6 +28,13 @@ interface UseMapartWorkerProps {
 }
 
 
+/**
+ * Custom React hook that interfaces with the Web Worker to perform
+ * heavy image processing and mapart generation off-thread.
+ *
+ * It uses Comlink forRPC-like communications and optimizes data transfers
+ * by using transferable ArrayBuffers to avoid structured clone overhead.
+ */
 export const useMapartWorker = ({
     previewUrl,
     gridDimensions,
@@ -48,6 +55,7 @@ export const useMapartWorker = ({
     exportMode,
     paletteVersion,
 }: UseMapartWorkerProps) => {
+    // References to the active web worker and its Comlink wrapped proxy API
     const workerRef = useRef<Worker | null>(null);
     const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
     const sourceImageDataRef = useRef<ImageData | null>(null);
@@ -66,7 +74,10 @@ export const useMapartWorker = ({
         height: 128 * gridDimensions.y
     };
 
-    // Helper: Convert ImageData to Blob URL (async, non-blocking)
+    /**
+     * Helper to asynchronously convert an ImageData object into a Blob URL
+     * for rendering in the standard DOM img tags without clogging main-thread execution.
+     */
     const imageDataToBlobUrl = async (imageData: ImageData): Promise<string> => {
         const canvas = document.createElement('canvas');
         canvas.width = imageData.width;
@@ -86,7 +97,10 @@ export const useMapartWorker = ({
         });
     };
 
-    // Initialize worker
+    /**
+     * Initializes the background worker, compiles it on module load,
+     * and sets up the Comlink proxy wrappers.
+     */
     const initWorker = useCallback(() => {
         if (workerRef.current) workerRef.current.terminate();
         workerRef.current = new Worker(new URL('../workers/mapart.worker.ts', import.meta.url), {
@@ -199,12 +213,12 @@ export const useMapartWorker = ({
         img.src = previewUrl;
     }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings]);
 
-    // 2a. Heavy Processing (Settings Change)
+    // 2a. Heavy Processing (Debounced processing when settings/image version change)
     useEffect(() => {
         if (!sourceImageDataRef.current || !workerApiRef.current) return;
 
-        // Debounce time in ms
-        const DEBOUNCE_MS = 100;
+        // 50ms debounce helps prevent overlapping requests while dragging sliders
+        const DEBOUNCE_MS = 50;
 
         const timerId = setTimeout(() => {
             const hasSelection = Object.values(selectedPaletteItems).some(v => v !== null);
@@ -226,12 +240,10 @@ export const useMapartWorker = ({
 
                     let bufferToSend: ArrayBuffer | null = null;
                     if (needsBuffer && sourceImageDataRef.current) {
-                        // Use slice(0) to keep a copy in main for other uses (pickBlock, calculations)
-                        // but then TRANSFER the copy to avoid the Comlink/Structured Clone cost.
+                        // Slice a copy to keep image data available locally for color picking,
+                        // and transfer this temporary copy to the worker to eliminate clone cost.
                         bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
                     }
-
-                    console.log(`[useMapartWorker] Requesting heavy processing (v${currentVersion}, buffer: ${!!bufferToSend})...`);
 
                     const result = await api.processMapart(
                         bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
@@ -249,20 +261,20 @@ export const useMapartWorker = ({
 
                     if (!active) return;
 
+                    // If the worker has dropped the cache because it restarted, retry sending the buffer
                     if (result.error === 'CACHE_MISS') {
                         console.warn("[useMapartWorker] Worker cache miss, retrying with buffer...");
                         return process(true);
                     }
 
-                    // Concurrency check
+                    // Discard results from older concurrent processes
                     if (result.version !== currentVersion) {
-                        console.log(`[useMapartWorker] Discarding outdated heavy result (got v${result.version}, current v${currentVersion})`);
                         return;
                     }
 
                     workerImageVersionRef.current = currentVersion;
 
-                    // Apply current edits to that new base
+                    // Apply the current user's manual pixel edits to this newly computed base
                     const editsResult = await api.applyEdits(manualEdits);
 
                     if (!active) return;
@@ -286,7 +298,7 @@ export const useMapartWorker = ({
                     }
 
                     const endTime = performance.now();
-                    console.log(`[useMapartWorker] Heavy processing (v${currentVersion}) complete in ${(endTime - startTime).toFixed(1)}ms`);
+                    console.log(`[useMapartWorker] E2E Mapart generation (v${currentVersion}) complete in ${(endTime - startTime).toFixed(1)}ms`);
 
                 } catch (_err) {
                     if (active) console.error("Heavy processing failed", _err);
@@ -304,11 +316,8 @@ export const useMapartWorker = ({
 
         return () => {
             clearTimeout(timerId);
-            // Checks if it is currently processing to cancel it
-            if (isProcessingRef.current) {
-                console.log("Cancelling previous processing worker...");
-                initWorker();
-            }
+            // Keeping the worker alive preserves the cached processing result (lastBaseResult)
+            // inside the worker's thread memory. This completely skips quantization on simple edits.
         };
     }, [
         sourceImageVersion, buildMode, selectedPaletteItems, threeDPrecision, dithering,

@@ -54,8 +54,10 @@ export interface NBTRoot {
 }
 
 /**
- * NBTWriter class for writing NBT data to binary format
- * Adapted from mapartcraft's implementation to TypeScript
+ * Serializer class to convert a JavaScript NBT representation into standard binary NBT data.
+ * 
+ * NBT (Named Binary Tag) is a big-endian binary format defined by Mojang for storing tree structures.
+ * This writer dynamically grows an internal ArrayBuffer as data is written.
  */
 export class NBTWriter {
     private buffer: ArrayBuffer;
@@ -64,7 +66,7 @@ export class NBTWriter {
     private offset: number;
 
     constructor() {
-        // Start with 1KB, will auto-resize if needed
+        // Starts with 1KB and automatically doubles when capacity limits are crossed
         this.buffer = new ArrayBuffer(1024);
         this.dataView = new DataView(this.buffer);
         this.arrayView = new Uint8Array(this.buffer);
@@ -72,14 +74,19 @@ export class NBTWriter {
     }
 
     /**
-     * Encode string to UTF-8 bytes (modified UTF-8 for Java compatibility)
+     * Encodes strings into Modified UTF-8 byte arrays.
+     * 
+     * Java's Modified UTF-8:
+     * 1. Encodes the null character '\u0000' as two bytes (0xC0 0x80) instead of one (0x00)
+     *    so that standard C string functions don't terminate prematurely.
+     * 2. Encodes characters outside the Basic Multilingual Plane (BMP) as surrogate pairs.
      */
     private encodeUTF8(str: string): number[] {
         const array: number[] = [];
         for (let i = 0; i < str.length; i++) {
             const c = str.charCodeAt(i);
             if (c === 0x0) {
-                // Null character: encode as 0xC0 0x80
+                // Null character
                 array.push(0xc0, 0x80);
             } else if (c < 0x80) {
                 // Single byte (0x0001 to 0x007F)
@@ -287,7 +294,8 @@ export class NBTWriter {
 }
 
 /**
- * Serialize NBT data and compress with gzip
+ * Serializes a JavaScript NBT tree object into a binary format
+ * and compresses the output using standard GZIP compression (via pako).
  */
 export function serializeNBT(nbtData: NBTRoot): Uint8Array {
     const writer = new NBTWriter();

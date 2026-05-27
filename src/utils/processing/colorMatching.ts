@@ -33,6 +33,11 @@ export interface ColorMatchResult {
     distance: number;
 }
 
+/**
+ * Candidates represented in a Struct of Arrays (SoA) layout.
+ * Structuring candidates sequentially in memory avoids allocating individual color objects
+ * during the color selection hot loop, significantly improving CPU cache-friendliness.
+ */
 export interface CandidatesSoA {
     count: number;
     r: Uint8Array;
@@ -41,9 +46,13 @@ export interface CandidatesSoA {
     labL: Float64Array;
     labA: Float64Array;
     labB: Float64Array;
-    notNormal: Uint8Array;
+    notNormal: Uint8Array; // 1 if brightness level is 'high' or 'low', 0 if 'normal'
 }
 
+/**
+ * Transforms an Array of Structs (AoS) representing color candidates
+ * into a highly optimized Struct of Arrays (SoA) layout.
+ */
 export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA {
     const count = candidates.length;
     const r = new Uint8Array(count);
@@ -127,7 +136,7 @@ export function getValidColors(
  * Find the closest color candidate for a pixel given as inline RGB scalars.
  * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
  *
- * Opt#3 & Opt#5: useCielab branch is hoisted, candidates structured as Flat Typed Arrays (SoA).
+ * The useCielab branch is hoisted and candidates are structured as Struct of Arrays (SoA) for cache-friendly sequential memory access.
  */
 export function findClosestColorIndex(
     tr: number,
@@ -197,10 +206,12 @@ export function findClosestColorIndex(
 }
 
 /**
- * Find two closest colors for ordered dithering.
- * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
+ * Find the two closest color candidates for ordered dithering threshold logic.
+ * Accepts inline RGB components to prevent garbage collection pressure.
  *
- * Opt#3 & Opt#5: useCielab branch is hoisted, candidates structured as Flat Typed Arrays (SoA).
+ * For performance:
+ * 1. The CIELAB color space conditional checks are hoisted outside the main loops.
+ * 2. Parallel sequential memory layout (SoA) is traversed for better cache locality.
  */
 export function findTwoClosestColors(
     tr: number,
