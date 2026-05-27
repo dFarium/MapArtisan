@@ -17,6 +17,8 @@ export {
 
     // Dithering
     type DitheringMode,
+    type FlatDitherKernel,
+    buildFlatDitherKernel,
     DITHER_MATRICES,
     BAYER_4X4,
     BAYER_8X8,
@@ -27,6 +29,8 @@ export {
 
     // Color Matching
     type ColorCandidate,
+    type CandidatesSoA,
+    buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
     findTwoClosestColors
@@ -37,6 +41,8 @@ import {
     rgbToLab,
     clearColorCache,
     type DitheringMode,
+    type FlatDitherKernel,
+    buildFlatDitherKernel,
     DITHER_MATRICES,
     BAYER_4X4,
     BAYER_8X8,
@@ -44,6 +50,8 @@ import {
     optimizeColumnHeights,
     type SmartDropWorkspace,
     type ColorCandidate,
+    type CandidatesSoA,
+    buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
     findTwoClosestColors
@@ -113,8 +121,8 @@ export function processMapart(
         }
     }
 
-    // Pre-compute LAB values for candidates
-    const candidateLabs = candidates.map(c => rgbToLab(c.rgb));
+    // Pre-compute Struct of Arrays for candidates
+    const candidatesSoA = buildCandidatesSoA(candidates);
 
     // Stats tracking
     let overallMin = 0;
@@ -128,6 +136,13 @@ export function processMapart(
     const baseErrorScale = dithering === 'adaptive' ? 0.85 : 1.0;
     const isHybrid = dithering === 'hybrid';
     const fsMatrix = DITHER_MATRICES['floyd-steinberg'];
+
+    // Pre-compute flat dither kernel
+    let activeKernel: FlatDitherKernel | null = null;
+    if (isErrorDiffusion) {
+        const matrixToUse = isHybrid ? fsMatrix : ditherMatrix;
+        activeKernel = buildFlatDitherKernel(matrixToUse, width);
+    }
 
     // Tone Map for Smart Drop Optimization phase
     const toneMap = new Int8Array(width * height);
@@ -164,7 +179,7 @@ export function processMapart(
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering
-                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidates, candidateLabs, useCielab, heightPenalty);
+                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidatesSoA, useCielab, heightPenalty);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
                     const maxThreshold = is8x8 ? 65 : 17;
@@ -177,7 +192,7 @@ export function processMapart(
                     }
                 } else {
                     // Error diffusion / None
-                    const result = findClosestColorIndex(clampR, clampG, clampB, candidates, candidateLabs, useCielab, isErrorDiffusion, heightPenalty);
+                    const result = findClosestColorIndex(clampR, clampG, clampB, candidatesSoA, useCielab, isErrorDiffusion, heightPenalty);
                     bestIndex = result.index;
                 }
 
@@ -242,30 +257,30 @@ export function processMapart(
                     const errR = (r - bestRGB.r) * errorScale;
                     const errG = (g - bestRGB.g) * errorScale;
                     const errB = (b - bestRGB.b) * errorScale;
-                    const activeMatrix = isHybrid ? fsMatrix : ditherMatrix;
-                    const divisor = activeMatrix.divisor;
-                    const matrix = activeMatrix.matrix;
+                    const kernel = activeKernel!;
 
-                    for (let row = 0; row < matrix.length; row++) {
-                        for (let col = 0; col < matrix[row].length; col++) {
-                            const weight = matrix[row][col];
-                            if (weight === 0) continue;
+                    for (let i = 0; i < kernel.count; i++) {
+                        const nx = x + kernel.dx[i];
+                        const ny = y + kernel.dy[i];
 
-                            const nx = x + (col - 2);
-                            const ny = y + row;
-
-                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                                if (independentMaps) {
-                                    const currentMapIndex = Math.floor(y / 128);
-                                    const nextMapIndex = Math.floor(ny / 128);
-                                    if (currentMapIndex !== nextMapIndex) continue;
-                                }
-
-                                const nIdx = (ny * width + nx) * 3;
-                                floatBuffer[nIdx] = Math.max(0, Math.min(255, floatBuffer[nIdx] + errR * weight / divisor));
-                                floatBuffer[nIdx + 1] = Math.max(0, Math.min(255, floatBuffer[nIdx + 1] + errG * weight / divisor));
-                                floatBuffer[nIdx + 2] = Math.max(0, Math.min(255, floatBuffer[nIdx + 2] + errB * weight / divisor));
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            if (independentMaps) {
+                                const currentMapIndex = Math.floor(y / 128);
+                                const nextMapIndex = Math.floor(ny / 128);
+                                if (currentMapIndex !== nextMapIndex) continue;
                             }
+
+                            const nIdx = pixelIdx + kernel.offsets[i];
+                            const w = kernel.weights[i];
+
+                            const rVal = floatBuffer[nIdx] + errR * w;
+                            floatBuffer[nIdx] = rVal < 0 ? 0 : rVal > 255 ? 255 : rVal;
+
+                            const gVal = floatBuffer[nIdx + 1] + errG * w;
+                            floatBuffer[nIdx + 1] = gVal < 0 ? 0 : gVal > 255 ? 255 : gVal;
+
+                            const bVal = floatBuffer[nIdx + 2] + errB * w;
+                            floatBuffer[nIdx + 2] = bVal < 0 ? 0 : bVal > 255 ? 255 : bVal;
                         }
                     }
                 }

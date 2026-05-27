@@ -18,6 +18,8 @@ export {
 export {
     type DitheringMode,
     type DitherMatrix,
+    type FlatDitherKernel,
+    buildFlatDitherKernel,
     DITHER_MATRICES,
     BAYER_4X4,
     BAYER_8X8,
@@ -31,6 +33,8 @@ export { optimizeColumnHeights, type SmartDropWorkspace } from './heightOptimiza
 export {
     type ColorCandidate,
     type ColorMatchResult,
+    type CandidatesSoA,
+    buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
     findTwoClosestColors

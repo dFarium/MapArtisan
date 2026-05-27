@@ -136,3 +136,51 @@ export function calculateLocalVariance(
 
     return count > 0 ? variance / count : 0;
 }
+
+// ============================================================================
+// Flat Dither Kernel Optimization
+// ============================================================================
+
+export interface FlatDitherKernel {
+    offsets: Int32Array;
+    weights: Float32Array;
+    dx: Int8Array;
+    dy: Int8Array;
+    count: number;
+}
+
+export function buildFlatDitherKernel(ditherMatrix: DitherMatrix, width: number): FlatDitherKernel {
+    const matrix = ditherMatrix.matrix;
+    const divisor = ditherMatrix.divisor;
+
+    let count = 0;
+    for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+            if (matrix[r][c] !== 0) count++;
+        }
+    }
+
+    const offsets = new Int32Array(count);
+    const weights = new Float32Array(count);
+    const dx = new Int8Array(count);
+    const dy = new Int8Array(count);
+
+    let idx = 0;
+    for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+            const weight = matrix[r][c];
+            if (weight === 0) continue;
+
+            const curDx = c - 2;
+            const curDy = r;
+
+            dx[idx] = curDx;
+            dy[idx] = curDy;
+            offsets[idx] = (curDy * width + curDx) * 3;
+            weights[idx] = weight / divisor;
+            idx++;
+        }
+    }
+
+    return { offsets, weights, dx, dy, count };
+}
