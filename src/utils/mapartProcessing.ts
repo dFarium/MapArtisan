@@ -98,9 +98,10 @@ export function processMapart(
     // Create flat float buffer for error diffusion (Float32Array for performance)
     const floatBuffer = new Float32Array(width * height * 3);
     for (let i = 0; i < height; i++) {
+        const iOffset = i * width;
         for (let j = 0; j < width; j++) {
-            const srcIdx = (i * width + j) * 4;
-            const destIdx = (i * width + j) * 3;
+            const srcIdx = (iOffset + j) * 4;
+            const destIdx = (iOffset + j) * 3;
             floatBuffer[destIdx] = data[srcIdx];
             floatBuffer[destIdx + 1] = data[srcIdx + 1];
             floatBuffer[destIdx + 2] = data[srcIdx + 2];
@@ -160,9 +161,11 @@ export function processMapart(
             if (independentMaps && y > 0 && y % 128 === 0) {
                 colHeights.fill(0);
             }
+            const yOffset = y * width;
 
             for (let x = 0; x < width; x++) {
-                const pixelIdx = (y * width + x) * 3;
+                const linearIdx = yOffset + x;
+                const pixelIdx = linearIdx * 3;
                 const r = floatBuffer[pixelIdx];
                 const g = floatBuffer[pixelIdx + 1];
                 const b = floatBuffer[pixelIdx + 2];
@@ -171,9 +174,6 @@ export function processMapart(
                 const clampR = r < 0 ? 0 : r > 255 ? 255 : r;
                 const clampG = g < 0 ? 0 : g > 255 ? 255 : g;
                 const clampB = b < 0 ? 0 : b > 255 ? 255 : b;
-
-                // Pre-compute linear index once for this pixel
-                const linearIdx = y * width + x;
 
                 let bestIndex: number;
 

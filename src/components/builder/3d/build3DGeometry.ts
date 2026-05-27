@@ -153,6 +153,12 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
     const sg = supportColor.g / 255;
     const sb = supportColor.b / 255;
 
+    // Pre-compute yOffsets to avoid multiplications in the hot inner loops
+    const yOffsets = new Int32Array(height);
+    for (let y = 0; y < height; y++) {
+        yOffsets[y] = y * width;
+    }
+
     // ── Per-column loop ────────────────────────────────────────────────────
     for (let x = 0; x < width; x++) {
         // Section X filter
@@ -165,7 +171,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
         // Collect tones for this column
         const tones: number[] = new Array(height);
         for (let y = 0; y < height; y++) {
-            tones[y] = toneMap ? toneMap[y * width + x] : 0;
+            tones[y] = toneMap ? toneMap[yOffsets[y] + x] : 0;
         }
 
         // ── Path computation ───────────────────────────────────────────────
@@ -263,7 +269,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                     colors[base + 2] = sb;
                     textureIds[count] = supportTextureIdx;
                 } else {
-                    const pxIdx = (y * width + x) * 4;
+                    const pxIdx = (yOffsets[y] + x) * 4;
                     colors[base] = data[pxIdx] / 255;
                     colors[base + 1] = data[pxIdx + 1] / 255;
                     colors[base + 2] = data[pxIdx + 2] / 255;
@@ -283,7 +289,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                 if (blockSupport === 'all') {
                     addSupport = true;
                 } else if (blockSupport === 'gravity' && needsSupportMap) {
-                    const linearIdx = y >= 0 ? y * width + x : 0;
+                    const linearIdx = y >= 0 ? yOffsets[y] + x : 0;
                     addSupport = needsSupportMap[linearIdx] === 1;
                 }
 

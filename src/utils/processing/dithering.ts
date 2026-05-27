@@ -117,19 +117,21 @@ export function calculateLocalVariance(
     let count = 0;
 
     for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
+        const ny = y + dy;
+        if (ny >= 0 && ny < height) {
+            const nyOffset = ny * width;
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
 
-            const nx = x + dx;
-            const ny = y + dy;
-
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                const nIdx = (ny * width + nx) * 3;
-                const dr = floatBuffer[nIdx] - centerR;
-                const dg = floatBuffer[nIdx + 1] - centerG;
-                const db = floatBuffer[nIdx + 2] - centerB;
-                variance += dr * dr + dg * dg + db * db;
-                count++;
+                const nx = x + dx;
+                if (nx >= 0 && nx < width) {
+                    const nIdx = (nyOffset + nx) * 3;
+                    const dr = floatBuffer[nIdx] - centerR;
+                    const dg = floatBuffer[nIdx + 1] - centerG;
+                    const db = floatBuffer[nIdx + 2] - centerB;
+                    variance += dr * dr + dg * dg + db * db;
+                    count++;
+                }
             }
         }
     }
