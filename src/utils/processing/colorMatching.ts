@@ -90,6 +90,8 @@ export function getValidColors(
 /**
  * Find the closest color candidate for a pixel given as inline RGB scalars.
  * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
+ *
+ * Opt#3: useCielab branch is evaluated ONCE before the loop, not once per candidate.
  */
 export function findClosestColorIndex(
     tr: number,
@@ -114,28 +116,25 @@ export function findClosestColorIndex(
         return { index: cachedIndex, distance: dist };
     }
 
-    const targetRGB = makeRGB(tr, tg, tb);
-    const targetLab = useCielab ? rgbToLab(targetRGB) : { L: 0, a: 0, b: 0 };
-
     let bestIndex = 0;
     let bestDist = Infinity;
+    const n = candidates.length;
 
-    for (let i = 0; i < candidates.length; i++) {
-        let dist: number;
-        if (useCielab) {
-            dist = labDistanceSq(targetLab, candidateLabs[i]);
-        } else {
-            dist = colorDistanceSq(targetRGB, candidates[i].rgb);
+    if (useCielab) {
+        // --- LAB path: branch resolved once, tight loop over pre-computed LAB values ---
+        const targetLab = rgbToLab(makeRGB(tr, tg, tb));
+        for (let i = 0; i < n; i++) {
+            let dist = labDistanceSq(targetLab, candidateLabs[i]);
+            if (heightPenalty > 0 && candidates[i].brightness !== 'normal') dist += heightPenalty;
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
         }
-
-        // Apply 3D Precision Penalty
-        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
-            dist += heightPenalty;
-        }
-
-        if (dist < bestDist) {
-            bestDist = dist;
-            bestIndex = i;
+    } else {
+        // --- RGB path: branch resolved once, no LAB objects created ---
+        const targetRGB = makeRGB(tr, tg, tb);
+        for (let i = 0; i < n; i++) {
+            let dist = colorDistanceSq(targetRGB, candidates[i].rgb);
+            if (heightPenalty > 0 && candidates[i].brightness !== 'normal') dist += heightPenalty;
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
         }
     }
 
@@ -148,6 +147,8 @@ export function findClosestColorIndex(
 /**
  * Find two closest colors for ordered dithering.
  * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
+ *
+ * Opt#3: useCielab branch is evaluated ONCE before the loop, not once per candidate.
  */
 export function findTwoClosestColors(
     tr: number,
@@ -158,40 +159,42 @@ export function findTwoClosestColors(
     useCielab: boolean,
     heightPenalty: number = 0
 ): { first: ColorMatchResult; second: ColorMatchResult } {
-    const targetRGB = makeRGB(tr, tg, tb);
-    const targetLab = useCielab ? rgbToLab(targetRGB) : { L: 0, a: 0, b: 0 };
-
     let bestIndex = 0;
     let bestDist = Infinity;
     let secondIndex = 0;
     let secondDist = Infinity;
+    const n = candidates.length;
 
-    for (let i = 0; i < candidates.length; i++) {
-        let dist: number;
-        if (useCielab) {
-            dist = labDistanceSq(targetLab, candidateLabs[i]);
-        } else {
-            dist = colorDistanceSq(targetRGB, candidates[i].rgb);
+    if (useCielab) {
+        // --- LAB path ---
+        const targetLab = rgbToLab(makeRGB(tr, tg, tb));
+        for (let i = 0; i < n; i++) {
+            let dist = labDistanceSq(targetLab, candidateLabs[i]);
+            if (heightPenalty > 0 && candidates[i].brightness !== 'normal') dist += heightPenalty;
+            if (dist < bestDist) {
+                secondDist = bestDist; secondIndex = bestIndex;
+                bestDist = dist;      bestIndex = i;
+            } else if (dist < secondDist) {
+                secondDist = dist; secondIndex = i;
+            }
         }
-
-        // Apply 3D Precision Penalty
-        if (heightPenalty > 0 && candidates[i].brightness !== 'normal') {
-            dist += heightPenalty;
-        }
-
-        if (dist < bestDist) {
-            secondDist = bestDist;
-            secondIndex = bestIndex;
-            bestDist = dist;
-            bestIndex = i;
-        } else if (dist < secondDist) {
-            secondDist = dist;
-            secondIndex = i;
+    } else {
+        // --- RGB path ---
+        const targetRGB = makeRGB(tr, tg, tb);
+        for (let i = 0; i < n; i++) {
+            let dist = colorDistanceSq(targetRGB, candidates[i].rgb);
+            if (heightPenalty > 0 && candidates[i].brightness !== 'normal') dist += heightPenalty;
+            if (dist < bestDist) {
+                secondDist = bestDist; secondIndex = bestIndex;
+                bestDist = dist;      bestIndex = i;
+            } else if (dist < secondDist) {
+                secondDist = dist; secondIndex = i;
+            }
         }
     }
 
     return {
-        first: { index: bestIndex, distance: bestDist },
+        first:  { index: bestIndex,  distance: bestDist  },
         second: { index: secondIndex, distance: secondDist }
     };
 }
