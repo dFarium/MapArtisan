@@ -152,17 +152,19 @@ export function processMapart(
                 const g = floatBuffer[pixelIdx + 1];
                 const b = floatBuffer[pixelIdx + 2];
 
-                const target: RGB = {
-                    r: Math.max(0, Math.min(255, r)),
-                    g: Math.max(0, Math.min(255, g)),
-                    b: Math.max(0, Math.min(255, b))
-                };
+                // Clamp inline — no object allocation
+                const clampR = r < 0 ? 0 : r > 255 ? 255 : r;
+                const clampG = g < 0 ? 0 : g > 255 ? 255 : g;
+                const clampB = b < 0 ? 0 : b > 255 ? 255 : b;
+
+                // Pre-compute linear index once for this pixel
+                const linearIdx = y * width + x;
 
                 let bestIndex: number;
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering
-                    const twoClosest = findTwoClosestColors(target, candidates, candidateLabs, useCielab, heightPenalty);
+                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidates, candidateLabs, useCielab, heightPenalty);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
                     const maxThreshold = is8x8 ? 65 : 17;
@@ -175,7 +177,7 @@ export function processMapart(
                     }
                 } else {
                     // Error diffusion / None
-                    const result = findClosestColorIndex(target, candidates, candidateLabs, useCielab, isErrorDiffusion, heightPenalty);
+                    const result = findClosestColorIndex(clampR, clampG, clampB, candidates, candidateLabs, useCielab, isErrorDiffusion, heightPenalty);
                     bestIndex = result.index;
                 }
 
@@ -183,24 +185,24 @@ export function processMapart(
                 const bestRGB = best.rgb;
                 const bestBrightness = best.brightness;
 
-                const idx = (y * width + x) * 4;
+                const idx = linearIdx * 4;
                 output[idx] = bestRGB.r;
                 output[idx + 1] = bestRGB.g;
                 output[idx + 2] = bestRGB.b;
                 output[idx + 3] = 255;
 
                 // Save Block Index
-                blockIndices[y * width + x] = bestIndex;
+                blockIndices[linearIdx] = bestIndex;
 
                 // Save needsSupport flag
-                needsSupportMap[y * width + x] = best.needsSupport ? 1 : 0;
+                needsSupportMap[linearIdx] = best.needsSupport ? 1 : 0;
 
                 // Save Tone decision for Phase 2
                 if (buildMode === '3d_valley') {
                     let tone = 0;
                     if (bestBrightness === 'high') tone = 1;
                     else if (bestBrightness === 'low') tone = -1;
-                    toneMap[y * width + x] = tone;
+                    toneMap[linearIdx] = tone;
                 }
 
                 // Update height stats (standard/2d modes)

@@ -7,6 +7,15 @@ import paletteData from '../../data/palette.json';
 import type { RGB, BrightnessLevel, BuildMode, PaletteColor } from '../../types/mapart';
 import { rgbToLab, labDistanceSq, colorDistanceSq, rgbToBinary, getColorCache, type LAB } from './colorSpace';
 
+// ---------------------------------------------------------------------------
+// Internal helper: build an RGB object from inline scalars for functions that
+// need an RGB (e.g. rgbToLab, colorDistanceSq). Defined once here to avoid
+// repeated object literals in callers.
+// ---------------------------------------------------------------------------
+function makeRGB(r: number, g: number, b: number): RGB {
+    return { r, g, b };
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -78,27 +87,35 @@ export function getValidColors(
 // Color Matching with Cache
 // ============================================================================
 
+/**
+ * Find the closest color candidate for a pixel given as inline RGB scalars.
+ * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
+ */
 export function findClosestColorIndex(
-    target: RGB,
+    tr: number,
+    tg: number,
+    tb: number,
     candidates: ColorCandidate[],
     candidateLabs: LAB[],
     useCielab: boolean,
     skipCache: boolean = false,
     heightPenalty: number = 0
 ): ColorMatchResult {
-    const key = rgbToBinary(target);
+    const key = (Math.round(tr) << 16) + (Math.round(tg) << 8) + Math.round(tb);
     const colorCache = getColorCache();
 
     // Check cache first (only for exact RGB matches, skip during error diffusion)
     if (!skipCache && colorCache.has(key)) {
         const cachedIndex = colorCache.get(key)!;
+        const targetRGB = makeRGB(tr, tg, tb);
         const dist = useCielab
-            ? labDistanceSq(rgbToLab(target), candidateLabs[cachedIndex])
-            : colorDistanceSq(target, candidates[cachedIndex].rgb);
+            ? labDistanceSq(rgbToLab(targetRGB), candidateLabs[cachedIndex])
+            : colorDistanceSq(targetRGB, candidates[cachedIndex].rgb);
         return { index: cachedIndex, distance: dist };
     }
 
-    const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
+    const targetRGB = makeRGB(tr, tg, tb);
+    const targetLab = useCielab ? rgbToLab(targetRGB) : { L: 0, a: 0, b: 0 };
 
     let bestIndex = 0;
     let bestDist = Infinity;
@@ -108,7 +125,7 @@ export function findClosestColorIndex(
         if (useCielab) {
             dist = labDistanceSq(targetLab, candidateLabs[i]);
         } else {
-            dist = colorDistanceSq(target, candidates[i].rgb);
+            dist = colorDistanceSq(targetRGB, candidates[i].rgb);
         }
 
         // Apply 3D Precision Penalty
@@ -130,15 +147,19 @@ export function findClosestColorIndex(
 
 /**
  * Find two closest colors for ordered dithering.
+ * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
  */
 export function findTwoClosestColors(
-    target: RGB,
+    tr: number,
+    tg: number,
+    tb: number,
     candidates: ColorCandidate[],
     candidateLabs: LAB[],
     useCielab: boolean,
     heightPenalty: number = 0
 ): { first: ColorMatchResult; second: ColorMatchResult } {
-    const targetLab = useCielab ? rgbToLab(target) : { L: 0, a: 0, b: 0 };
+    const targetRGB = makeRGB(tr, tg, tb);
+    const targetLab = useCielab ? rgbToLab(targetRGB) : { L: 0, a: 0, b: 0 };
 
     let bestIndex = 0;
     let bestDist = Infinity;
@@ -150,7 +171,7 @@ export function findTwoClosestColors(
         if (useCielab) {
             dist = labDistanceSq(targetLab, candidateLabs[i]);
         } else {
-            dist = colorDistanceSq(target, candidates[i].rgb);
+            dist = colorDistanceSq(targetRGB, candidates[i].rgb);
         }
 
         // Apply 3D Precision Penalty
