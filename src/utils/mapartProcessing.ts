@@ -99,13 +99,21 @@ export function processMapart(
 
     const { width, height, data } = imageData;
 
-    // Create flat float buffer for error diffusion (Float32Array for performance)
-    const floatBuffer = new Float32Array(width * height * 3);
+    // Allocate padded Float32Array buffer:
+    // Left/Right padding: 2 columns each, Bottom padding: 2 rows.
+    const PADDING_LEFT = 2;
+    const PADDING_RIGHT = 2;
+    const PADDING_BOTTOM = 2;
+    const paddedWidth = width + PADDING_LEFT + PADDING_RIGHT;
+    const paddedHeight = height + PADDING_BOTTOM;
+
+    const floatBuffer = new Float32Array(paddedWidth * paddedHeight * 3);
     for (let i = 0; i < height; i++) {
-        const iOffset = i * width;
+        const srcRowOffset = i * width;
+        const destRowOffset = i * paddedWidth + PADDING_LEFT;
         for (let j = 0; j < width; j++) {
-            const srcIdx = (iOffset + j) * 4;
-            const destIdx = (iOffset + j) * 3;
+            const srcIdx = (srcRowOffset + j) * 4;
+            const destIdx = (destRowOffset + j) * 3;
             floatBuffer[destIdx] = data[srcIdx];
             floatBuffer[destIdx + 1] = data[srcIdx + 1];
             floatBuffer[destIdx + 2] = data[srcIdx + 2];
@@ -142,11 +150,11 @@ export function processMapart(
     const isHybrid = dithering === 'hybrid';
     const fsMatrix = DITHER_MATRICES['floyd-steinberg'];
 
-    // Pre-compute flat dither kernel
+    // Pre-compute flat dither kernel using paddedWidth
     let activeKernel: FlatDitherKernel | null = null;
     if (isErrorDiffusion) {
         const matrixToUse = isHybrid ? fsMatrix : ditherMatrix;
-        activeKernel = buildFlatDitherKernel(matrixToUse, width);
+        activeKernel = buildFlatDitherKernel(matrixToUse, paddedWidth);
     }
 
     // Packed results array (Opt#9)
@@ -160,11 +168,11 @@ export function processMapart(
             if (independentMaps && y > 0 && y % 128 === 0) {
                 colHeights.fill(0);
             }
-            const yOffset = y * width;
+            const yOffset = y * paddedWidth;
 
             for (let x = 0; x < width; x++) {
-                const linearIdx = yOffset + x;
-                const pixelIdx = linearIdx * 3;
+                const linearIdx = y * width + x;
+                const pixelIdx = (yOffset + (x + PADDING_LEFT)) * 3;
                 const r = floatBuffer[pixelIdx];
                 const g = floatBuffer[pixelIdx + 1];
                 const b = floatBuffer[pixelIdx + 2];
@@ -225,7 +233,7 @@ export function processMapart(
                     let errorScale = baseErrorScale;
 
                     if (isHybrid) {
-                        const variance = calculateLocalVariance(floatBuffer, x, y, width, height);
+                        const variance = calculateLocalVariance(floatBuffer, x, y, width, height, paddedWidth);
                         const quantErrorSq = (r - bestRGB.r) ** 2 + (g - bestRGB.g) ** 2 + (b - bestRGB.b) ** 2;
                         const minScale = (hybridStrength / 100) * 1.0;
                         const invStrength = 100 - hybridStrength;
@@ -253,28 +261,22 @@ export function processMapart(
                     const kernel = activeKernel!;
 
                     for (let i = 0; i < kernel.count; i++) {
-                        const nx = x + kernel.dx[i];
-                        const ny = y + kernel.dy[i];
-
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                            if (independentMaps) {
-                                const currentMapIndex = Math.floor(y / 128);
-                                const nextMapIndex = Math.floor(ny / 128);
-                                if (currentMapIndex !== nextMapIndex) continue;
-                            }
-
-                            const nIdx = pixelIdx + kernel.offsets[i];
-                            const w = kernel.weights[i];
-
-                            const rVal = floatBuffer[nIdx] + errR * w;
-                            floatBuffer[nIdx] = rVal < 0 ? 0 : rVal > 255 ? 255 : rVal;
-
-                            const gVal = floatBuffer[nIdx + 1] + errG * w;
-                            floatBuffer[nIdx + 1] = gVal < 0 ? 0 : gVal > 255 ? 255 : gVal;
-
-                            const bVal = floatBuffer[nIdx + 2] + errB * w;
-                            floatBuffer[nIdx + 2] = bVal < 0 ? 0 : bVal > 255 ? 255 : bVal;
+                        if (independentMaps) {
+                            const ny = y + kernel.dy[i];
+                            if (Math.floor(y / 128) !== Math.floor(ny / 128)) continue;
                         }
+
+                        const nIdx = pixelIdx + kernel.offsets[i];
+                        const w = kernel.weights[i];
+
+                        const rVal = floatBuffer[nIdx] + errR * w;
+                        floatBuffer[nIdx] = rVal < 0 ? 0 : rVal > 255 ? 255 : rVal;
+
+                        const gVal = floatBuffer[nIdx + 1] + errG * w;
+                        floatBuffer[nIdx + 1] = gVal < 0 ? 0 : gVal > 255 ? 255 : gVal;
+
+                        const bVal = floatBuffer[nIdx + 2] + errB * w;
+                        floatBuffer[nIdx + 2] = bVal < 0 ? 0 : bVal > 255 ? 255 : bVal;
                     }
                 }
             }

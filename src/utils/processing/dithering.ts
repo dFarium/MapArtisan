@@ -106,9 +106,10 @@ export function calculateLocalVariance(
     x: number,
     y: number,
     width: number,
-    height: number
+    height: number,
+    paddedWidth: number
 ): number {
-    const centerIdx = (y * width + x) * 3;
+    const centerIdx = (y * paddedWidth + (x + 2)) * 3;
     const centerR = floatBuffer[centerIdx];
     const centerG = floatBuffer[centerIdx + 1];
     const centerB = floatBuffer[centerIdx + 2];
@@ -119,13 +120,13 @@ export function calculateLocalVariance(
     for (let dy = -1; dy <= 1; dy++) {
         const ny = y + dy;
         if (ny >= 0 && ny < height) {
-            const nyOffset = ny * width;
+            const nyOffset = ny * paddedWidth;
             for (let dx = -1; dx <= 1; dx++) {
                 if (dx === 0 && dy === 0) continue;
 
                 const nx = x + dx;
                 if (nx >= 0 && nx < width) {
-                    const nIdx = (nyOffset + nx) * 3;
+                    const nIdx = (nyOffset + (nx + 2)) * 3;
                     const dr = floatBuffer[nIdx] - centerR;
                     const dg = floatBuffer[nIdx + 1] - centerG;
                     const db = floatBuffer[nIdx + 2] - centerB;

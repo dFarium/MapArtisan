@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, type RefObject } from 'react';
+import { useState, useEffect, useCallback, type RefObject } from 'react';
 
 export const useCanvasInteraction = (
     uploadedImage: File | null,
@@ -65,8 +65,12 @@ export const useCanvasInteraction = (
 
     // Reset or Center when image changes
     const [hasInteracted, setHasInteracted] = useState(false);
-    // Better to use a Ref for previous image to detect "new image upload" vs "dimension change"
-    const prevImageRef = useRef<File | null>(null);
+    const [currentImage, setCurrentImage] = useState<File | null>(uploadedImage);
+
+    if (uploadedImage !== currentImage) {
+        setCurrentImage(uploadedImage);
+        setHasInteracted(false);
+    }
 
     const handleWheelWithInteraction = useCallback((e: React.WheelEvent) => {
         setHasInteracted(true);
@@ -82,25 +86,16 @@ export const useCanvasInteraction = (
         handleMouseDown(e);
     }, [handleMouseDown, uploadedImage, isPainting]);
 
-    // Reset interaction flag when image changes
-    // Separation of concerns to avoid sync setState warning in the centering effect
-    useEffect(() => {
-        if (uploadedImage && uploadedImage !== prevImageRef.current) {
-            prevImageRef.current = uploadedImage;
-            setHasInteracted(false);
-        }
-    }, [uploadedImage]);
+    const imgWidth = imageDimensions?.width;
+    const imgHeight = imageDimensions?.height;
 
     // Perform Centering logic
     useEffect(() => {
         // Centering should only run if user hasn't interacted or if image is brand new (and flag was just reset)
-        if (uploadedImage && !hasInteracted && containerRef?.current && imageDimensions?.width && imageDimensions?.height) {
+        if (uploadedImage && !hasInteracted && containerRef?.current && imgWidth && imgHeight) {
             const { width: containerWidth, height: containerHeight } = containerRef.current.getBoundingClientRect();
-            const { width: imgWidth, height: imgHeight } = imageDimensions; // Use destructured props? No, access safe one
 
-            // We destructured width/height in deps, but inside we can use object if we check?
-            // Actually imageDimensions is typed as Optional in args.
-            if (containerWidth && containerHeight && imgWidth && imgHeight) {
+            if (containerWidth && containerHeight) {
                 const padding = 0.9;
                 const scaleX = (containerWidth * padding) / imgWidth;
                 const scaleY = (containerHeight * padding) / imgHeight;
@@ -113,7 +108,7 @@ export const useCanvasInteraction = (
                 setPosition({ x: newX, y: newY });
             }
         }
-    }, [uploadedImage, imageDimensions?.width, imageDimensions?.height, hasInteracted, containerRef]);
+    }, [uploadedImage, imgWidth, imgHeight, hasInteracted, containerRef]);
 
     // Global mouse up to catch drags outside
     useEffect(() => {
