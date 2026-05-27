@@ -3,15 +3,21 @@
  * Generates 3D block positions from processed image data
  */
 
-import type { BuildMode, BrightnessLevel, RGB, PaletteData } from '../../types/mapart';
+import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
 import type { DitheringMode } from '../mapartProcessing';
-import { processMapart, optimizeColumnHeights, applyManualEdits } from '../mapartProcessing';
-import paletteData from '../../data/palette.json';
-import type { BlockWithCoords } from './types';
+import {
+    processMapart,
+    optimizeColumnHeights,
+    getValidColors,
+    unpackCandidateIdx,
+    unpackTone,
+    unpackNeedsSupport
+} from '../mapartProcessing';
+import type { BlockStatesBuffers } from './types';
 
 /**
  * Generate block positions from processed image data.
- * Calls processMapart internally to ensure colors match the preview exactly.
+ * If precomputedPackedResults is provided, avoids redundant image reprocessing.
  */
 export function imageDataToBlockStates(
     imageData: ImageData,
@@ -26,83 +32,95 @@ export function imageDataToBlockStates(
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
     supportBlockId: string = 'minecraft:cobblestone',
-    exportMode: 'full' | 'sections' = 'sections'
-): BlockWithCoords[] {
-    // Process image to get exact same colors as preview
-    const { imageData: baseImageData, packedResults: basePackedResults } = processMapart(
-        imageData,
-        buildMode,
-        selectedPaletteItems,
-        threeDPrecision,
-        dithering,
-        useCielab,
-        hybridStrength,
-        exportMode === 'full' ? false : independentMaps // Force global if full map
-    );
+    exportMode: 'full' | 'sections' = 'sections',
+    precomputedPackedResults?: Uint32Array
+): BlockStatesBuffers {
+    const { width, height } = imageData;
 
-    // Apply Manual Edits
-    let processedImageData = baseImageData;
-    if (manualEdits && Object.keys(manualEdits).length > 0) {
-        const res = applyManualEdits(baseImageData, basePackedResults, manualEdits, buildMode);
-        processedImageData = res.imageData;
+    // Use cached results if available; otherwise, run full mapart processing
+    let packedResults: Uint32Array;
+    if (precomputedPackedResults) {
+        packedResults = precomputedPackedResults;
+    } else {
+        const { packedResults: basePackedResults } = processMapart(
+            imageData,
+            buildMode,
+            selectedPaletteItems,
+            threeDPrecision,
+            dithering,
+            useCielab,
+            hybridStrength,
+            exportMode === 'full' ? false : independentMaps // Force global if full map
+        );
+        packedResults = basePackedResults;
     }
 
-    const { width, height, data } = processedImageData;
-    const blockStates: BlockWithCoords[] = [];
-    const palette = (paletteData as unknown as PaletteData).colors;
+    // Build the candidates list from palette setup
+    const candidates = getValidColors(selectedPaletteItems, buildMode);
 
-    // Build RGB lookup map
-    const rgbToColor = new Map<number, { colorID: number; brightness: BrightnessLevel; blockId: string }>();
-    for (const color of palette) {
-        const blockId = selectedPaletteItems[color.colorID];
-        if (!blockId) continue;
-
-        for (const [brightness, rgb] of Object.entries(color.brightnessValues)) {
-            const key = (rgb.r << 16) | (rgb.g << 8) | rgb.b;
-            rgbToColor.set(key, {
-                colorID: color.colorID,
-                brightness: brightness as BrightnessLevel,
-                blockId: blockId
-            });
-        }
-    }
-
-    // Identify blocks that need support (from palette.json)
+    // Identify blocks that need support from candidates
     const blocksNeedingSupport = new Set<string>();
-    for (const color of palette) {
-        for (const block of color.blocks) {
-            if (block.needsSupport) {
-                blocksNeedingSupport.add(block.id);
-            }
+    for (const c of candidates) {
+        if (c.needsSupport) {
+            blocksNeedingSupport.add(c.blockId);
         }
     }
 
     const is2D = buildMode === '2d';
-    const columnBlocks: Map<number, BlockWithCoords[]> = new Map();
+
+    // Growable buffers for blocks (instead of objects)
+    const xList: number[] = [];
+    const yList: number[] = [];
+    const zList: number[] = [];
+    const paletteIndicesList: number[] = [];
+
+    // Local block palette mapping
+    const palette: string[] = ['minecraft:air'];
+    const paletteIndexMap = new Map<string, number>();
+    paletteIndexMap.set('minecraft:air', 0);
+
+    const getPaletteIndex = (blockId: string): number => {
+        let idx = paletteIndexMap.get(blockId);
+        if (idx === undefined) {
+            idx = palette.length;
+            palette.push(blockId);
+            paletteIndexMap.set(blockId, idx);
+        }
+        return idx;
+    };
+
+    // Pre-initialize support block ID in the local palette
+    getPaletteIndex(supportBlockId);
+
+    // Build a quick candidate-to-palette index mapping table
+    const candidatePaletteIndices = new Uint32Array(candidates.length);
+    for (let i = 0; i < candidates.length; i++) {
+        candidatePaletteIndices[i] = getPaletteIndex(candidates[i].blockId);
+    }
 
     // Process each column
     for (let x = 0; x < width; x++) {
-        const currentColumnBlocks: BlockWithCoords[] = [];
         const rawHeights = new Int32Array(height);
         const columnTones = new Int8Array(height);
         let h = 0;
 
         // 1. Collect tones and raw incremental heights
         for (let y = 0; y < height; y++) {
-            const idx = (y * width + x) * 4;
-            const r = data[idx];
-            const g = data[idx + 1];
-            const b = data[idx + 2];
-            const key = (r << 16) | (g << 8) | b;
-            const colorInfo = rgbToColor.get(key);
+            const linearIdx = y * width + x;
+            let tone = 0;
 
-            if (colorInfo) {
-                if (!is2D) {
-                    if (colorInfo.brightness === 'high') h++;
-                    else if (colorInfo.brightness === 'low') h--;
-                }
-                columnTones[y] = colorInfo.brightness === 'high' ? 1 : (colorInfo.brightness === 'low' ? -1 : 0);
+            const edit = manualEdits?.[linearIdx];
+            if (edit) {
+                tone = edit.brightness === 'high' ? 1 : (edit.brightness === 'low' ? -1 : 0);
+            } else {
+                const packedVal = packedResults[linearIdx];
+                tone = unpackTone(packedVal);
             }
+
+            if (!is2D) {
+                h += tone;
+            }
+            columnTones[y] = tone;
             rawHeights[y] = h;
         }
 
@@ -111,15 +129,41 @@ export function imageDataToBlockStates(
         const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
         const useIndependent = independentMaps && exportMode === 'sections';
 
+        // Local column arrays for blocks
+        const colX: number[] = [];
+        const colY: number[] = [];
+        const colZ: number[] = [];
+        const colPaletteIndices: number[] = [];
+
+        const addBlock = (bx: number, by: number, bz: number, blockId: string) => {
+            colX.push(bx);
+            colY.push(by);
+            colZ.push(bz);
+            colPaletteIndices.push(getPaletteIndex(blockId));
+        };
+
         if (applySD) {
             if (useIndependent) {
                 // Ground each 128-row section independently
                 const numMaps = Math.ceil(height / 128);
+                const workspace = {
+                    ref: new Int32Array(129),
+                    minFuturo: new Int32Array(129),
+                    path: new Int32Array(128)
+                };
+
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
                     const zEnd = Math.min((m + 1) * 128, height);
-                    const chunkTones = Array.from(columnTones.slice(zStart, zEnd));
-                    const { path } = optimizeColumnHeights(chunkTones);
+                    const chunkHeight = zEnd - zStart;
+
+                    const chunkTones = new Int8Array(chunkHeight);
+                    for (let i = 0; i < chunkHeight; i++) {
+                        chunkTones[i] = columnTones[zStart + i];
+                    }
+
+                    // Run optimization with chunkTones
+                    const { path } = optimizeColumnHeights(chunkTones, 0, 1, chunkHeight, workspace);
                     let minChunkY = 0;
                     for (let i = 0; i < path.length; i++) {
                         if (path[i] < minChunkY) minChunkY = path[i];
@@ -131,21 +175,19 @@ export function imageDataToBlockStates(
                     }
 
                     // Add Noobline for this section (at global Z = zStart)
-                    currentColumnBlocks.push({
-                        blockId: supportBlockId,
-                        x, y: 0 + shiftY, z: zStart
-                    });
+                    addBlock(x, 0 + shiftY, zStart, supportBlockId);
                     if (0 + shiftY > 0 && blockSupport === 'all') {
-                        currentColumnBlocks.push({
-                            blockId: supportBlockId,
-                            x, y: shiftY - 1, z: zStart
-                        });
+                        addBlock(x, shiftY - 1, zStart, supportBlockId);
                     }
                 }
             } else {
                 // Ground whole column
-                const tonesArray = Array.from(columnTones);
-                const { path } = optimizeColumnHeights(tonesArray);
+                const workspace = {
+                    ref: new Int32Array(height + 1),
+                    minFuturo: new Int32Array(height + 1),
+                    path: new Int32Array(height)
+                };
+                const { path } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
                 let minPathY = 0;
                 for (let i = 0; i < path.length; i++) {
                     if (path[i] < minPathY) minPathY = path[i];
@@ -157,15 +199,9 @@ export function imageDataToBlockStates(
                 }
 
                 // Add Global Noobline
-                currentColumnBlocks.push({
-                    blockId: supportBlockId,
-                    x, y: 0 + shiftY, z: 0
-                });
+                addBlock(x, 0 + shiftY, 0, supportBlockId);
                 if (0 + shiftY > 0 && blockSupport === 'all') {
-                    currentColumnBlocks.push({
-                        blockId: supportBlockId,
-                        x, y: shiftY - 1, z: 0
-                    });
+                    addBlock(x, shiftY - 1, 0, supportBlockId);
                 }
             }
         } else {
@@ -174,61 +210,83 @@ export function imageDataToBlockStates(
                 finalHeights[i] = rawHeights[i];
             }
             // Basic Noobline
-            currentColumnBlocks.push({
-                blockId: supportBlockId,
-                x, y: 0, z: 0
-            });
+            addBlock(x, 0, 0, supportBlockId);
         }
 
         // 3. Create blocks with final heights
         for (let y = 0; y < height; y++) {
-            const idx = (y * width + x) * 4;
-            const key = (data[idx] << 16) | (data[idx + 1] << 8) | data[idx + 2];
-            const colorInfo = rgbToColor.get(key);
-            if (!colorInfo) continue;
+            const linearIdx = y * width + x;
+            let blockId: string;
+            let needsSupport: boolean;
+            let paletteIdx: number;
+
+            const edit = manualEdits?.[linearIdx];
+            if (edit) {
+                blockId = edit.blockId;
+                needsSupport = blocksNeedingSupport.has(edit.blockId);
+                paletteIdx = getPaletteIndex(blockId);
+            } else {
+                const packedVal = packedResults[linearIdx];
+                const candidateIdx = unpackCandidateIdx(packedVal);
+                const candidate = candidates[candidateIdx];
+                if (!candidate) continue;
+
+                blockId = candidate.blockId;
+                needsSupport = unpackNeedsSupport(packedVal);
+                paletteIdx = candidatePaletteIndices[candidateIdx];
+            }
+
+            if (blockId === 'minecraft:air') continue;
 
             const blockY = finalHeights[y];
-            currentColumnBlocks.push({
-                blockId: colorInfo.blockId,
-                x, y: blockY, z: y + 1
-            });
+            colX.push(x);
+            colY.push(blockY);
+            colZ.push(y + 1);
+            colPaletteIndices.push(paletteIdx);
 
             // Support blocks
             if (!is2D && blockY > 0) {
                 let addSupport = false;
                 if (blockSupport === 'all') addSupport = true;
-                else if (blockSupport === 'gravity') addSupport = blocksNeedingSupport.has(colorInfo.blockId);
+                else if (blockSupport === 'gravity') addSupport = needsSupport;
 
                 if (addSupport) {
-                    currentColumnBlocks.push({
-                        blockId: supportBlockId,
-                        x, y: blockY - 1, z: y + 1
-                    });
+                    colX.push(x);
+                    colY.push(blockY - 1);
+                    colZ.push(y + 1);
+                    colPaletteIndices.push(getPaletteIndex(supportBlockId));
                 }
             }
         }
-        columnBlocks.set(x, currentColumnBlocks);
-    }
 
-    // Flatten results
-    for (const blocks of columnBlocks.values()) {
-        blockStates.push(...blocks);
+        // Append column blocks to global lists
+        xList.push(...colX);
+        yList.push(...colY);
+        zList.push(...colZ);
+        paletteIndicesList.push(...colPaletteIndices);
     }
 
     // Global normalization (ensure nothing below 0)
     let globalMinY = 0;
-    if (blockStates.length > 0) {
-        for (let i = 0; i < blockStates.length; i++) {
-            if (blockStates[i].y < globalMinY) {
-                globalMinY = blockStates[i].y;
-            }
-        }
-    }
-    if (globalMinY < 0) {
-        for (const block of blockStates) {
-            block.y -= globalMinY;
+    const count = xList.length;
+    for (let i = 0; i < count; i++) {
+        if (yList[i] < globalMinY) {
+            globalMinY = yList[i];
         }
     }
 
-    return blockStates;
+    if (globalMinY < 0) {
+        for (let i = 0; i < count; i++) {
+            yList[i] -= globalMinY;
+        }
+    }
+
+    return {
+        x: new Int32Array(xList),
+        y: new Int32Array(yList),
+        z: new Int32Array(zList),
+        palette,
+        paletteIndices: new Uint32Array(paletteIndicesList),
+        count
+    };
 }

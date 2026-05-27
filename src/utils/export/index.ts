@@ -6,6 +6,7 @@
 export {
     LITEMATICA_VERSION,
     type BlockWithCoords,
+    type BlockStatesBuffers,
     type LitematicaMetadata
 } from './types';
 

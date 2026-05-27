@@ -137,12 +137,19 @@ const api = {
         targetVersion: string = '1.21.5'
     ) => {
         let imageData: ImageData;
+        let precomputedPackedResults: Uint32Array | undefined = undefined;
+
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
             console.log(`[Worker] Export: Image cache updated (v${version})`);
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
-            console.log(`[Worker] Export: Using cached image (v${version})`);
+            if (lastBaseResult.sourceVersion === version && lastBaseResult.buildMode === buildMode) {
+                precomputedPackedResults = lastBaseResult.packedResults;
+                console.log(`[Worker] Export: Using cached precomputed packedResults (v${version})`);
+            } else {
+                console.log(`[Worker] Export: Cache version mismatch or not matching config (cached v${lastBaseResult.sourceVersion}, requested v${version}). Re-processing.`);
+            }
         } else {
             throw new Error("Export failed: No image data provided and no cache available.");
         }
@@ -162,7 +169,8 @@ const api = {
             blockSupport,
             supportBlockId,
             exportMode,
-            targetVersion
+            targetVersion,
+            precomputedPackedResults
         );
     },
 
@@ -188,11 +196,18 @@ const api = {
         exportMode: 'full' | 'sections' = 'sections'
     ) => {
         let imageData: ImageData;
+        let precomputedPackedResults: Uint32Array | undefined = undefined;
+
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
-            console.log(`[Worker] Materials: Using cached image (v${version})`);
+            if (lastBaseResult.sourceVersion === version && lastBaseResult.buildMode === buildMode) {
+                precomputedPackedResults = lastBaseResult.packedResults;
+                console.log(`[Worker] Materials: Using cached precomputed packedResults (v${version})`);
+            } else {
+                console.log(`[Worker] Materials: Cache version mismatch or not matching config (cached v${lastBaseResult.sourceVersion}, requested v${version}). Re-processing.`);
+            }
         } else {
             throw new Error(`Material calculation failed: No image data provided and no cache available (v${version}).`);
         }
@@ -209,7 +224,8 @@ const api = {
             manualEdits,
             blockSupport,
             supportBlockId,
-            exportMode
+            exportMode,
+            precomputedPackedResults
         );
     },
 

@@ -8,7 +8,7 @@ import type { BuildMode, BrightnessLevel } from '../../types/mapart';
 import type { DitheringMode } from '../mapartProcessing';
 import { serializeNBT } from '../nbtWriter';
 import { DEFAULT_VERSION } from '../../data/supportedVersions';
-import type { LitematicaMetadata } from './types';
+import type { LitematicaMetadata, BlockStatesBuffers } from './types';
 import { imageDataToBlockStates } from './blockGeneration';
 import { createLitematicaNBT } from './nbtBuilder';
 
@@ -31,7 +31,8 @@ export async function generateMapartExport(
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
     supportBlockId: string = 'minecraft:cobblestone',
     exportMode: 'full' | 'sections' = 'sections',
-    targetVersion: string = DEFAULT_VERSION
+    targetVersion: string = DEFAULT_VERSION,
+    precomputedPackedResults?: Uint32Array
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height } = imageData;
     const isMultiMap = (width > 128 || height > 128) && exportMode === 'sections';
@@ -41,7 +42,7 @@ export async function generateMapartExport(
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
             threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
-            exportMode
+            exportMode, precomputedPackedResults
         );
 
         const nbtOpt = createLitematicaNBT(blockStatesOpt, {
@@ -60,7 +61,7 @@ export async function generateMapartExport(
         const allBlocks = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
             threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
-            exportMode
+            exportMode, precomputedPackedResults
         );
 
         const zip = new JSZip();
@@ -69,18 +70,30 @@ export async function generateMapartExport(
         const mapsY = Math.ceil(height / 128);
 
         // 2. Group blocks by section (with boundary sharing)
-        const sectionedBlocks: Map<string, typeof allBlocks> = new Map();
+        interface SectionBuffers {
+            x: number[];
+            y: number[];
+            z: number[];
+            paletteIndices: number[];
+        }
 
-        for (const block of allBlocks) {
-            const mapXIndex = Math.floor(block.x / 128);
+        const sectionedBlocks = new Map<string, SectionBuffers>();
+
+        for (let i = 0; i < allBlocks.count; i++) {
+            const bx = allBlocks.x[i];
+            const by = allBlocks.y[i];
+            const bz = allBlocks.z[i];
+            const bPaletteIdx = allBlocks.paletteIndices[i];
+
+            const mapXIndex = Math.floor(bx / 128);
             const targetMapsY: number[] = [];
 
-            if (block.z === 0) {
+            if (bz === 0) {
                 targetMapsY.push(0);
             } else if (independentMaps) {
                 // In Independent mode, blocks at z = m*128 are explicit nooblines for map m
-                if (block.z % 128 === 0) {
-                    const m = block.z / 128;
+                if (bz % 128 === 0) {
+                    const m = bz / 128;
                     if (m < mapsY) {
                         targetMapsY.push(m);
                     } else {
@@ -88,15 +101,15 @@ export async function generateMapartExport(
                         targetMapsY.push(m - 1);
                     }
                 } else {
-                    const mapYIdx = Math.floor((block.z - 1) / 128);
+                    const mapYIdx = Math.floor((bz - 1) / 128);
                     targetMapsY.push(mapYIdx);
                 }
             } else {
                 // Global mode: Standard boundary sharing
-                const mapYIdx = Math.floor((block.z - 1) / 128);
+                const mapYIdx = Math.floor((bz - 1) / 128);
                 targetMapsY.push(mapYIdx);
 
-                if (block.z > 0 && block.z % 128 === 0) {
+                if (bz > 0 && bz % 128 === 0) {
                     const nextMapY = mapYIdx + 1;
                     if (nextMapY < mapsY) {
                         targetMapsY.push(nextMapY);
@@ -108,10 +121,15 @@ export async function generateMapartExport(
                 const key = `${mapXIndex}_${yIdx}`;
                 if (yIdx >= mapsY) continue; // Safety
 
-                if (!sectionedBlocks.has(key)) {
-                    sectionedBlocks.set(key, []);
+                let section = sectionedBlocks.get(key);
+                if (!section) {
+                    section = { x: [], y: [], z: [], paletteIndices: [] };
+                    sectionedBlocks.set(key, section);
                 }
-                sectionedBlocks.get(key)!.push({ ...block });
+                section.x.push(bx);
+                section.y.push(by);
+                section.z.push(bz);
+                section.paletteIndices.push(bPaletteIdx);
             }
         }
 
@@ -119,32 +137,41 @@ export async function generateMapartExport(
         for (let sY = 0; sY < mapsY; sY++) {
             for (let sX = 0; sX < mapsX; sX++) {
                 const key = `${sX}_${sY}`;
-                const blocks = sectionedBlocks.get(key) || [];
+                const section = sectionedBlocks.get(key);
 
-                if (blocks.length === 0) continue;
+                if (!section || section.x.length === 0) continue;
 
                 // Re-ground this specific section ONLY if it's independent
                 if (independentMaps) {
-                    let minSectionY = blocks[0].y;
-                    for (let i = 1; i < blocks.length; i++) {
-                        if (blocks[i].y < minSectionY) {
-                            minSectionY = blocks[i].y;
+                    let minSectionY = section.y[0];
+                    for (let i = 1; i < section.y.length; i++) {
+                        if (section.y[i] < minSectionY) {
+                            minSectionY = section.y[i];
                         }
                     }
-                    for (let i = 0; i < blocks.length; i++) {
-                        blocks[i].y -= minSectionY;
+                    for (let i = 0; i < section.y.length; i++) {
+                        section.y[i] -= minSectionY;
                     }
                 }
 
-                for (const b of blocks) {
-                    b.x -= sX * 128;
+                for (let i = 0; i < section.x.length; i++) {
+                    section.x[i] -= sX * 128;
                     // Z is trickier: global Z=0 is map 0 noobline.
                     // Map sY starts its blocks at global Z = sY * 128 + 1.
                     // BUT it includes global Z = sY * 128 as its local Z=0 noobline.
-                    b.z -= sY * 128;
+                    section.z[i] -= sY * 128;
                 }
 
-                const sectionNbt = createLitematicaNBT(blocks, {
+                const blocksBuffer: BlockStatesBuffers = {
+                    x: new Int32Array(section.x),
+                    y: new Int32Array(section.y),
+                    z: new Int32Array(section.z),
+                    palette: allBlocks.palette,
+                    paletteIndices: new Uint32Array(section.paletteIndices),
+                    count: section.x.length
+                };
+
+                const sectionNbt = createLitematicaNBT(blocksBuffer, {
                     ...metadata,
                     name: `${metadata.name || 'MapArt'} (${sX},${sY})`,
                     description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`

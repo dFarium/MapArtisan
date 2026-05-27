@@ -10,6 +10,7 @@ export {
     // Types
     LITEMATICA_VERSION,
     type BlockWithCoords,
+    type BlockStatesBuffers,
     type LitematicaMetadata,
 
     // Block Generation

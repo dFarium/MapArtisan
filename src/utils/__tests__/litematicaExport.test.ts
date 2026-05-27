@@ -3,9 +3,23 @@ import {
     imageDataToBlockStates,
     createLitematicaNBT,
     calculateMaterialCounts,
-    type BlockWithCoords
+    type BlockWithCoords,
+    type BlockStatesBuffers
 } from '../litematicaExport';
 import type { BrightnessLevel } from '../../types/mapart';
+
+function getBlocksArray(buffers: BlockStatesBuffers): BlockWithCoords[] {
+    const blocks: BlockWithCoords[] = [];
+    for (let i = 0; i < buffers.count; i++) {
+        blocks.push({
+            blockId: buffers.palette[buffers.paletteIndices[i]],
+            x: buffers.x[i],
+            y: buffers.y[i],
+            z: buffers.z[i]
+        });
+    }
+    return blocks;
+}
 
 describe('litematicaExport', () => {
     // Helper interfaces for NBT typing in tests
@@ -57,7 +71,7 @@ describe('litematicaExport', () => {
                 4: 'minecraft:stone' // Grass color ID
             };
 
-            const blocks = imageDataToBlockStates(
+            const blocks = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '2d',
@@ -69,7 +83,7 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'all'
-            );
+            ));
 
             // In 2D mode: 2x2 map blocks + 2 nooblines (one per column) = 6 blocks
             expect(blocks.length).toBeGreaterThanOrEqual(4); // At least the map blocks
@@ -94,7 +108,7 @@ describe('litematicaExport', () => {
                 4: 'minecraft:stone'
             };
 
-            const blocks = imageDataToBlockStates(
+            const blocks = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '3d_valley',
@@ -106,7 +120,7 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'all'
-            );
+            ));
 
             // Should have map blocks, nooblines, and potentially support blocks
             expect(blocks.length).toBeGreaterThan(0);
@@ -125,7 +139,7 @@ describe('litematicaExport', () => {
                 4: 'minecraft:stone'
             };
 
-            const blocksAll = imageDataToBlockStates(
+            const blocksAll = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '3d_valley',
@@ -137,9 +151,9 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'all'
-            );
+            ));
 
-            const blocksNeeded = imageDataToBlockStates(
+            const blocksNeeded = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '3d_valley',
@@ -151,7 +165,7 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'needed'
-            );
+            ));
 
             // 'needed' mode should have fewer or equal blocks than 'all' mode
             expect(blocksNeeded.length).toBeLessThanOrEqual(blocksAll.length);
@@ -177,7 +191,7 @@ describe('litematicaExport', () => {
                 }
             };
 
-            const blocks = imageDataToBlockStates(
+            const blocks = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '2d',
@@ -189,7 +203,7 @@ describe('litematicaExport', () => {
                 false,
                 manualEdits,
                 'all'
-            );
+            ));
 
             // Verify that manual edits are processed without crashing
             expect(blocks.length).toBeGreaterThan(0);
@@ -214,7 +228,7 @@ describe('litematicaExport', () => {
                 8: 'minecraft:dirt'
             };
 
-            const blocksNoDither = imageDataToBlockStates(
+            const blocksNoDither = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '2d',
@@ -226,9 +240,9 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'all'
-            );
+            ));
 
-            const blocksDither = imageDataToBlockStates(
+            const blocksDither = getBlocksArray(imageDataToBlockStates(
                 imageData,
                 selectedPaletteItems,
                 '2d',
@@ -240,7 +254,7 @@ describe('litematicaExport', () => {
                 false,
                 undefined,
                 'all'
-            );
+            ));
 
             // Both should generate valid blocks
             expect(blocksNoDither.length).toBeGreaterThan(0);
