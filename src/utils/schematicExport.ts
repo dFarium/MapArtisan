@@ -150,9 +150,18 @@ export function createSchematicNBT(
     }
 
     // Calculate dimensions
-    const maxX = Math.max(...blockStates.map((b) => b.x), 0) + 1;
-    const maxY = Math.max(...blockStates.map((b) => b.y), 0) + 1;
-    const maxZ = Math.max(...blockStates.map((b) => b.z), 0) + 1;
+    let maxX = 0;
+    let maxY = 0;
+    let maxZ = 0;
+    for (let i = 0; i < blockStates.length; i++) {
+        const b = blockStates[i];
+        if (b.x > maxX) maxX = b.x;
+        if (b.y > maxY) maxY = b.y;
+        if (b.z > maxZ) maxZ = b.z;
+    }
+    maxX += 1;
+    maxY += 1;
+    maxZ += 1;
 
     // Create blocks list
     const blocks: NBTCompound[] = [];

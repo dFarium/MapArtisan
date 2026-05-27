@@ -125,9 +125,14 @@ export async function generateMapartExport(
 
                 // Re-ground this specific section ONLY if it's independent
                 if (independentMaps) {
-                    const minSectionY = Math.min(...blocks.map(b => b.y));
-                    for (const b of blocks) {
-                        b.y -= minSectionY;
+                    let minSectionY = blocks[0].y;
+                    for (let i = 1; i < blocks.length; i++) {
+                        if (blocks[i].y < minSectionY) {
+                            minSectionY = blocks[i].y;
+                        }
+                    }
+                    for (let i = 0; i < blocks.length; i++) {
+                        blocks[i].y -= minSectionY;
                     }
                 }
 

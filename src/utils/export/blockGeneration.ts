@@ -120,8 +120,10 @@ export function imageDataToBlockStates(
                     const zEnd = Math.min((m + 1) * 128, height);
                     const chunkTones = Array.from(columnTones.slice(zStart, zEnd));
                     const { path } = optimizeColumnHeights(chunkTones);
-
-                    const minChunkY = Math.min(...path, 0);
+                    let minChunkY = 0;
+                    for (let i = 0; i < path.length; i++) {
+                        if (path[i] < minChunkY) minChunkY = path[i];
+                    }
                     const shiftY = -minChunkY;
 
                     for (let i = 0; i < path.length; i++) {
@@ -144,7 +146,10 @@ export function imageDataToBlockStates(
                 // Ground whole column
                 const tonesArray = Array.from(columnTones);
                 const { path } = optimizeColumnHeights(tonesArray);
-                const minPathY = Math.min(...path, 0);
+                let minPathY = 0;
+                for (let i = 0; i < path.length; i++) {
+                    if (path[i] < minPathY) minPathY = path[i];
+                }
                 const shiftY = -minPathY;
 
                 for (let i = 0; i < path.length; i++) {
@@ -211,7 +216,14 @@ export function imageDataToBlockStates(
     }
 
     // Global normalization (ensure nothing below 0)
-    const globalMinY = blockStates.length > 0 ? Math.min(...blockStates.map(b => b.y), 0) : 0;
+    let globalMinY = 0;
+    if (blockStates.length > 0) {
+        for (let i = 0; i < blockStates.length; i++) {
+            if (blockStates[i].y < globalMinY) {
+                globalMinY = blockStates[i].y;
+            }
+        }
+    }
     if (globalMinY < 0) {
         for (const block of blockStates) {
             block.y -= globalMinY;

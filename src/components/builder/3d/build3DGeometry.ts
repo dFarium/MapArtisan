@@ -180,7 +180,12 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                 const zStart = m * 128;
                 const zEnd = Math.min((m + 1) * 128, height);
                 const { path: mapPath } = optimizeColumnHeights(tones.slice(zStart, zEnd));
-                const minChunkY = Math.min(...mapPath, 0);
+                let minChunkY = 0;
+                for (let i = 0; i < mapPath.length; i++) {
+                    if (mapPath[i] < minChunkY) {
+                        minChunkY = mapPath[i];
+                    }
+                }
                 const shiftY = -minChunkY;
                 sectionBaselines[m] = shiftY;
                 for (let i = 0; i < mapPath.length; i++) {
@@ -189,7 +194,12 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
             }
         } else {
             const { path: globalPath } = optimizeColumnHeights(tones);
-            const minPathY = Math.min(...globalPath, 0);
+            let minPathY = 0;
+            for (let i = 0; i < globalPath.length; i++) {
+                if (globalPath[i] < minPathY) {
+                    minPathY = globalPath[i];
+                }
+            }
             globalShiftY = -minPathY;
             for (let i = 0; i < globalPath.length; i++) {
                 path[i] = globalPath[i] + globalShiftY;
