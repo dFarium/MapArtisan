@@ -12,47 +12,37 @@
  *   - Easily moved to a Web Worker in a future iteration
  */
 
-import { optimizeColumnHeights } from '../../../utils/mapartProcessing';
-import type { PreviewSection } from '../../../types/mapart';
+import { optimizeColumnHeights, unpackTone, unpackNeedsSupport } from '../../../utils/mapartProcessing';
+import { type PreviewSection, type RGB } from '../../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface BlockColorRGB {
-    r: number; // 0-255
-    g: number; // 0-255
-    b: number; // 0-255
-}
-
-export interface GeometryParams {
-    /** Pixel-quantized image (RGBA, width×height) */
+export interface Build3DGeometryProps {
     imageData: ImageData;
-    /** Tone map: -1 = low, 0 = normal, 1 = high. May be null for 2D mode. */
-    toneMap?: Int8Array | null;
+    /** Packed pixel results containing tone, block index, support flag */
+    packedResults?: Uint32Array | null;
     /** "all" | "needed" | "gravity" */
     blockSupport: 'all' | 'needed' | 'gravity';
     /** Support block RGB color (r,g,b 0-255) */
-    supportColor: BlockColorRGB;
+    supportColor: RGB;
     /** Export mode: full vs section-based */
     exportMode?: 'full' | 'sections';
     /** Whether each 128-row chunk is a separate map */
     independentMaps?: boolean;
     /** Optional section filter */
     previewSection?: PreviewSection;
-    /** Gravity-based support bitmap (1 = needs support) */
-    needsSupportMap?: Uint8Array | null;
     /**
      * Maps an RGB hex string (e.g. '#6d9930') to the selected block ID for that color.
      * Build this from selectedPaletteItems + palette color values on the caller side.
      * When provided, enables per-block texture assignment in the output.
      */
     blockIdMap?: Record<string, string>;
-    /** Block ID used for support/noobline blocks (e.g. 'minecraft:cobblestone') */
+    /** Optional support block ID */
     supportBlockId?: string;
 }
 
-/** Output buffers ready for GPU upload */
 export interface InstanceGeometry {
     /** Flat Float32Array of XYZ positions, 3 floats per instance */
     positions: Float32Array;
@@ -89,16 +79,15 @@ export interface InstanceGeometry {
  *
  * @returns InstanceGeometry with pre-allocated Float32Arrays
  */
-export function build3DGeometry(params: GeometryParams): InstanceGeometry {
+export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry {
     const {
         imageData,
-        toneMap,
+        packedResults,
         blockSupport,
         supportColor,
         exportMode,
         independentMaps,
         previewSection,
-        needsSupportMap,
         blockIdMap,
         supportBlockId,
     } = params;
@@ -171,7 +160,7 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
         // Collect tones for this column
         const tones: number[] = new Array(height);
         for (let y = 0; y < height; y++) {
-            tones[y] = toneMap ? toneMap[yOffsets[y] + x] : 0;
+            tones[y] = packedResults ? unpackTone(packedResults[yOffsets[y] + x]) : 0;
         }
 
         // ── Path computation ───────────────────────────────────────────────
@@ -288,9 +277,9 @@ export function build3DGeometry(params: GeometryParams): InstanceGeometry {
                 let addSupport = false;
                 if (blockSupport === 'all') {
                     addSupport = true;
-                } else if (blockSupport === 'gravity' && needsSupportMap) {
+                } else if (blockSupport === 'gravity' && packedResults) {
                     const linearIdx = y >= 0 ? yOffsets[y] + x : 0;
-                    addSupport = needsSupportMap[linearIdx] === 1;
+                    addSupport = unpackNeedsSupport(packedResults[linearIdx]);
                 }
 
                 if (addSupport) {

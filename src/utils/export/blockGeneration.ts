@@ -29,7 +29,7 @@ export function imageDataToBlockStates(
     exportMode: 'full' | 'sections' = 'sections'
 ): BlockWithCoords[] {
     // Process image to get exact same colors as preview
-    const { imageData: baseImageData, toneMap: baseToneMap, needsSupportMap: baseNeedsSupportMap } = processMapart(
+    const { imageData: baseImageData, packedResults: basePackedResults } = processMapart(
         imageData,
         buildMode,
         selectedPaletteItems,
@@ -43,7 +43,7 @@ export function imageDataToBlockStates(
     // Apply Manual Edits
     let processedImageData = baseImageData;
     if (manualEdits && Object.keys(manualEdits).length > 0) {
-        const res = applyManualEdits(baseImageData, baseToneMap, baseNeedsSupportMap, manualEdits, buildMode);
+        const res = applyManualEdits(baseImageData, basePackedResults, manualEdits, buildMode);
         processedImageData = res.imageData;
     }
 

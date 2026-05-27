@@ -11,14 +11,13 @@ import { useMapartStore } from '../../../store/useMapartStore';
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
-    toneMap?: Int8Array;
+    packedResults?: Uint32Array | null;
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
     exportMode?: 'full' | 'sections';
     independentMaps?: boolean;
     previewSection?: PreviewSection;
-    needsSupportMap?: Uint8Array;
 }
 
 interface HintItemProps {
@@ -48,7 +47,7 @@ const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
     }
 };
 
-export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap }: Mapart3DPreviewProps) => {
+export const Mapart3DPreview = ({ imageData, packedResults, blockSupport, supportBlockId, exportMode, independentMaps, previewSection }: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
@@ -71,13 +70,12 @@ export const Mapart3DPreview = ({ imageData, toneMap, blockSupport, supportBlock
 
                 <MapartMesh
                     imageData={imageData}
-                    toneMap={toneMap}
+                    packedResults={packedResults}
                     blockSupport={blockSupport}
                     supportBlockId={supportBlockId}
                     exportMode={exportMode}
                     independentMaps={independentMaps}
                     previewSection={previewSection}
-                    needsSupportMap={needsSupportMap}
                 />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
@@ -201,22 +199,20 @@ function loadTextureAtlas(
 
 const MapartMesh = ({
     imageData,
-    toneMap,
+    packedResults,
     blockSupport,
     supportBlockId,
     exportMode,
     independentMaps,
-    previewSection,
-    needsSupportMap
+    previewSection
 }: {
     imageData: ImageData;
-    toneMap?: Int8Array;
+    packedResults?: Uint32Array | null;
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
     exportMode?: 'full' | 'sections';
     independentMaps?: boolean;
     previewSection?: PreviewSection;
-    needsSupportMap?: Uint8Array
 }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
@@ -255,17 +251,16 @@ const MapartMesh = ({
         }
         return build3DGeometry({
             imageData,
-            toneMap: toneMap ?? null,
+            packedResults: packedResults ?? null,
             blockSupport,
             supportColor,
             exportMode,
             independentMaps,
             previewSection,
-            needsSupportMap: needsSupportMap ?? null,
             blockIdMap,
             supportBlockId,
         });
-    }, [imageData, toneMap, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, needsSupportMap, blockIdMap]);
+    }, [imageData, packedResults, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, blockIdMap]);
 
     // Create stable material with atlas shader set up ONCE.
     // onBeforeCompile is called by Three.js the first time the shader compiles.

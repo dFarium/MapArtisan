@@ -1,5 +1,5 @@
 import { expose, transfer } from 'comlink';
-import { processMapart, applyManualEdits, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
+import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
 import type { ManualEdit, MapartStats } from '../types/mapart';
 
@@ -8,11 +8,9 @@ import type { ManualEdit, MapartStats } from '../types/mapart';
 let lastBaseResult: {
     sourceImage: ImageData; // Raw unprocessed image
     processedImage: ImageData; // Output image (quantized)
-    toneMap: Int8Array;
-    blockIndices: Int32Array;
+    packedResults: Uint32Array;
     candidates: ColorCandidate[];
     stats: MapartStats;
-    needsSupportMap: Uint8Array;
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -36,7 +34,7 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; toneMap?: Int8Array; needsSupportMap?: Uint8Array } => {
+    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array } => {
 
         let sourceImage: ImageData;
 
@@ -68,11 +66,9 @@ const api = {
         lastBaseResult = {
             sourceImage,
             processedImage: result.imageData,
-            toneMap: result.toneMap,
-            blockIndices: result.blockIndices,
+            packedResults: result.packedResults,
             candidates: result.candidates,
             stats: result.stats,
-            needsSupportMap: result.needsSupportMap,
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode,
@@ -81,32 +77,29 @@ const api = {
 
         // Transfer large arrays to avoid cloning, but we MUST return a CLONE 
         // if we intend to keep it in our cache (lastBaseResult), otherwise it detaches here!
-        const toneMapClone = result.toneMap.slice(0);
-        const needsSupportMapClone = result.needsSupportMap.slice(0);
+        const packedResultsClone = result.packedResults.slice(0);
 
         return transfer(
             {
                 version,
                 stats: result.stats,
-                toneMap: toneMapClone,
-                needsSupportMap: needsSupportMapClone
+                packedResults: packedResultsClone
             },
-            [toneMapClone.buffer, needsSupportMapClone.buffer]
+            [packedResultsClone.buffer]
         );
     },
 
     /**
      * Light step. Applies manual edits to the cached base result.
      */
-    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } => {
+    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } => {
         if (!lastBaseResult) {
             throw new Error("No base mapart processed yet. Call processMapart first.");
         }
 
         const result = applyManualEdits(
             lastBaseResult.processedImage,
-            lastBaseResult.toneMap,
-            lastBaseResult.needsSupportMap,
+            lastBaseResult.packedResults,
             manualEdits,
             lastBaseResult.buildMode
         );
@@ -117,10 +110,9 @@ const api = {
                 version: lastBaseResult.sourceVersion,
                 imageData: result.imageData,
                 stats: result.stats,
-                toneMap: result.toneMap,
-                needsSupportMap: result.needsSupportMap
+                packedResults: result.packedResults
             },
-            [result.imageData.data.buffer, result.toneMap.buffer, result.needsSupportMap.buffer]
+            [result.imageData.data.buffer, result.packedResults.buffer]
         );
     },
 
@@ -231,8 +223,8 @@ const api = {
             return null;
         }
 
-        const { width, blockIndices, candidates } = lastBaseResult;
-        // console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Indices len: ${blockIndices?.length}, Candidates len: ${candidates?.length}`);
+        const { width, packedResults, candidates } = lastBaseResult;
+        // console.log(`[Worker] getBlockAt ${x},${y}. Width: ${width}, Candidates len: ${candidates?.length}`);
 
         const index = y * width + x;
 
@@ -242,7 +234,7 @@ const api = {
         }
 
         // Fallback to base
-        const candidateIndex = blockIndices[index];
+        const candidateIndex = unpackCandidateIdx(packedResults[index]);
         if (candidateIndex >= 0 && candidateIndex < candidates.length) {
             const c = candidates[candidateIndex];
             return {

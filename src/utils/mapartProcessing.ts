@@ -14,6 +14,10 @@ export {
     rgbToLab,
     deltaE,
     clearColorCache,
+    packPixel,
+    unpackCandidateIdx,
+    unpackTone,
+    unpackNeedsSupport,
 
     // Dithering
     type DitheringMode,
@@ -38,8 +42,11 @@ export {
 
 // Import for internal use
 import {
-    rgbToLab,
     clearColorCache,
+    packPixel,
+    unpackCandidateIdx,
+    unpackTone,
+    unpackNeedsSupport,
     type DitheringMode,
     type FlatDitherKernel,
     buildFlatDitherKernel,
@@ -50,7 +57,6 @@ import {
     optimizeColumnHeights,
     type SmartDropWorkspace,
     type ColorCandidate,
-    type CandidatesSoA,
     buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
@@ -72,7 +78,7 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; blockIndices: Int32Array; candidates: ColorCandidate[]; needsSupportMap: Uint8Array } {
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[] } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -83,10 +89,8 @@ export function processMapart(
                 maxHeight: 0,
                 heightMap: new Int32Array(imageData.width).fill(0)
             },
-            toneMap: new Int8Array(imageData.width * imageData.height),
-            blockIndices: new Int32Array(imageData.width * imageData.height),
-            candidates: [],
-            needsSupportMap: new Uint8Array(imageData.width * imageData.height)
+            packedResults: new Uint32Array(imageData.width * imageData.height),
+            candidates: []
         };
     }
 
@@ -145,14 +149,9 @@ export function processMapart(
         activeKernel = buildFlatDitherKernel(matrixToUse, width);
     }
 
-    // Tone Map for Smart Drop Optimization phase
-    const toneMap = new Int8Array(width * height);
+    // Packed results array (Opt#9)
+    const packedResults = new Uint32Array(width * height);
 
-    // Block Indices Map (for Picker)
-    const blockIndices = new Int32Array(width * height);
-
-    // Needs Support Map (for 3D preview support visualization)
-    const needsSupportMap = new Uint8Array(width * height);
 
     {
         // Standard Processing
@@ -206,19 +205,13 @@ export function processMapart(
                 output[idx + 2] = bestRGB.b;
                 output[idx + 3] = 255;
 
-                // Save Block Index
-                blockIndices[linearIdx] = bestIndex;
-
-                // Save needsSupport flag
-                needsSupportMap[linearIdx] = best.needsSupport ? 1 : 0;
-
-                // Save Tone decision for Phase 2
+                // Save Block Index, Tone and NeedsSupport into packedResults (Opt#9)
+                let tone = 0;
                 if (buildMode === '3d_valley') {
-                    let tone = 0;
                     if (bestBrightness === 'high') tone = 1;
                     else if (bestBrightness === 'low') tone = -1;
-                    toneMap[linearIdx] = tone;
                 }
+                packedResults[linearIdx] = packPixel(bestIndex, tone, best.needsSupport);
 
                 // Update height stats (standard/2d modes)
                 if (bestBrightness === 'high') colHeights[x]++;
@@ -287,6 +280,16 @@ export function processMapart(
             }
         }
 
+        // Unpack packedResults for compatibility with Smart Drop and return signature (Opt#9)
+        // Unpack toneMap locally only for Phase 2 (Smart Drop) when buildMode is 3d_valley (Opt#9 Option B)
+        let toneMap: Int8Array | null = null;
+        if (buildMode === '3d_valley') {
+            toneMap = new Int8Array(width * height);
+            for (let i = 0; i < packedResults.length; i++) {
+                toneMap[i] = unpackTone(packedResults[i]);
+            }
+        }
+
         // ============================================================================
         // Phase 2: Height Optimization (Smart Drop) for 3D Valley
         // ============================================================================
@@ -312,7 +315,7 @@ export function processMapart(
 
                         // Pass direct buffer access
                         const { min, max } = optimizeColumnHeights(
-                            toneMap,
+                            toneMap!,
                             startY * width + x, // startIndex
                             width,              // stride (skip one row width to go down)
                             chunkHeight,        // count
@@ -327,7 +330,7 @@ export function processMapart(
                     }
                 } else {
                     const { min, max } = optimizeColumnHeights(
-                        toneMap,
+                        toneMap!,
                         x,      // startIndex (at top row, column x)
                         width,  // stride
                         height, // count
@@ -349,10 +352,8 @@ export function processMapart(
             maxHeight: overallMax,
             heightMap: colHeights
         },
-        toneMap,
-        blockIndices,
-        candidates,
-        needsSupportMap
+        packedResults,
+        candidates
     };
 }
 
@@ -366,17 +367,15 @@ export function processMapart(
  */
 export function applyManualEdits(
     baseImageData: ImageData,
-    baseToneMap: Int8Array,
-    baseNeedsSupportMap: Uint8Array,
+    basePackedResults: Uint32Array,
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB; needsSupport?: boolean }>,
     buildMode: BuildMode
-): { imageData: ImageData; stats: MapartStats; toneMap: Int8Array; needsSupportMap: Uint8Array } {
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } {
     const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
     const newData = new Uint8ClampedArray(data);
-    const newToneMap = new Int8Array(baseToneMap);
-    const newNeedsSupportMap = new Uint8Array(baseNeedsSupportMap);
+    const newPackedResults = new Uint32Array(basePackedResults);
 
     // Apply edits
     for (const [indexStr, edit] of Object.entries(manualEdits)) {
@@ -392,18 +391,22 @@ export function applyManualEdits(
         newData[idx + 2] = edit.rgb.b;
         newData[idx + 3] = 255;
 
-        // Update Tone Map for this pixel
+        const packed = newPackedResults[index];
+        let tone = 0;
         if (buildMode === '3d_valley') {
-            let tone = 0;
             if (edit.brightness === 'high') tone = 1;
             else if (edit.brightness === 'low') tone = -1;
-            newToneMap[index] = tone;
         }
 
-        // Update needsSupport if provided
+        let needsSupport = false;
         if (edit.needsSupport !== undefined) {
-            newNeedsSupportMap[index] = edit.needsSupport ? 1 : 0;
+            needsSupport = edit.needsSupport;
+        } else {
+            needsSupport = unpackNeedsSupport(packed);
         }
+
+        const candidateIdx = unpackCandidateIdx(packed);
+        newPackedResults[index] = packPixel(candidateIdx, tone, needsSupport);
     }
 
     // Recalculate Height Stats
@@ -411,7 +414,15 @@ export function applyManualEdits(
     let overallMax = 0;
     const colHeights = new Int32Array(width).fill(0);
 
+    let toneMap: Int8Array | null = null;
     if (buildMode === '3d_valley') {
+        toneMap = new Int8Array(width * height);
+        for (let i = 0; i < newPackedResults.length; i++) {
+            toneMap[i] = unpackTone(newPackedResults[i]);
+        }
+    }
+
+    if (buildMode === '3d_valley' && toneMap) {
         const workspace: SmartDropWorkspace = {
             ref: new Int32Array(height + 1),
             minFuturo: new Int32Array(height + 1),
@@ -421,7 +432,7 @@ export function applyManualEdits(
         for (let x = 0; x < width; x++) {
             // Updated to use zero-allocation call
             const { min, max } = optimizeColumnHeights(
-                newToneMap,
+                toneMap,
                 x,      // startIndex
                 width,  // stride
                 height, // count
@@ -441,8 +452,7 @@ export function applyManualEdits(
             maxHeight: overallMax,
             heightMap: colHeights
         },
-        toneMap: newToneMap,
-        needsSupportMap: newNeedsSupportMap
+        packedResults: newPackedResults
     };
 }
 

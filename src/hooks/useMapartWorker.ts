@@ -58,8 +58,7 @@ export const useMapartWorker = ({
     const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
     const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
-    const [toneMap, setToneMap] = useState<Int8Array | null>(null);
-    const [needsSupportMap, setNeedsSupportMap] = useState<Uint8Array | null>(null);
+    const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
 
     const mapartResolution = {
@@ -271,8 +270,7 @@ export const useMapartWorker = ({
 
                     const processedData = editsResult.imageData;
                     const finalStats = editsResult.stats;
-                    const finalToneMap = editsResult.toneMap;
-                    const finalNeedsSupportMap = editsResult.needsSupportMap;
+                    const finalPackedResults = editsResult.packedResults;
 
                     const canvas = document.createElement('canvas');
                     canvas.width = mapartResolution.width;
@@ -284,8 +282,7 @@ export const useMapartWorker = ({
                         setScaledPreviewUrl(blobUrl);
                         setPreviewImageData(processedData);
                         setMapartStats(finalStats);
-                        setToneMap(finalToneMap);
-                        setNeedsSupportMap(finalNeedsSupportMap);
+                        setPackedResults(finalPackedResults);
                     }
 
                     const endTime = performance.now();
@@ -338,7 +335,7 @@ export const useMapartWorker = ({
                 // Concurrency check
                 if (result.version !== currentVersion) return;
 
-                const { imageData: processedData, stats: finalStats, toneMap: finalToneMap, needsSupportMap: finalNeedsSupportMap } = result;
+                const { imageData: processedData, stats: finalStats, packedResults: finalPackedResults } = result;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = mapartResolution.width;
@@ -350,8 +347,7 @@ export const useMapartWorker = ({
                     setScaledPreviewUrl(blobUrl);
                     setPreviewImageData(processedData);
                     setMapartStats(finalStats);
-                    setToneMap(finalToneMap);
-                    setNeedsSupportMap(finalNeedsSupportMap);
+                    setPackedResults(finalPackedResults);
                 }
             } catch (e) {
                 console.error("Light processing failed", e);
@@ -457,8 +453,7 @@ export const useMapartWorker = ({
         isExporting,
         scaledPreviewUrl,
         previewImageData,
-        toneMap,
-        needsSupportMap,
+        packedResults,
         originalTransformedUrl,
         mapartResolution,
         exportMapart,

@@ -5,7 +5,7 @@
 
 import paletteData from '../../data/palette.json';
 import type { RGB, BrightnessLevel, BuildMode, PaletteColor } from '../../types/mapart';
-import { rgbToLab, labDistanceSq, colorDistanceSq, rgbToBinary, getColorCache, type LAB } from './colorSpace';
+import { rgbToLab, getColorCache } from './colorSpace';
 
 // ---------------------------------------------------------------------------
 // Internal helper: build an RGB object from inline scalars for functions that

@@ -140,3 +140,31 @@ export function colorDistanceSq(a: RGB, b: RGB): number {
     const db = a.b - b.b;
     return dr * dr + dg * dg + db * db;
 }
+
+// ============================================================================
+// Bitpacking Result Utilities (Opt#9)
+// ============================================================================
+
+const CANDIDATE_SHIFT = 16;
+const CANDIDATE_MASK = 0xFF;
+const TONE_SHIFT = 14;
+const TONE_MASK = 0x3;
+const SUPPORT_BIT = 13;
+
+export function packPixel(candidateIdx: number, tone: number, needsSupport: boolean): number {
+    return ((candidateIdx & CANDIDATE_MASK) << CANDIDATE_SHIFT)
+         | (((tone + 1) & TONE_MASK) << TONE_SHIFT)
+         | (needsSupport ? (1 << SUPPORT_BIT) : 0);
+}
+
+export function unpackCandidateIdx(packed: number): number {
+    return (packed >> CANDIDATE_SHIFT) & CANDIDATE_MASK;
+}
+
+export function unpackTone(packed: number): number {
+    return ((packed >> TONE_SHIFT) & TONE_MASK) - 1;
+}
+
+export function unpackNeedsSupport(packed: number): boolean {
+    return (packed & (1 << SUPPORT_BIT)) !== 0;
+}

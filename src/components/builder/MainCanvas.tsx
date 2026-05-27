@@ -34,8 +34,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         isProcessing,
         scaledPreviewUrl,
         previewImageData: workerImageData,
-        toneMap,
-        needsSupportMap,
+        packedResults,
         originalTransformedUrl,
         mapartResolution,
         isExporting,
@@ -192,8 +191,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     independentMaps={independentMaps}
                                     previewSection={previewSection || undefined}
                                     stats={mapartStats || undefined}
-                                    toneMap={toneMap || undefined}
-                                    needsSupportMap={needsSupportMap || undefined}
+                                    packedResults={packedResults || undefined}
                                 />
                             </Suspense>
                         </div>

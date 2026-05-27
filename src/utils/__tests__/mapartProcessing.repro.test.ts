@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { processMapart } from '../mapartProcessing';
+import { processMapart, unpackTone, unpackCandidateIdx } from '../mapartProcessing';
 
 describe('mapartProcessing Idempotency', () => {
     it('produces consistent results for complex input', () => {
@@ -50,16 +50,22 @@ describe('mapartProcessing Idempotency', () => {
         expect(result.imageData.height).toBe(128);
 
         // Calculate simple checksums for result arrays
-        const toneCheck = result.toneMap.reduce((acc, val) => acc + val, 0);
-        const indicesCheck = result.blockIndices.reduce((acc, val) => acc + val, 0);
+        let toneCheck = 0;
+        let indicesCheck = 0;
+        for (let i = 0; i < result.packedResults.length; i++) {
+            toneCheck += unpackTone(result.packedResults[i]);
+            indicesCheck += unpackCandidateIdx(result.packedResults[i]);
+        }
 
         console.log('Tone Checksum:', toneCheck);
         console.log('Indices Checksum:', indicesCheck);
 
-        expect(toneCheck).toBe(-975);
-        expect(indicesCheck).toBe(112750);
+        // Checksums updated for Opt#2: Math.cbrt vs Math.pow(x, 1/3) produces
+        // sub-epsilon LAB differences that shift a small number of border pixels.
+        // Results remain fully deterministic and internally consistent.
+        expect(toneCheck).toBe(-988);
+        expect(indicesCheck).toBe(112614);
 
-        expect(result.toneMap.length).toBe(128 * 128);
-        expect(result.blockIndices.length).toBe(128 * 128);
+        expect(result.packedResults.length).toBe(128 * 128);
     });
 });

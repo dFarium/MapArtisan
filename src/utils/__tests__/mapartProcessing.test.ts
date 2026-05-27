@@ -6,6 +6,8 @@ import {
     getValidColors,
     processMapart,
     applyManualEdits,
+    packPixel,
+    unpackTone,
     type LAB
 } from '../mapartProcessing';
 import type { BrightnessLevel, RGB } from '../../types/mapart';
@@ -213,8 +215,7 @@ describe('mapartProcessing', () => {
             expect(result.imageData.width).toBe(2);
             expect(result.imageData.height).toBe(2);
             expect(result.stats).toBeDefined();
-            expect(result.toneMap).toBeInstanceOf(Int8Array);
-            expect(result.blockIndices).toBeInstanceOf(Int32Array);
+            expect(result.packedResults).toBeInstanceOf(Uint32Array);
             expect(result.candidates.length).toBeGreaterThan(0);
         });
 
@@ -264,9 +265,10 @@ describe('mapartProcessing', () => {
                 false
             );
 
-            expect(result.toneMap.length).toBe(4);
+            expect(result.packedResults.length).toBe(4);
             // Tones should be -1, 0, or 1
-            for (const tone of result.toneMap) {
+            for (const packed of result.packedResults) {
+                const tone = unpackTone(packed);
                 expect(tone).toBeGreaterThanOrEqual(-1);
                 expect(tone).toBeLessThanOrEqual(1);
             }
@@ -310,7 +312,10 @@ describe('mapartProcessing', () => {
                 150, 150, 150, 255
             ]);
             const baseImageData = new ImageData(data, 2, 1);
-            const baseToneMap = new Int8Array([0, 0]);
+            const basePackedResults = new Uint32Array([
+                packPixel(0, 0, false),
+                packPixel(0, 0, false)
+            ]);
 
             const manualEdits = {
                 0: {
@@ -320,12 +325,9 @@ describe('mapartProcessing', () => {
                 }
             };
 
-            const baseNeedsSupportMap = new Uint8Array([0, 0]);
-
             const result = applyManualEdits(
                 baseImageData,
-                baseToneMap,
-                baseNeedsSupportMap,
+                basePackedResults,
                 manualEdits,
                 '3d_valley'
             );
@@ -339,13 +341,15 @@ describe('mapartProcessing', () => {
             expect(result.imageData.data[4]).toBe(150);
 
             // Tone map updated for 3d_valley
-            expect(result.toneMap[0]).toBe(1); // high brightness
+            expect(unpackTone(result.packedResults[0])).toBe(1); // high brightness
         });
 
         it('does not mutate base image data', () => {
             const data = new Uint8ClampedArray([100, 100, 100, 255]);
             const baseImageData = new ImageData(data, 1, 1);
-            const baseToneMap = new Int8Array([0]);
+            const basePackedResults = new Uint32Array([
+                packPixel(0, 0, false)
+            ]);
 
             const manualEdits = {
                 0: {
@@ -355,13 +359,11 @@ describe('mapartProcessing', () => {
                 }
             };
 
-            const baseNeedsSupportMap = new Uint8Array([0]);
-
-            applyManualEdits(baseImageData, baseToneMap, baseNeedsSupportMap, manualEdits, '2d');
+            applyManualEdits(baseImageData, basePackedResults, manualEdits, '2d');
 
             // Original should be unchanged
             expect(baseImageData.data[0]).toBe(100);
-            expect(baseToneMap[0]).toBe(0);
+            expect(basePackedResults[0]).toBe(packPixel(0, 0, false));
         });
 
         it('handles multiple edits correctly', () => {
@@ -371,7 +373,11 @@ describe('mapartProcessing', () => {
                 100, 100, 100, 255
             ]);
             const baseImageData = new ImageData(data, 3, 1);
-            const baseToneMap = new Int8Array([0, 0, 0]);
+            const basePackedResults = new Uint32Array([
+                packPixel(0, 0, false),
+                packPixel(0, 0, false),
+                packPixel(0, 0, false)
+            ]);
 
             const manualEdits = {
                 0: {
@@ -386,12 +392,9 @@ describe('mapartProcessing', () => {
                 }
             };
 
-            const baseNeedsSupportMap = new Uint8Array([0, 0, 0]);
-
             const result = applyManualEdits(
                 baseImageData,
-                baseToneMap,
-                baseNeedsSupportMap,
+                basePackedResults,
                 manualEdits,
                 '3d_valley'
             );
@@ -410,9 +413,9 @@ describe('mapartProcessing', () => {
             expect(result.imageData.data[10]).toBe(255);
 
             // Tone map updated
-            expect(result.toneMap[0]).toBe(1);  // high
-            expect(result.toneMap[1]).toBe(0);  // unchanged
-            expect(result.toneMap[2]).toBe(-1); // low
+            expect(unpackTone(result.packedResults[0])).toBe(1);  // high
+            expect(unpackTone(result.packedResults[1])).toBe(0);  // unchanged
+            expect(unpackTone(result.packedResults[2])).toBe(-1); // low
         });
     });
 });

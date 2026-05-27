@@ -11,7 +11,11 @@ export {
     colorDistanceSq,
     rgbToBinary,
     clearColorCache,
-    getColorCache
+    getColorCache,
+    packPixel,
+    unpackCandidateIdx,
+    unpackTone,
+    unpackNeedsSupport
 } from './colorSpace';
 
 // Dithering

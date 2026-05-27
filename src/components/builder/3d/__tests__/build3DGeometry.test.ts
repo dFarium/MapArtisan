@@ -7,13 +7,26 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { build3DGeometry, type GeometryParams, type BlockColorRGB } from '../build3DGeometry';
+import { build3DGeometry, type Build3DGeometryProps } from '../build3DGeometry';
+import { packPixel } from '../../../../utils/mapartProcessing';
+import type { RGB } from '../../../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GRAY_SUPPORT: BlockColorRGB = { r: 128, g: 128, b: 128 };
+const GRAY_SUPPORT: RGB = { r: 128, g: 128, b: 128 };
+
+/** Helper to construct packedResults from toneMap and needsSupportMap for testing */
+function makePackedResults(width: number, height: number, toneMap?: Int8Array | null, needsSupportMap?: Uint8Array | null): Uint32Array {
+    const packed = new Uint32Array(width * height);
+    for (let i = 0; i < packed.length; i++) {
+        const tone = toneMap ? toneMap[i] : 0;
+        const support = needsSupportMap ? (needsSupportMap[i] === 1) : false;
+        packed[i] = packPixel(0, tone, support);
+    }
+    return packed;
+}
 
 /** Creates a plain ImageData-like object filled with a single RGBA color */
 function makeImageData(width: number, height: number, r = 100, g = 100, b = 100): ImageData {
@@ -66,9 +79,9 @@ describe('build3DGeometry', () => {
         it('returns Float32Array buffers with correct length', () => {
             const width = 4, height = 4;
             const imageData = makeImageData(width, height);
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap: null,
+                packedResults: null,
                 blockSupport: 'none' as unknown as 'all',
                 supportColor: GRAY_SUPPORT,
             };
@@ -83,9 +96,9 @@ describe('build3DGeometry', () => {
         it('produces at least width×height instances for a flat map (no supports)', () => {
             const width = 8, height = 8;
             const imageData = makeImageData(width, height);
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap: null,
+                packedResults: null,
                 blockSupport: 'needed', // no extra blocks since all heights will be 0
                 supportColor: GRAY_SUPPORT,
             };
@@ -103,9 +116,9 @@ describe('build3DGeometry', () => {
             const imageData = makeImageData(width, height);
             const toneMap = new Int8Array(width * height).fill(0);
 
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(width, height, toneMap),
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -121,9 +134,9 @@ describe('build3DGeometry', () => {
         it('centers the map around (0, 0) on X and Z axes', () => {
             const width = 4, height = 4;
             const imageData = makeImageData(width, height);
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap: null,
+                packedResults: null,
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -149,9 +162,9 @@ describe('build3DGeometry', () => {
             const data = new Uint8ClampedArray([255, 0, 0, 255]);
             const imageData = new ImageData(data, 1, 1);
 
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap: new Int8Array([0]),
+                packedResults: makePackedResults(1, 1, new Int8Array([0])),
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -171,9 +184,9 @@ describe('build3DGeometry', () => {
         it('noobline instances use support color', () => {
             // A single-column map — the noobline (y=-1) should use support color
             const imageData = makeImageData(1, 4, 200, 100, 50);
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap: new Int8Array(4).fill(0),
+                packedResults: makePackedResults(1, 4, new Int8Array(4).fill(0)),
                 blockSupport: 'needed',
                 supportColor: { r: 255, g: 0, b: 255 }, // magenta support
             };
@@ -205,14 +218,14 @@ describe('build3DGeometry', () => {
 
             const withSupport = build3DGeometry({
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(1, 2, toneMap),
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             });
 
             const withoutSupport = build3DGeometry({
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(1, 2, toneMap),
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             });
@@ -229,15 +242,14 @@ describe('build3DGeometry', () => {
 
             const geoWithGravity = build3DGeometry({
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(2, 2, toneMap, needsSupportMap),
                 blockSupport: 'gravity',
                 supportColor: GRAY_SUPPORT,
-                needsSupportMap,
             });
 
             const geoWithAll = build3DGeometry({
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(2, 2, toneMap),
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             });
@@ -256,14 +268,14 @@ describe('build3DGeometry', () => {
 
             const fullGeo = build3DGeometry({
                 imageData,
-                toneMap: null,
+                packedResults: null,
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             });
 
             const sectionGeo = build3DGeometry({
                 imageData,
-                toneMap: null,
+                packedResults: null,
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
                 previewSection: { x: 0, y: 0 },
@@ -283,9 +295,9 @@ describe('build3DGeometry', () => {
             const imageData = makeImageData(width, height, 120, 80, 40);
             const toneMap = makeMixedToneMap(width, height);
 
-            const params: GeometryParams = {
+            const params: Build3DGeometryProps = {
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(width, height, toneMap),
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             };
@@ -314,7 +326,7 @@ describe('build3DGeometry', () => {
 
             const geo = build3DGeometry({
                 imageData,
-                toneMap,
+                packedResults: makePackedResults(1, 2, toneMap),
                 blockSupport: 'needed',
                 supportColor: { r: 128, g: 128, b: 128 },
             });

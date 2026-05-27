@@ -64,7 +64,6 @@ describe('mapart.worker idempotency', () => {
 
         // Assertions
         expect(result1.stats).toEqual(result2.stats);
-        expect(result1.toneMap).toEqual(result2.toneMap);
-        expect(result1.needsSupportMap).toEqual(result2.needsSupportMap);
+        expect(result1.packedResults).toEqual(result2.packedResults);
     });
 });

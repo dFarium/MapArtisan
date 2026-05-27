@@ -21,13 +21,26 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { build3DGeometry, type GeometryParams, type BlockColorRGB } from '../build3DGeometry';
+import { build3DGeometry, type Build3DGeometryProps } from '../build3DGeometry';
+import { packPixel } from '../../../../utils/mapartProcessing';
+import type { RGB } from '../../../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SUPPORT_COLOR: BlockColorRGB = { r: 128, g: 128, b: 128 };
+const SUPPORT_COLOR: RGB = { r: 128, g: 128, b: 128 };
+
+/** Helper to construct packedResults from toneMap and needsSupportMap for testing */
+function makePackedResults(width: number, height: number, toneMap?: Int8Array | null, needsSupportMap?: Uint8Array | null): Uint32Array {
+    const packed = new Uint32Array(width * height);
+    for (let i = 0; i < packed.length; i++) {
+        const tone = toneMap ? toneMap[i] : 0;
+        const support = needsSupportMap ? (needsSupportMap[i] === 1) : false;
+        packed[i] = packPixel(0, tone, support);
+    }
+    return packed;
+}
 
 /** Creates a noise-filled ImageData for realistic benchmark conditions */
 function makeNoiseImageData(width: number, height: number): ImageData {
@@ -97,9 +110,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -114,9 +127,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -130,9 +143,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -146,9 +159,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -162,9 +175,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -179,9 +192,9 @@ describe('build3DGeometry — performance baseline', () => {
         const imageData = makeNoiseImageData(W, H);
         const toneMap = makeRealisticToneMap(W, H);
 
-        const params: GeometryParams = {
+        const params: Build3DGeometryProps = {
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -200,7 +213,7 @@ describe('build3DGeometry — performance baseline', () => {
 
         const geo = build3DGeometry({
             imageData,
-            toneMap,
+            packedResults: makePackedResults(W, H, toneMap),
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         });
