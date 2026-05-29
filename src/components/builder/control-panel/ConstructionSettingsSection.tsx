@@ -21,6 +21,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         blockSupport, setBlockSupport,
         supportBlockId, setSupportBlockId,
         exportMode, setExportMode,
+        exportFormat, setExportFormat,
         previewSection, setPreviewSection,
         gridDimensions
     } = useMapart();
@@ -140,9 +141,41 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                 </div>
             )}
 
+            {/* File Format */}
+            <div className="space-y-2 pt-1 border-t border-zinc-800/50">
+                <Label className="text-xs">File Format</Label>
+                <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+                    <button
+                        onClick={() => setExportFormat('litematic')}
+                        className={cn(
+                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                            exportFormat === 'litematic' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                        type="button"
+                    >
+                        LITEMATICA
+                    </button>
+                    <button
+                        onClick={() => setExportFormat('nbt')}
+                        className={cn(
+                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                            exportFormat === 'nbt' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                        )}
+                        type="button"
+                    >
+                        VANILLA NBT
+                    </button>
+                </div>
+                <p className="text-[10px] text-zinc-500 px-1">
+                    {exportFormat === 'litematic'
+                        ? "Export as .litematic for Litematica mod."
+                        : "Export as .nbt for Vanilla Minecraft Structure Blocks."}
+                </p>
+            </div>
+
             {/* Export Mode */}
             <div className="space-y-2 pt-1 border-t border-zinc-800/50">
-                <Label className="text-xs">Export Format</Label>
+                <Label className="text-xs">File Layout</Label>
                 <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
                     <button
                         onClick={() => setExportMode('full')}
@@ -150,6 +183,7 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                             "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
                             exportMode === 'full' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                         )}
+                        type="button"
                     >
                         SINGLE FILE
                     </button>
@@ -159,14 +193,15 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                             "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
                             exportMode === 'sections' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                         )}
+                        type="button"
                     >
                         MULTIPLE FILES
                     </button>
                 </div>
                 <p className="text-[10px] text-zinc-500 px-1">
                     {exportMode === 'full'
-                        ? "Export the entire project as one large litematic."
-                        : "Split into 128x128 sections (recommended for large maps)."}
+                        ? `Export the entire project as one large ${exportFormat === 'nbt' ? 'NBT structure' : 'litematic'} file.`
+                        : "Split into 128x128 sections (recommended for large maps) packed in a ZIP file."}
                 </p>
             </div>
 

@@ -14,7 +14,7 @@ export {
 export { imageDataToBlockStates } from './blockGeneration';
 
 // NBT Builder
-export { createLitematicaNBT } from './nbtBuilder';
+export { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
 
 // File Export
 export { generateMapartExport, triggerDownload } from './fileExport';

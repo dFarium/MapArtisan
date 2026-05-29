@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MapartStats, ManualEdit, BuildMode, ExportMode, PreviewSection } from '../types/mapart';
+import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
@@ -55,6 +55,8 @@ export interface MapartState {
     supportBlockId: string;
     /** Export format splitting (export as whole map or split region sections) */
     exportMode: ExportMode;
+    /** Export file format (litematic mod vs vanilla nbt structure) */
+    exportFormat: ExportFormat;
     /** Specific section focused for preview and isolated exports */
     previewSection: PreviewSection | null;
     /** Pixel color dithering algorithm */
@@ -100,6 +102,7 @@ export interface MapartState {
     setBlockSupport: (support: BlockSupport) => void;
     setSupportBlockId: (id: string) => void;
     setExportMode: (mode: ExportMode) => void;
+    setExportFormat: (format: ExportFormat) => void;
     setPreviewSection: (section: PreviewSection | null) => void;
     setDithering: (dithering: string) => void;
     setUploadedImage: (file: File | null) => void;
@@ -134,6 +137,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     blockSupport: 'all',
     supportBlockId: 'minecraft:cobblestone',
     exportMode: 'sections',
+    exportFormat: 'litematic',
     previewSection: null,
     dithering: 'hybrid',
     uploadedImage: null,
@@ -171,6 +175,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     setBlockSupport: (support) => set({ blockSupport: support }),
     setSupportBlockId: (id) => set({ supportBlockId: id }),
     setExportMode: (mode) => set({ exportMode: mode }),
+    setExportFormat: (format) => set({ exportFormat: format }),
     setPreviewSection: (section) => set({ previewSection: section }),
     setDithering: (dithering) => set({
         dithering

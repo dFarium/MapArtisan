@@ -1,7 +1,38 @@
 import { describe, it, expect } from 'vitest';
-import { createLitematicaNBT } from '../export/nbtBuilder';
+import { createLitematicaNBT, createVanillaNBT } from '../export/nbtBuilder';
 
 describe('nbtBuilder', () => {
+    it('should generate valid Vanilla NBT structure', () => {
+        const blockStates = [
+            { x: 0, y: 0, z: 0, blockId: 'minecraft:stone' },
+            { x: 1, y: 0, z: 0, blockId: 'minecraft:dirt' },
+        ];
+
+        const nbt = createVanillaNBT(blockStates);
+
+        expect(nbt.name).toBe('');
+        // Check size
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const size = nbt.value.size.value as any;
+        expect(size.value).toEqual([2, 1, 1]);
+
+        // Check palette
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const palette = nbt.value.palette.value as any;
+        expect(palette.value.length).toBe(3);
+        expect(palette.value[0].Name.value).toBe('minecraft:air');
+        expect(palette.value[1].Name.value).toBe('minecraft:stone');
+        expect(palette.value[2].Name.value).toBe('minecraft:dirt');
+
+        // Check blocks
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blocks = nbt.value.blocks.value as any;
+        expect(blocks.value.length).toBe(2);
+        expect(blocks.value[0].state.value).toBe(1);
+        expect(blocks.value[0].pos.value.value).toEqual([0, 0, 0]);
+        expect(blocks.value[1].state.value).toBe(2);
+        expect(blocks.value[1].pos.value.value).toEqual([1, 0, 0]);
+    });
     it('should generate valid NBT structure', () => {
         const blockStates = [
             { x: 0, y: 0, z: 0, blockId: 'minecraft:stone' },

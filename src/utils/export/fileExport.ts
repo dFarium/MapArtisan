@@ -4,13 +4,13 @@
  */
 
 import JSZip from 'jszip';
-import type { BuildMode, BrightnessLevel } from '../../types/mapart';
+import type { BuildMode, BrightnessLevel, ExportFormat } from '../../types/mapart';
 import type { DitheringMode } from '../mapartProcessing';
 import { serializeNBT } from '../nbtWriter';
 import { DEFAULT_VERSION } from '../../data/supportedVersions';
 import type { LitematicaMetadata, BlockStatesBuffers } from './types';
 import { imageDataToBlockStates } from './blockGeneration';
-import { createLitematicaNBT } from './nbtBuilder';
+import { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
 
 /**
  * Generates the binary Litematica export data (Blob).
@@ -56,10 +56,15 @@ export async function generateMapartExport(
     supportBlockId: string = 'minecraft:cobblestone',
     exportMode: 'full' | 'sections' = 'sections',
     targetVersion: string = DEFAULT_VERSION,
-    precomputedPackedResults?: Uint32Array
+    precomputedPackedResults?: Uint32Array,
+    exportFormat: ExportFormat = 'litematic'
 ): Promise<{ blob: Blob; filename: string }> {
     const { width, height } = imageData;
     const isMultiMap = (width > 128 || height > 128) && exportMode === 'sections';
+    const isNbt = exportFormat === 'nbt';
+    const targetExtension = isNbt ? '.nbt' : '.litematic';
+    const baseName = filename.replace(/\.(litematic|nbt)$/i, '');
+    const actualFilename = isMultiMap ? `${baseName}_package.zip` : `${baseName}${targetExtension}`;
 
     if (!isMultiMap) {
         // Single Map Case
@@ -69,15 +74,17 @@ export async function generateMapartExport(
             exportMode, precomputedPackedResults
         );
 
-        const nbtOpt = createLitematicaNBT(blockStatesOpt, {
-            ...metadata,
-            name: metadata.name || 'MapArt',
-            description: metadata.description || 'MapArt created by MapArtisan'
-        }, targetVersion);
+        const nbtOpt = isNbt
+            ? createVanillaNBT(blockStatesOpt, metadata, targetVersion)
+            : createLitematicaNBT(blockStatesOpt, {
+                ...metadata,
+                name: metadata.name || 'MapArt',
+                description: metadata.description || 'MapArt created by MapArtisan'
+            }, targetVersion);
         const nbtDataOpt = serializeNBT(nbtOpt);
         const blob = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
 
-        return { blob, filename };
+        return { blob, filename: actualFilename };
 
     } else {
         // Multi Map Case - Global Processing then Split
@@ -89,7 +96,6 @@ export async function generateMapartExport(
         );
 
         const zip = new JSZip();
-        const baseName = filename.replace(/\.litematic$/, '');
         const mapsX = Math.ceil(width / 128);
         const mapsY = Math.ceil(height / 128);
 
@@ -195,14 +201,16 @@ export async function generateMapartExport(
                     count: section.x.length
                 };
 
-                const sectionNbt = createLitematicaNBT(blocksBuffer, {
-                    ...metadata,
-                    name: `${metadata.name || 'MapArt'} (${sX},${sY})`,
-                    description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`
-                }, targetVersion);
+                const sectionNbt = isNbt
+                    ? createVanillaNBT(blocksBuffer, metadata, targetVersion)
+                    : createLitematicaNBT(blocksBuffer, {
+                        ...metadata,
+                        name: `${metadata.name || 'MapArt'} (${sX},${sY})`,
+                        description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`
+                    }, targetVersion);
 
                 const sectionBuffer = serializeNBT(sectionNbt);
-                zip.file(`${baseName}_${sX}_${sY}.litematic`, sectionBuffer);
+                zip.file(`${baseName}_${sX}_${sY}${targetExtension}`, sectionBuffer);
             }
         }
 

@@ -249,3 +249,150 @@ export function createLitematicaNBT(
 
     return nbt;
 }
+
+/**
+ * Compiles a Vanilla Minecraft structure NBT format from block states.
+ * 
+ * Flow:
+ * 1. Computes total volume boundary dimensions (maxX, maxY, maxZ).
+ * 2. Compiles a palette of unique block types (containing Name and optional Properties compound).
+ * 3. Fills blocks list with position (pos) and state index.
+ * 4. Fills metadata fields such as author and DataVersion.
+ * 
+ * @param blockStates Flat block buffers or legacy list of blocks.
+ * @param metadata Title, description, and author fields.
+ * @param targetVersion Minecraft version (used to pull corresponding DataVersion key).
+ */
+export function createVanillaNBT(
+    blockStates: BlockStatesBuffers | BlockWithCoords[],
+    metadata: LitematicaMetadata = {},
+    targetVersion: string = DEFAULT_VERSION
+): NBTRoot {
+    const buffers = Array.isArray(blockStates) ? convertToBuffers(blockStates) : blockStates;
+
+    // Calculate dimensions
+    let maxX = 0;
+    let maxY = 0;
+    let maxZ = 0;
+    for (let i = 0; i < buffers.count; i++) {
+        if (buffers.x[i] > maxX) maxX = buffers.x[i];
+        if (buffers.y[i] > maxY) maxY = buffers.y[i];
+        if (buffers.z[i] > maxZ) maxZ = buffers.z[i];
+    }
+    maxX += 1;
+    maxY += 1;
+    maxZ += 1;
+
+    // Build palette
+    const paletteBlocks: NBTCompound[] = [];
+    const paletteMap = new Map<number, number>();
+
+    for (let i = 0; i < buffers.palette.length; i++) {
+        const key = buffers.palette[i];
+        let blockId = key;
+        let properties: Record<string, string> | undefined = undefined;
+
+        if (key.includes('[')) {
+            const openBracket = key.indexOf('[');
+            const closeBracket = key.indexOf(']');
+            blockId = key.substring(0, openBracket);
+            const propStr = key.substring(openBracket + 1, closeBracket);
+            properties = {};
+            const pairs = propStr.split(',');
+            for (const pair of pairs) {
+                const [k, v] = pair.split('=');
+                if (k && v) {
+                    properties[k] = v;
+                }
+            }
+        }
+
+        const paletteEntry: NBTCompound = {
+            Name: { type: TagTypes.STRING, value: blockId }
+        };
+
+        if (properties && Object.keys(properties).length > 0) {
+            const props: NBTCompound = {};
+            for (const [k, v] of Object.entries(properties)) {
+                props[k] = { type: TagTypes.STRING, value: v };
+            }
+            paletteEntry.Properties = { type: TagTypes.COMPOUND, value: props };
+        }
+
+        paletteMap.set(i, paletteBlocks.length);
+        paletteBlocks.push(paletteEntry);
+    }
+
+    // Build blocks list
+    const blocks: NBTCompound[] = [];
+    for (let i = 0; i < buffers.count; i++) {
+        const bx = buffers.x[i];
+        const by = buffers.y[i];
+        const bz = buffers.z[i];
+        if (bx < 0 || bx >= maxX || by < 0 || by >= maxY || bz < 0 || bz >= maxZ) {
+            continue;
+        }
+
+        const localPaletteIndex = buffers.paletteIndices[i];
+        const paletteIndex = paletteMap.get(localPaletteIndex) ?? 0;
+
+        blocks.push({
+            pos: {
+                type: TagTypes.LIST,
+                value: {
+                    type: TagTypes.INT,
+                    value: [bx, by, bz]
+                }
+            },
+            state: {
+                type: TagTypes.INT,
+                value: paletteIndex
+            }
+        });
+    }
+
+    // Create NBT structure
+    const nbt: NBTRoot = {
+        name: '',
+        value: {
+            size: {
+                type: TagTypes.LIST,
+                value: {
+                    type: TagTypes.INT,
+                    value: [maxX, maxY, maxZ]
+                }
+            },
+            palette: {
+                type: TagTypes.LIST,
+                value: {
+                    type: TagTypes.COMPOUND,
+                    value: paletteBlocks
+                }
+            },
+            blocks: {
+                type: TagTypes.LIST,
+                value: {
+                    type: TagTypes.COMPOUND,
+                    value: blocks
+                }
+            },
+            entities: {
+                type: TagTypes.LIST,
+                value: {
+                    type: TagTypes.COMPOUND,
+                    value: []
+                }
+            },
+            author: {
+                type: TagTypes.STRING,
+                value: metadata.author || 'MapArtisan'
+            },
+            DataVersion: {
+                type: TagTypes.INT,
+                value: getDataVersion(targetVersion)
+            }
+        }
+    };
+
+    return nbt;
+}

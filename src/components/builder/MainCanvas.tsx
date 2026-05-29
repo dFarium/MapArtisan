@@ -25,6 +25,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         blockSupport,
         supportBlockId,
         exportMode,
+        exportFormat,
         previewSection,
         independentMaps
     } = useMapart();
@@ -120,8 +121,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const handleExportSchematic = () => {
         if (!scaledPreviewUrl || isExporting) return;
 
+        const extension = exportFormat === 'nbt' ? '.nbt' : '.litematic';
         exportMapart(
-            `mapart_${gridDimensions.x}x${gridDimensions.y}.litematic`,
+            `mapart_${gridDimensions.x}x${gridDimensions.y}${extension}`,
             {
                 author: 'MapArtisan',
                 name: `Map Art ${gridDimensions.x}x${gridDimensions.y}`,
@@ -167,6 +169,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         onDownloadPreview={handleDownloadPreview}
                         canDownloadPreview={!!scaledPreviewUrl}
                         isPainting={isPainting}
+                        exportFormat={exportFormat}
                     />
 
                     <CanvasStatusBar

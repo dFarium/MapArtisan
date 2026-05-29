@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/mapartProcessing';
-import type { MapartStats, BrightnessLevel, RGB, BuildMode } from '../types/mapart';
+import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import type { Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 
 interface UseMapartWorkerProps {
@@ -26,6 +26,7 @@ interface UseMapartWorkerProps {
     supportBlockId: string;
     exportMode: 'full' | 'sections';
     paletteVersion: string;
+    exportFormat: ExportFormat;
 }
 
 
@@ -55,6 +56,7 @@ export const useMapartWorker = ({
     supportBlockId,
     exportMode,
     paletteVersion,
+    exportFormat,
 }: UseMapartWorkerProps) => {
     // References to the active web worker and its Comlink wrapped proxy API
     const workerRef = useRef<Worker | null>(null);
@@ -455,7 +457,8 @@ export const useMapartWorker = ({
                 blockSupport,
                 supportBlockId,
                 exportMode,
-                paletteVersion
+                paletteVersion,
+                exportFormat
             );
 
             const { triggerDownload } = await import('../utils/litematicaExport');
@@ -465,7 +468,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion, exportFormat]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

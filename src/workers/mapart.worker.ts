@@ -1,7 +1,7 @@
 import { expose, transfer } from 'comlink';
 import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
-import type { ManualEdit, MapartStats } from '../types/mapart';
+import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 
 /**
@@ -166,7 +166,8 @@ const api = {
         blockSupport: 'all' | 'needed' | 'gravity' = 'all',
         supportBlockId: string = 'minecraft:cobblestone',
         exportMode: 'full' | 'sections' = 'sections',
-        targetVersion: string = '1.21.5'
+        targetVersion: string = '1.21.5',
+        exportFormat: ExportFormat = 'litematic'
     ) => {
         let imageData: ImageData;
         let precomputedPackedResults: Uint32Array | undefined = undefined;
@@ -202,7 +203,8 @@ const api = {
             supportBlockId,
             exportMode,
             targetVersion,
-            precomputedPackedResults
+            precomputedPackedResults,
+            exportFormat
         );
     },
 

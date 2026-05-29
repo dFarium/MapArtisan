@@ -19,6 +19,7 @@ interface CanvasToolbarProps {
     onDownloadPreview: () => void;
     canDownloadPreview: boolean;
     isPainting: boolean;
+    exportFormat: 'litematic' | 'nbt';
 }
 
 export const CanvasToolbar = ({
@@ -35,7 +36,8 @@ export const CanvasToolbar = ({
     isExporting,
     onDownloadPreview,
     canDownloadPreview,
-    isPainting
+    isPainting,
+    exportFormat
 }: CanvasToolbarProps) => {
     return (
         <>
@@ -106,7 +108,7 @@ export const CanvasToolbar = ({
                                     ? "bg-green-500/10 text-green-400 ring-1 ring-green-500/50 hover:bg-green-500/20 hover:text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.1)]"
                                     : "text-zinc-700 cursor-not-allowed"
                             )}
-                            title="Download Litematica Schematic"
+                            title={exportFormat === 'nbt' ? "Download Vanilla NBT Schematic" : "Download Litematica Schematic"}
                         >
                             {isExporting ? (
                                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent"></div>

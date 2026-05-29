@@ -17,7 +17,8 @@ const Builder: React.FC = () => {
     const {
         uploadedImage, previewUrl, gridDimensions,
         imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, useCielab, hybridStrength,
-        setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion
+        setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion,
+        exportFormat
     } = useMapart();
 
     const workerState = useMapartWorker({
@@ -39,7 +40,8 @@ const Builder: React.FC = () => {
         blockSupport,
         supportBlockId,
         exportMode,
-        paletteVersion
+        paletteVersion,
+        exportFormat
     });
 
     return (
