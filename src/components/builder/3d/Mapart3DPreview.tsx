@@ -255,7 +255,10 @@ const MapartMesh = ({
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
     const atlasRef = useRef<THREE.DataArrayTexture | null>(null);
-    const texIdxAttrRef = useRef<THREE.InstancedBufferAttribute | null>(null);
+    const capacityRef = useRef<number>(0);
+    const matricesRef = useRef<Float32Array | null>(null);
+    const colorsRef = useRef<Float32Array | null>(null);
+    const texLayersRef = useRef<Float32Array | null>(null);
 
     // Subscribe only to palette-relevant state
     const selectedPaletteItems = useMapartStore(s => s.selectedPaletteItems);
@@ -378,6 +381,13 @@ if (vTexLayer >= 0.0) {
 
 
     // ── Upload geometry (matrices + colors + textureIdx attribute) ────────────
+    // Performance optimization: Uses a buffer pooling strategy to recycle the Float32Arrays 
+    // and the InstancedBufferAttributes on the GPU. Instead of allocating and creating new 
+    // buffers/attributes every time the user updates the map (which causes garbage collection 
+    // pressure and expensive GPU re-allocation stalls), we keep the buffers allocated in refs.
+    // If the new instance count fits within the existing capacity, we write directly to the 
+    // arrays and set `needsUpdate = true` with a restricted `updateRange`. If the count exceeds 
+    // the current capacity, we grow the buffers by 10% headroom to prevent immediate future reallocations.
     useEffect(() => {
         const mesh = meshRef.current;
         const mat = matRef.current;
@@ -385,43 +395,93 @@ if (vTexLayer >= 0.0) {
 
         const { positions, colors, textureIds, count } = geometry;
 
-        // Build matrix buffer
-        const matrices = new Float32Array(count * 16);
+        // Determine if capacity is sufficient
+        let needsNewAttributes = false;
+        if (count > capacityRef.current) {
+            // Allocate with 10% headroom to avoid frequent re-allocation if count fluctuates slightly
+            const newCapacity = Math.ceil(count * 1.1);
+            capacityRef.current = newCapacity;
+
+            matricesRef.current = new Float32Array(newCapacity * 16);
+            colorsRef.current = new Float32Array(newCapacity * 3);
+            texLayersRef.current = new Float32Array(newCapacity);
+
+            needsNewAttributes = true;
+        }
+
+        // Fill the matrices buffer
+        const matrices = matricesRef.current!;
         for (let i = 0; i < count; i++) {
             const m = i * 16;
             const p = i * 3;
-            matrices[m] = 1; matrices[m + 5] = 1; matrices[m + 10] = 1; matrices[m + 15] = 1;
+            // Column-major identity matrix with offset positions
+            matrices[m] = 1; matrices[m + 1] = 0; matrices[m + 2] = 0; matrices[m + 3] = 0;
+            matrices[m + 4] = 0; matrices[m + 5] = 1; matrices[m + 6] = 0; matrices[m + 7] = 0;
+            matrices[m + 8] = 0; matrices[m + 9] = 0; matrices[m + 10] = 1; matrices[m + 11] = 0;
             matrices[m + 12] = positions[p];
             matrices[m + 13] = positions[p + 1];
             matrices[m + 14] = positions[p + 2];
+            matrices[m + 15] = 1;
         }
 
-        // Free old GPU buffers
-        if (mesh.instanceMatrix) mesh.instanceMatrix.array = new Float32Array(0);
-        if (mesh.instanceColor) mesh.instanceColor.array = new Float32Array(0);
-        if (texIdxAttrRef.current) texIdxAttrRef.current.array = new Float32Array(0);
+        // Fill the colors buffer
+        colorsRef.current!.set(colors);
 
-        mesh.instanceMatrix = new THREE.InstancedBufferAttribute(matrices, 16);
-        mesh.instanceMatrix.needsUpdate = true;
-
-        // CRITICAL: update mesh.count — args=[...count] is constructor-only in R3F
-        // and won't update on re-renders when geometry.count changes.
-        mesh.count = count;
-
-        // Per-instance color (used as fallback when texture layer = -1).
-        // colors arrived as a Transferable buffer from the worker — use directly (no slice needed).
-        mesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
-        mesh.instanceColor.needsUpdate = true;
-
-        // Per-instance textureLayer attribute (float, -1.0 = no texture)
-        const texLayers = new Float32Array(count);
+        // Fill the texture layers buffer
+        const texLayers = texLayersRef.current!;
         for (let i = 0; i < count; i++) {
             texLayers[i] = textureIds[i]; // -1 or atlas layer index
         }
-        const texAttr = new THREE.InstancedBufferAttribute(texLayers, 1);
-        texAttr.needsUpdate = true;
-        texIdxAttrRef.current = texAttr;
-        mesh.geometry.setAttribute('aTexLayer', texAttr);
+
+        if (needsNewAttributes) {
+            // Free old GPU buffers by detaching their arrays (allows GC to reclaim memory early)
+            if (mesh.instanceMatrix) {
+                mesh.instanceMatrix.array = new Float32Array(0);
+            }
+            if (mesh.instanceColor) {
+                mesh.instanceColor.array = new Float32Array(0);
+            }
+            const oldTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+            if (oldTexAttr) {
+                oldTexAttr.array = new Float32Array(0);
+                mesh.geometry.deleteAttribute('aTexLayer');
+            }
+
+            mesh.instanceMatrix = new THREE.InstancedBufferAttribute(matrices, 16);
+            mesh.instanceColor = new THREE.InstancedBufferAttribute(colorsRef.current!, 3);
+
+            const texAttr = new THREE.InstancedBufferAttribute(texLayers, 1);
+            mesh.geometry.setAttribute('aTexLayer', texAttr);
+        } else {
+            // Recycle existing attributes and notify Three.js of changes
+            mesh.instanceMatrix.needsUpdate = true;
+            if (mesh.instanceColor) {
+                mesh.instanceColor.needsUpdate = true;
+            }
+
+            const texAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+            if (texAttr) {
+                texAttr.needsUpdate = true;
+            }
+        }
+
+        // Optimize GPU bandwidth: upload only the active range rather than the full capacity
+        mesh.instanceMatrix.clearUpdateRanges();
+        mesh.instanceMatrix.addUpdateRange(0, count * 16);
+
+        if (mesh.instanceColor) {
+            mesh.instanceColor.clearUpdateRanges();
+            mesh.instanceColor.addUpdateRange(0, count * 3);
+        }
+
+        const activeTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+        if (activeTexAttr) {
+            activeTexAttr.clearUpdateRanges();
+            activeTexAttr.addUpdateRange(0, count);
+        }
+
+        // Update the instanced mesh's active count to match the number of current blocks
+        mesh.count = count;
 
         mesh.computeBoundingSphere();
     }, [geometry]);

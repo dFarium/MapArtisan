@@ -5,9 +5,13 @@ import { ControlPanel } from '../components/builder/ControlPanel';
 import { MaterialList } from '../components/builder/MaterialList';
 import { useMapartWorker } from '../hooks/useMapartWorker';
 import { useMapart } from '../context/useMapart';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 const Builder: React.FC = () => {
     const [isMaterialListOpen, setIsMaterialListOpen] = useState(false);
+
+    // Register global keyboard shortcuts for tool switches and undo/redo
+    useKeyboardShortcuts();
 
     // Lift worker state to Builder so we can share it
     const {
