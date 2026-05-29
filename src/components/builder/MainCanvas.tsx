@@ -39,7 +39,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         mapartResolution,
         isExporting,
         exportMapart,
-        pickBlock
+        pickBlock,
+        build3DGeometryAsync
     } = workerState;
 
     const [is3DMode, setIs3DMode] = useState(false);
@@ -192,6 +193,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     previewSection={previewSection || undefined}
                                     stats={mapartStats || undefined}
                                     packedResults={packedResults || undefined}
+                                    build3DGeometryAsync={build3DGeometryAsync}
                                 />
                             </Suspense>
                         </div>

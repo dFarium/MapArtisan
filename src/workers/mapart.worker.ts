@@ -2,6 +2,7 @@ import { expose, transfer } from 'comlink';
 import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
 import type { ManualEdit, MapartStats } from '../types/mapart';
+import { build3DGeometry, type Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 
 /**
  * In-memory thread state caching the results of the last base color quantization.
@@ -282,6 +283,47 @@ const api = {
         }
 
         return null;
+    },
+
+    /**
+     * Runs `build3DGeometry` entirely off the main thread and returns the
+     * resulting typed arrays as Transferable buffers (zero-copy).
+     *
+     * The caller must NOT use the passed-in `packedResults` buffer after this
+     * call if it was transferred — pass a `.slice()` copy if the caller needs
+     * to retain it.
+     *
+     * @param props All parameters for build3DGeometry. `packedResults` (if provided)
+     *              will be sent by-value (structured clone) unless the caller
+     *              explicitly transfers it beforehand.
+     * @returns InstanceGeometry with positions, colors, and textureIds as
+     *          Transferable Float32Array / Int16Array buffers.
+     */
+    build3DGeometryInWorker: (props: Build3DGeometryProps): {
+        positions: Float32Array;
+        colors: Float32Array;
+        textureIds: Int16Array;
+        uniqueTextureIds: string[];
+        count: number;
+    } => {
+        const result = build3DGeometry(props);
+
+        // Slice to exact size before transferring (subarray views share the original
+        // over-allocated buffer, which would transfer the full allocation unnecessarily)
+        const positions = result.positions.slice();
+        const colors = result.colors.slice();
+        const textureIds = result.textureIds.slice();
+
+        return transfer(
+            {
+                positions,
+                colors,
+                textureIds,
+                uniqueTextureIds: result.uniqueTextureIds,
+                count: result.count,
+            },
+            [positions.buffer, colors.buffer, textureIds.buffer]
+        );
     }
 };
 

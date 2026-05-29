@@ -4,6 +4,7 @@ import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/mapartProcessing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode } from '../types/mapart';
+import type { Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -457,6 +458,32 @@ export const useMapartWorker = ({
         }
     };
 
+    /**
+     * Runs `build3DGeometry` in the worker thread and returns the typed-array
+     * result via zero-copy Transferable buffers.
+     *
+     * `packedResults` is structured-cloned to the worker (it stays alive in
+     * the hook's state for other consumers such as the export pipeline).
+     */
+    const build3DGeometryAsync = useCallback(async (
+        props: Build3DGeometryProps
+    ): Promise<{
+        positions: Float32Array;
+        colors: Float32Array;
+        textureIds: Int16Array;
+        uniqueTextureIds: string[];
+        count: number;
+    } | null> => {
+        const api = workerApiRef.current;
+        if (!api) return null;
+        try {
+            return await api.build3DGeometryInWorker(props);
+        } catch (e) {
+            console.error('[useMapartWorker] build3DGeometryAsync failed', e);
+            return null;
+        }
+    }, []);
+
     return {
         isProcessing,
         isExporting,
@@ -467,6 +494,7 @@ export const useMapartWorker = ({
         mapartResolution,
         exportMapart,
         calculateMaterials,
-        pickBlock
+        pickBlock,
+        build3DGeometryAsync
     };
 };

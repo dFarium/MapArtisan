@@ -1,13 +1,27 @@
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
-import { build3DGeometry } from './build3DGeometry';
+import type { Build3DGeometryProps } from './build3DGeometry';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 import { getValidColors } from '../../../utils/mapartProcessing';
 import { useMapartStore } from '../../../store/useMapartStore';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Snapshot of InstanceGeometry returned by the worker.
+ * All typed arrays arrive as Transferable buffers (zero-copy from the worker).
+ */
+interface WorkerGeometry {
+    positions: Float32Array;
+    colors: Float32Array;
+    textureIds: Int16Array;
+    uniqueTextureIds: string[];
+    count: number;
+}
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
@@ -18,6 +32,8 @@ interface Mapart3DPreviewProps {
     exportMode?: 'full' | 'sections';
     independentMaps?: boolean;
     previewSection?: PreviewSection;
+    /** Async function that delegates geometry calculation to the web worker */
+    build3DGeometryAsync: (props: Build3DGeometryProps) => Promise<WorkerGeometry | null>;
 }
 
 interface HintItemProps {
@@ -25,6 +41,8 @@ interface HintItemProps {
     label: string;
     bind: string;
 }
+
+// ── Small UI components ───────────────────────────────────────────────────────
 
 const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
     <div className="flex items-center gap-1.5">
@@ -47,7 +65,18 @@ const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
     }
 };
 
-export const Mapart3DPreview = ({ imageData, packedResults, blockSupport, supportBlockId, exportMode, independentMaps, previewSection }: Mapart3DPreviewProps) => {
+// ── Root component ────────────────────────────────────────────────────────────
+
+export const Mapart3DPreview = ({
+    imageData,
+    packedResults,
+    blockSupport,
+    supportBlockId,
+    exportMode,
+    independentMaps,
+    previewSection,
+    build3DGeometryAsync,
+}: Mapart3DPreviewProps) => {
     if (!imageData) return null;
 
     return (
@@ -76,6 +105,7 @@ export const Mapart3DPreview = ({ imageData, packedResults, blockSupport, suppor
                     exportMode={exportMode}
                     independentMaps={independentMaps}
                     previewSection={previewSection}
+                    build3DGeometryAsync={build3DGeometryAsync}
                 />
 
                 <OrbitControls minDistance={10} maxDistance={500} />
@@ -204,7 +234,8 @@ const MapartMesh = ({
     supportBlockId,
     exportMode,
     independentMaps,
-    previewSection
+    previewSection,
+    build3DGeometryAsync,
 }: {
     imageData: ImageData;
     packedResults?: Uint32Array | null;
@@ -213,6 +244,7 @@ const MapartMesh = ({
     exportMode?: 'full' | 'sections';
     independentMaps?: boolean;
     previewSection?: PreviewSection;
+    build3DGeometryAsync: (props: Build3DGeometryProps) => Promise<WorkerGeometry | null>;
 }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
@@ -223,7 +255,7 @@ const MapartMesh = ({
     const selectedPaletteItems = useMapartStore(s => s.selectedPaletteItems);
     const buildMode = useMapartStore(s => s.buildMode);
 
-    // Build blockIdMap: RGB-hex → blockId
+    // Build blockIdMap: RGB-hex → blockId (main-thread only, small data)
     const blockIdMap = useMemo(() => {
         const candidates = getValidColors(selectedPaletteItems, buildMode);
         const map: Record<string, string> = {};
@@ -236,20 +268,33 @@ const MapartMesh = ({
         return map;
     }, [selectedPaletteItems, buildMode]);
 
-    // Build geometry (positions, colors, textureIds)
-    const geometry = useMemo(() => {
-        let supportColor = { r: 128, g: 128, b: 128 };
+    // Resolve supportColor on the main thread (tiny palette lookup)
+    const supportColor = useMemo(() => {
         if (supportBlockId) {
             const palette = (paletteData as unknown as PaletteData).colors;
             for (const color of palette) {
                 if (color.blocks.some(b => b.id === supportBlockId)) {
                     const { r, g, b } = color.brightnessValues.normal;
-                    supportColor = { r, g, b };
-                    break;
+                    return { r, g, b };
                 }
             }
         }
-        return build3DGeometry({
+        return { r: 128, g: 128, b: 128 };
+    }, [supportBlockId]);
+
+    // ── Worker-based async geometry state ─────────────────────────────────────
+    // Holds the last successfully computed WorkerGeometry.
+    // We keep the previous result visible while a new one is in-flight
+    // (no flash / blank frame during transitions).
+    const [geometry, setGeometry] = useState<WorkerGeometry | null>(null);
+
+    // Use a ref to track the in-flight request so stale results are discarded.
+    const requestIdRef = useRef(0);
+
+    useEffect(() => {
+        const reqId = ++requestIdRef.current;
+
+        build3DGeometryAsync({
             imageData,
             packedResults: packedResults ?? null,
             blockSupport,
@@ -259,8 +304,16 @@ const MapartMesh = ({
             previewSection,
             blockIdMap,
             supportBlockId,
+        }).then(result => {
+            // Discard if a newer request has already been dispatched
+            if (reqId !== requestIdRef.current) return;
+            if (result) setGeometry(result);
         });
-    }, [imageData, packedResults, blockSupport, supportBlockId, exportMode, independentMaps, previewSection, blockIdMap]);
+    }, [
+        imageData, packedResults, blockSupport, supportColor,
+        exportMode, independentMaps, previewSection,
+        blockIdMap, supportBlockId, build3DGeometryAsync
+    ]);
 
     // Create stable material with atlas shader set up ONCE.
     // onBeforeCompile is called by Three.js the first time the shader compiles.
@@ -321,7 +374,7 @@ if (vTexLayer >= 0.0) {
     useEffect(() => {
         const mesh = meshRef.current;
         const mat = matRef.current;
-        if (!mesh || !mat || geometry.count === 0) return;
+        if (!mesh || !mat || !geometry || geometry.count === 0) return;
 
         const { positions, colors, textureIds, count } = geometry;
 
@@ -348,8 +401,9 @@ if (vTexLayer >= 0.0) {
         // and won't update on re-renders when geometry.count changes.
         mesh.count = count;
 
-        // Per-instance color (used as fallback when texture layer = -1)
-        mesh.instanceColor = new THREE.InstancedBufferAttribute(colors.slice(), 3);
+        // Per-instance color (used as fallback when texture layer = -1).
+        // colors arrived as a Transferable buffer from the worker — use directly (no slice needed).
+        mesh.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
         mesh.instanceColor.needsUpdate = true;
 
         // Per-instance textureLayer attribute (float, -1.0 = no texture)
@@ -367,8 +421,8 @@ if (vTexLayer >= 0.0) {
 
     // ── Load texture atlas asynchronously (doesn't block geometry render) ─────
     useEffect(() => {
+        if (!geometry || geometry.uniqueTextureIds.length === 0) return;
         const { uniqueTextureIds } = geometry;
-        if (uniqueTextureIds.length === 0) return;
 
         loadTextureAtlas(uniqueTextureIds, (atlas) => {
             if (!meshRef.current) return;
@@ -390,7 +444,7 @@ if (vTexLayer >= 0.0) {
         });
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [geometry.uniqueTextureIds.join(',')]);
+    }, [geometry?.uniqueTextureIds.join(',')]);
 
 
     // ── Dispose on unmount ─────────────────────────────────────────────────────
@@ -404,7 +458,7 @@ if (vTexLayer >= 0.0) {
     return (
         <instancedMesh
             ref={meshRef}
-            args={[undefined, matRef.current, geometry.count]}
+            args={[undefined, matRef.current, geometry?.count ?? 0]}
             position={[0, 0.5, 0]}
         >
             <boxGeometry args={[1, 1, 1]} />
