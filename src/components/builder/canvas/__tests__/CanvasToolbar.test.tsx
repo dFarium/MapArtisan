@@ -22,7 +22,8 @@ describe('CanvasToolbar', () => {
         canDownloadPreview: true,
         onToggle3D: vi.fn(),
         is3DMode: false,
-        isPainting: false
+        isPainting: false,
+        exportFormat: 'litematic' as const
     };
 
     it('renders zoom controls and handles clicks', () => {
