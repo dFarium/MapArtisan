@@ -1,9 +1,9 @@
 {
-  "version": "1.21.11",
+  "version": "26.2",
   "colors": [
     {
       "colorID": 1,
-      "colorName": "pale_green",
+      "colorName": "grass",
       "brightnessValues": {
         "lowest": {
           "r": 67,
@@ -41,7 +41,7 @@
     },
     {
       "colorID": 2,
-      "colorName": "pale_yellow",
+      "colorName": "sand",
       "brightnessValues": {
         "lowest": {
           "r": 130,
@@ -184,7 +184,7 @@
     },
     {
       "colorID": 3,
-      "colorName": "white_gray",
+      "colorName": "wool",
       "brightnessValues": {
         "lowest": {
           "r": 105,
@@ -227,7 +227,7 @@
     },
     {
       "colorID": 4,
-      "colorName": "bright_red",
+      "colorName": "fire",
       "brightnessValues": {
         "lowest": {
           "r": 135,
@@ -265,7 +265,7 @@
     },
     {
       "colorID": 5,
-      "colorName": "pale_purple",
+      "colorName": "ice",
       "brightnessValues": {
         "lowest": {
           "r": 84,
@@ -313,7 +313,7 @@
     },
     {
       "colorID": 6,
-      "colorName": "iron_gray",
+      "colorName": "metal",
       "brightnessValues": {
         "lowest": {
           "r": 88,
@@ -361,7 +361,7 @@
     },
     {
       "colorID": 7,
-      "colorName": "dark_green",
+      "colorName": "plant",
       "brightnessValues": {
         "lowest": {
           "r": 0,
@@ -479,7 +479,7 @@
     },
     {
       "colorID": 8,
-      "colorName": "white",
+      "colorName": "snow",
       "brightnessValues": {
         "lowest": {
           "r": 135,
@@ -552,7 +552,7 @@
     },
     {
       "colorID": 9,
-      "colorName": "light_blue_gray",
+      "colorName": "clay",
       "brightnessValues": {
         "lowest": {
           "r": 86,
@@ -615,7 +615,7 @@
     },
     {
       "colorID": 10,
-      "colorName": "dirt_brown",
+      "colorName": "dirt",
       "brightnessValues": {
         "lowest": {
           "r": 79,
@@ -728,7 +728,7 @@
     },
     {
       "colorID": 11,
-      "colorName": "stone_gray",
+      "colorName": "stone",
       "brightnessValues": {
         "lowest": {
           "r": 59,
@@ -971,7 +971,7 @@
     },
     {
       "colorID": 12,
-      "colorName": "water_blue",
+      "colorName": "water",
       "brightnessValues": {
         "lowest": {
           "r": 33,
@@ -1004,7 +1004,7 @@
     },
     {
       "colorID": 13,
-      "colorName": "oak_tan",
+      "colorName": "wood",
       "brightnessValues": {
         "lowest": {
           "r": 75,
@@ -1122,7 +1122,7 @@
     },
     {
       "colorID": 14,
-      "colorName": "off_white",
+      "colorName": "quartz",
       "brightnessValues": {
         "lowest": {
           "r": 135,
@@ -1245,7 +1245,7 @@
     },
     {
       "colorID": 15,
-      "colorName": "orange",
+      "colorName": "color_orange",
       "brightnessValues": {
         "lowest": {
           "r": 114,
@@ -1483,7 +1483,7 @@
     },
     {
       "colorID": 16,
-      "colorName": "magenta",
+      "colorName": "color_magenta",
       "brightnessValues": {
         "lowest": {
           "r": 94,
@@ -1566,7 +1566,7 @@
     },
     {
       "colorID": 17,
-      "colorName": "light_blue",
+      "colorName": "color_light_blue",
       "brightnessValues": {
         "lowest": {
           "r": 54,
@@ -1634,7 +1634,7 @@
     },
     {
       "colorID": 18,
-      "colorName": "yellow",
+      "colorName": "color_yellow",
       "brightnessValues": {
         "lowest": {
           "r": 121,
@@ -1734,6 +1734,11 @@
           "introducedIn": "1.15.0"
         },
         {
+          "id": "minecraft:chiseled_sulfur",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
           "id": "minecraft:hay_block",
           "needsSupport": false,
           "introducedIn": "1.6.1"
@@ -1742,6 +1747,16 @@
           "id": "minecraft:horn_coral_block",
           "needsSupport": false,
           "introducedIn": "1.13.0"
+        },
+        {
+          "id": "minecraft:polished_sulfur",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:polished_sulfur_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
         },
         {
           "id": "minecraft:sponge",
@@ -1754,6 +1769,26 @@
           "introducedIn": "1.20.0"
         },
         {
+          "id": "minecraft:sulfur",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:sulfur_brick_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:sulfur_bricks",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:sulfur_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
           "id": "minecraft:wet_sponge",
           "needsSupport": false,
           "introducedIn": "1.8.0"
@@ -1762,7 +1797,7 @@
     },
     {
       "colorID": 19,
-      "colorName": "lime",
+      "colorName": "color_light_green",
       "brightnessValues": {
         "lowest": {
           "r": 67,
@@ -1835,7 +1870,7 @@
     },
     {
       "colorID": 20,
-      "colorName": "pink",
+      "colorName": "color_pink",
       "brightnessValues": {
         "lowest": {
           "r": 128,
@@ -1918,7 +1953,7 @@
     },
     {
       "colorID": 21,
-      "colorName": "gray",
+      "colorName": "color_gray",
       "brightnessValues": {
         "lowest": {
           "r": 40,
@@ -2021,7 +2056,7 @@
     },
     {
       "colorID": 22,
-      "colorName": "light_gray",
+      "colorName": "color_light_gray",
       "brightnessValues": {
         "lowest": {
           "r": 81,
@@ -2109,7 +2144,7 @@
     },
     {
       "colorID": 23,
-      "colorName": "cyan",
+      "colorName": "color_cyan",
       "brightnessValues": {
         "lowest": {
           "r": 40,
@@ -2187,7 +2222,7 @@
     },
     {
       "colorID": 24,
-      "colorName": "purple",
+      "colorName": "color_purple",
       "brightnessValues": {
         "lowest": {
           "r": 67,
@@ -2285,7 +2320,7 @@
     },
     {
       "colorID": 25,
-      "colorName": "blue",
+      "colorName": "color_blue",
       "brightnessValues": {
         "lowest": {
           "r": 27,
@@ -2358,7 +2393,7 @@
     },
     {
       "colorID": 26,
-      "colorName": "brown",
+      "colorName": "color_brown",
       "brightnessValues": {
         "lowest": {
           "r": 54,
@@ -2476,7 +2511,7 @@
     },
     {
       "colorID": 27,
-      "colorName": "green",
+      "colorName": "color_green",
       "brightnessValues": {
         "lowest": {
           "r": 54,
@@ -2564,7 +2599,7 @@
     },
     {
       "colorID": 28,
-      "colorName": "red",
+      "colorName": "color_red",
       "brightnessValues": {
         "lowest": {
           "r": 81,
@@ -2669,6 +2704,31 @@
           "introducedIn": "1.0.0"
         },
         {
+          "id": "minecraft:chiseled_cinnabar",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:cinnabar",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:cinnabar_brick_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:cinnabar_bricks",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:cinnabar_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
           "id": "minecraft:fire_coral_block",
           "needsSupport": false,
           "introducedIn": "1.13.0"
@@ -2677,6 +2737,16 @@
           "id": "minecraft:nether_wart_block",
           "needsSupport": false,
           "introducedIn": "1.10.0"
+        },
+        {
+          "id": "minecraft:polished_cinnabar",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
+          "id": "minecraft:polished_cinnabar_slab",
+          "needsSupport": false,
+          "introducedIn": "26.2"
         },
         {
           "id": "minecraft:shroomlight",
@@ -2697,7 +2767,7 @@
     },
     {
       "colorID": 29,
-      "colorName": "black",
+      "colorName": "color_black",
       "brightnessValues": {
         "lowest": {
           "r": 13,
@@ -2920,6 +2990,11 @@
           "introducedIn": "1.5.0"
         },
         {
+          "id": "minecraft:potent_sulfur",
+          "needsSupport": false,
+          "introducedIn": "26.2"
+        },
+        {
           "id": "minecraft:raw_gold_block",
           "needsSupport": false,
           "introducedIn": "1.17.0"
@@ -2928,7 +3003,7 @@
     },
     {
       "colorID": 31,
-      "colorName": "diamond_blue",
+      "colorName": "diamond",
       "brightnessValues": {
         "lowest": {
           "r": 48,
@@ -2986,7 +3061,7 @@
     },
     {
       "colorID": 32,
-      "colorName": "lapis_blue",
+      "colorName": "lapis",
       "brightnessValues": {
         "lowest": {
           "r": 39,
@@ -3019,7 +3094,7 @@
     },
     {
       "colorID": 33,
-      "colorName": "emerald_green",
+      "colorName": "emerald",
       "brightnessValues": {
         "lowest": {
           "r": 0,
@@ -3052,7 +3127,7 @@
     },
     {
       "colorID": 34,
-      "colorName": "spruce_brown",
+      "colorName": "podzol",
       "brightnessValues": {
         "lowest": {
           "r": 68,
@@ -3130,7 +3205,7 @@
     },
     {
       "colorID": 35,
-      "colorName": "dark_red",
+      "colorName": "nether",
       "brightnessValues": {
         "lowest": {
           "r": 59,
@@ -3433,7 +3508,7 @@
     },
     {
       "colorID": 41,
-      "colorName": "terracotta_lime",
+      "colorName": "terracotta_light_green",
       "brightnessValues": {
         "lowest": {
           "r": 54,
@@ -3931,7 +4006,7 @@
     },
     {
       "colorID": 52,
-      "colorName": "dull_red",
+      "colorName": "crimson_nylium",
       "brightnessValues": {
         "lowest": {
           "r": 100,
@@ -3964,7 +4039,7 @@
     },
     {
       "colorID": 53,
-      "colorName": "dull_pink",
+      "colorName": "crimson_stem",
       "brightnessValues": {
         "lowest": {
           "r": 78,
@@ -4017,7 +4092,7 @@
     },
     {
       "colorID": 54,
-      "colorName": "dark_crimson",
+      "colorName": "crimson_hyphae",
       "brightnessValues": {
         "lowest": {
           "r": 48,
@@ -4055,7 +4130,7 @@
     },
     {
       "colorID": 55,
-      "colorName": "teal",
+      "colorName": "warped_nylium",
       "brightnessValues": {
         "lowest": {
           "r": 11,
@@ -4148,7 +4223,7 @@
     },
     {
       "colorID": 56,
-      "colorName": "dark_aqua",
+      "colorName": "warped_stem",
       "brightnessValues": {
         "lowest": {
           "r": 30,
@@ -4261,7 +4336,7 @@
     },
     {
       "colorID": 57,
-      "colorName": "dark_dull_pink",
+      "colorName": "warped_hyphae",
       "brightnessValues": {
         "lowest": {
           "r": 45,
@@ -4299,7 +4374,7 @@
     },
     {
       "colorID": 58,
-      "colorName": "bright_teal",
+      "colorName": "warped_wart_block",
       "brightnessValues": {
         "lowest": {
           "r": 10,
@@ -4332,7 +4407,7 @@
     },
     {
       "colorID": 59,
-      "colorName": "deepslate_gray",
+      "colorName": "deepslate",
       "brightnessValues": {
         "lowest": {
           "r": 52,
@@ -4470,7 +4545,7 @@
     },
     {
       "colorID": 60,
-      "colorName": "raw_iron_pink",
+      "colorName": "raw_iron",
       "brightnessValues": {
         "lowest": {
           "r": 114,
@@ -4503,7 +4578,7 @@
     },
     {
       "colorID": 61,
-      "colorName": "lichen_green",
+      "colorName": "glow_lichen",
       "brightnessValues": {
         "lowest": {
           "r": 67,
