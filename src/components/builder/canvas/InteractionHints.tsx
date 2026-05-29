@@ -32,6 +32,8 @@ export const InteractionHints = () => {
                 </div>
             ) : (
                 <div className="flex items-center gap-4">
+                    <HintItem icon={Paintbrush} label="Edit Mode" bind="B" />
+                    <div className="w-px h-3 bg-white/20" />
                     <HintItem icon={Move} label="Pan" bind="Drag" />
                     <div className="w-px h-3 bg-white/20" />
                     <HintItem icon={ZoomIn} label="Zoom" bind="Wheel" />

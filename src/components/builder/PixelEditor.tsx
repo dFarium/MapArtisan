@@ -17,7 +17,7 @@ const OpenButton = memo(({ onClick, disabled }: { onClick: () => void, disabled?
         onClick={onClick}
         disabled={disabled}
         className="flex flex-col items-center justify-center gap-1 p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor"}
+        title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor (B)"}
     >
         <Paintbrush size={18} />
         <span>Editor</span>
@@ -167,7 +167,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                             ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
-                        title="Paint Brush"
+                        title="Paint Brush (B)"
                     >
                         <Paintbrush size={16} />
                     </button>
@@ -177,7 +177,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                             ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
                             : 'text-zinc-400 hover:bg-zinc-800'
                             }`}
-                        title="Color Picker"
+                        title="Color Picker (I)"
                     >
                         <Pipette size={16} />
                     </button>
@@ -189,7 +189,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                         onClick={undo}
                         disabled={historyIndex <= 0}
                         className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
-                        title="Undo"
+                        title="Undo (Ctrl+Z)"
                     >
                         <Undo2 size={16} />
                     </button>
@@ -197,7 +197,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                         onClick={redo}
                         disabled={historyIndex >= history.length - 1}
                         className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
-                        title="Redo"
+                        title="Redo (Ctrl+Y)"
                     >
                         <Redo2 size={16} />
                     </button>
@@ -216,7 +216,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                 <button
                     onClick={() => setIsPainting(false)}
                     className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors w-full flex justify-center"
-                    title="Close Editor"
+                    title="Close Editor (Esc)"
                 >
                     <X size={16} />
                 </button>
