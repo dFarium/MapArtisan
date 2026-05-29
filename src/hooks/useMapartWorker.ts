@@ -68,6 +68,7 @@ export const useMapartWorker = ({
     const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
     const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
     const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
+    const [heightPath, setHeightPath] = useState<Int32Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
 
     const mapartResolution = {
@@ -285,6 +286,9 @@ export const useMapartWorker = ({
                     const finalStats = editsResult.stats;
                     const finalPackedResults = editsResult.packedResults;
 
+                    // Capture heightPath from the base processing result (not edits, which don't change heights)
+                    const finalHeightPath = result.heightPath ?? null;
+
                     const canvas = document.createElement('canvas');
                     canvas.width = mapartResolution.width;
                     canvas.height = mapartResolution.height;
@@ -296,6 +300,7 @@ export const useMapartWorker = ({
                         setPreviewImageData(processedData);
                         setMapartStats(finalStats);
                         setPackedResults(finalPackedResults);
+                        setHeightPath(finalHeightPath);
                     }
 
                     const endTime = performance.now();
@@ -490,6 +495,7 @@ export const useMapartWorker = ({
         scaledPreviewUrl,
         previewImageData,
         packedResults,
+        heightPath,
         originalTransformedUrl,
         mapartResolution,
         exportMapart,

@@ -17,6 +17,7 @@ let lastBaseResult: {
     packedResults: Uint32Array; // Unified pixel result buffer (candidate index, tone, support flags)
     candidates: ColorCandidate[]; // Valid color list generated from active palette
     stats: MapartStats;        // Global layout dimension statistics
+    heightPath: Int32Array | null; // Precomputed Smart Drop height path (column-major, width × height)
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -52,7 +53,7 @@ const api = {
         useCielab: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
-    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array } => {
+    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array; heightPath?: Int32Array | null } => {
 
         let sourceImage: ImageData;
 
@@ -87,6 +88,7 @@ const api = {
             packedResults: result.packedResults,
             candidates: result.candidates,
             stats: result.stats,
+            heightPath: result.heightPath,
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode,
@@ -96,14 +98,19 @@ const api = {
         // Transfer large arrays to avoid cloning, but we MUST return a CLONE 
         // if we intend to keep it in our cache (lastBaseResult), otherwise it detaches here!
         const packedResultsClone = result.packedResults.slice(0);
+        const heightPathClone = result.heightPath ? result.heightPath.slice(0) : null;
+
+        const transferList: ArrayBuffer[] = [packedResultsClone.buffer];
+        if (heightPathClone) transferList.push(heightPathClone.buffer);
 
         return transfer(
             {
                 version,
                 stats: result.stats,
-                packedResults: packedResultsClone
+                packedResults: packedResultsClone,
+                heightPath: heightPathClone
             },
-            [packedResultsClone.buffer]
+            transferList
         );
     },
 

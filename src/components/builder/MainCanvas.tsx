@@ -35,6 +35,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         scaledPreviewUrl,
         previewImageData: workerImageData,
         packedResults,
+        heightPath,
         originalTransformedUrl,
         mapartResolution,
         isExporting,
@@ -193,6 +194,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     previewSection={previewSection || undefined}
                                     stats={mapartStats || undefined}
                                     packedResults={packedResults || undefined}
+                                    heightPath={heightPath || undefined}
                                     build3DGeometryAsync={build3DGeometryAsync}
                                 />
                             </Suspense>

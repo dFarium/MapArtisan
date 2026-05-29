@@ -26,6 +26,8 @@ interface WorkerGeometry {
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
     packedResults?: Uint32Array | null;
+    /** Precomputed column-major height path from processMapart, passed straight to the worker */
+    heightPath?: Int32Array | null;
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
@@ -70,6 +72,7 @@ const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
 export const Mapart3DPreview = ({
     imageData,
     packedResults,
+    heightPath,
     blockSupport,
     supportBlockId,
     exportMode,
@@ -100,6 +103,7 @@ export const Mapart3DPreview = ({
                 <MapartMesh
                     imageData={imageData}
                     packedResults={packedResults}
+                    heightPath={heightPath}
                     blockSupport={blockSupport}
                     supportBlockId={supportBlockId}
                     exportMode={exportMode}
@@ -230,6 +234,7 @@ function loadTextureAtlas(
 const MapartMesh = ({
     imageData,
     packedResults,
+    heightPath,
     blockSupport,
     supportBlockId,
     exportMode,
@@ -239,6 +244,7 @@ const MapartMesh = ({
 }: {
     imageData: ImageData;
     packedResults?: Uint32Array | null;
+    heightPath?: Int32Array | null;
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
     exportMode?: 'full' | 'sections';
@@ -304,13 +310,14 @@ const MapartMesh = ({
             previewSection,
             blockIdMap,
             supportBlockId,
+            precomputedHeightPath: heightPath ?? null,
         }).then(result => {
             // Discard if a newer request has already been dispatched
             if (reqId !== requestIdRef.current) return;
             if (result) setGeometry(result);
         });
     }, [
-        imageData, packedResults, blockSupport, supportColor,
+        imageData, packedResults, heightPath, blockSupport, supportColor,
         exportMode, independentMaps, previewSection,
         blockIdMap, supportBlockId, build3DGeometryAsync
     ]);

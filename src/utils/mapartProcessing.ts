@@ -97,7 +97,7 @@ export function processMapart(
     useCielab: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
-): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[] } {
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -109,7 +109,8 @@ export function processMapart(
                 heightMap: new Int32Array(imageData.width).fill(0)
             },
             packedResults: new Uint32Array(imageData.width * imageData.height),
-            candidates: []
+            candidates: [],
+            heightPath: null
         };
     }
 
@@ -178,6 +179,10 @@ export function processMapart(
 
     // Packed results buffer (stores candidateIndex, tone/brightness adjustments, and support flag in a single Uint32 per pixel)
     const packedResults = new Uint32Array(width * height);
+
+    // Will be populated during the Smart Drop phase for 3D valley mode.
+    // Column-major layout: heightPath[x * height + y] = normalized Y for column x, row y.
+    let heightPath: Int32Array | null = null;
 
 
     {
@@ -363,6 +368,66 @@ export function processMapart(
                     colHeights[x] = max - min;
                 }
             }
+        } // end if (buildMode === '3d_valley') — Phase 2 Smart Drop stats
+
+        // Collect Smart Drop paths into a flat column-major buffer.
+        // Layout: heightPath[x * height + y] = optimized Y for column x, row y.
+        // This avoids rerunning optimizeColumnHeights in build3DGeometry.
+        if (buildMode === '3d_valley') {
+            heightPath = new Int32Array(width * height);
+
+            const ws2: SmartDropWorkspace = {
+                ref: new Int32Array(height + 1),
+                minFuturo: new Int32Array(height + 1),
+                path: new Int32Array(height)
+            };
+
+            for (let x = 0; x < width; x++) {
+                if (independentMaps) {
+                    const numChunks = Math.ceil(height / 128);
+                    for (let c = 0; c < numChunks; c++) {
+                        const startY = c * 128;
+                        const endY = Math.min((c + 1) * 128, height);
+                        const chunkHeight = endY - startY;
+
+                        const { path } = optimizeColumnHeights(
+                            toneMap!,
+                            startY * width + x,
+                            width,
+                            chunkHeight,
+                            ws2
+                        );
+
+                        // Normalize so minimum is 0 within each chunk
+                        let minChunkY = 0;
+                        for (let i = 0; i < chunkHeight; i++) {
+                            if (path[i] < minChunkY) minChunkY = path[i];
+                        }
+                        const shift = -minChunkY;
+                        for (let i = 0; i < chunkHeight; i++) {
+                            heightPath[x * height + startY + i] = path[i] + shift;
+                        }
+                    }
+                } else {
+                    const { path } = optimizeColumnHeights(
+                        toneMap!,
+                        x,
+                        width,
+                        height,
+                        ws2
+                    );
+
+                    // Normalize so minimum is 0
+                    let minPathY = 0;
+                    for (let i = 0; i < height; i++) {
+                        if (path[i] < minPathY) minPathY = path[i];
+                    }
+                    const shift = -minPathY;
+                    for (let i = 0; i < height; i++) {
+                        heightPath[x * height + i] = path[i] + shift;
+                    }
+                }
+            }
         }
     }
 
@@ -374,7 +439,8 @@ export function processMapart(
             heightMap: colHeights
         },
         packedResults,
-        candidates
+        candidates,
+        heightPath: heightPath ?? null
     };
 }
 
