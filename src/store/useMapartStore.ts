@@ -158,24 +158,22 @@ export const useMapartStore = create<MapartState>((set) => ({
     // Actions
     setPaletteVersion: (version) => set({ paletteVersion: version }),
     setImageSettings: (settings) => set((state) => ({
-        imageSettings: typeof settings === 'function' ? settings(state.imageSettings) : { ...state.imageSettings, ...settings },
-        manualEdits: {}, // Clear manual edits on image setting change
-        history: [{}], historyIndex: 0
+        imageSettings: typeof settings === 'function' ? settings(state.imageSettings) : { ...state.imageSettings, ...settings }
     })),
-    setGridDimensions: (dim) => set({ gridDimensions: dim }),
-    setBuildMode: (mode) => set({
-        buildMode: mode,
-        manualEdits: {}, // Clear manual edits on build mode change
+    setGridDimensions: (dim) => set({
+        gridDimensions: dim,
+        manualEdits: {}, // Clear manual edits on grid dimensions change to prevent misalignment / out-of-bounds indices
         history: [{}], historyIndex: 0
+    }),
+    setBuildMode: (mode) => set({
+        buildMode: mode
     }),
     setBlockSupport: (support) => set({ blockSupport: support }),
     setSupportBlockId: (id) => set({ supportBlockId: id }),
     setExportMode: (mode) => set({ exportMode: mode }),
     setPreviewSection: (section) => set({ previewSection: section }),
     setDithering: (dithering) => set({
-        dithering,
-        manualEdits: {}, // Clear manual edits on dithering change
-        history: [{}], historyIndex: 0
+        dithering
     }),
     setUploadedImage: (file) => set((state) => {
         if (state.previewUrl) {
@@ -196,24 +194,16 @@ export const useMapartStore = create<MapartState>((set) => ({
         history: [{}], historyIndex: 0
     }),
     setSelectedPaletteItems: (items) => set((state) => ({
-        selectedPaletteItems: typeof items === 'function' ? items(state.selectedPaletteItems) : items,
-        manualEdits: {}, // Clear edits on palette change
-        history: [{}], historyIndex: 0
+        selectedPaletteItems: typeof items === 'function' ? items(state.selectedPaletteItems) : items
     })),
     setThreeDPrecision: (value) => set({
-        threeDPrecision: value,
-        manualEdits: {}, // Clear edits on precision change
-        history: [{}], historyIndex: 0
+        threeDPrecision: value
     }),
     setUseCielab: (value) => set({
-        useCielab: value,
-        manualEdits: {}, // Clear edits on algorithm change
-        history: [{}], historyIndex: 0
+        useCielab: value
     }),
     setHybridStrength: (value) => set({
-        hybridStrength: value,
-        manualEdits: {},
-        history: [{}], historyIndex: 0
+        hybridStrength: value
     }),
     setMapartStats: (stats) => set({ mapartStats: stats }),
     setIndependentMaps: (value) => set({ independentMaps: value }),

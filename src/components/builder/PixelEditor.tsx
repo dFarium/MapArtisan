@@ -1,4 +1,4 @@
-import { X, RefreshCw, Paintbrush, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
+import { X, Trash2, Paintbrush, Pipette, Moon, Minus, Sun, Undo2, Redo2 } from 'lucide-react';
 
 import { useMapart } from '../../context/useMapart';
 import type { BrightnessLevel } from '../../types/mapart';
@@ -70,8 +70,21 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
     return (
         <>
             {/* Closed state - Open Button */}
+            {/* Closed state - Open Button & optional Clear Edits shortcut */}
             {!isPainting && (
-                <OpenButton onClick={() => setIsPainting(true)} disabled={disabled} />
+                <div className="flex flex-col gap-1.5 w-full">
+                    <OpenButton onClick={() => setIsPainting(true)} disabled={disabled} />
+                    {editCount > 0 && (
+                        <button
+                            onClick={clearManualEdits}
+                            className="flex flex-col items-center justify-center gap-1 p-2 bg-zinc-900 hover:bg-red-500/10 text-red-500 hover:text-red-400 border border-red-500/10 hover:border-red-500/30 rounded text-[10px] font-medium transition-all shadow-sm duration-200"
+                            title={`Clear all ${editCount} manual edits`}
+                        >
+                            <Trash2 size={15} />
+                            <span className="text-[9px] uppercase tracking-wider">Clear</span>
+                        </button>
+                    )}
+                </div>
             )}
 
             {/* Open state - Full Editor (always mounted when isPainting, hidden otherwise) */}
@@ -206,9 +219,9 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                         onClick={clearManualEdits}
                         disabled={editCount === 0}
                         className="p-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50 w-full flex justify-center"
-                        title={`Clear ${editCount} edits`}
+                        title={`Clear all ${editCount} manual edits`}
                     >
-                        <RefreshCw size={16} />
+                        <Trash2 size={16} />
                     </button>
                 </div>
 
