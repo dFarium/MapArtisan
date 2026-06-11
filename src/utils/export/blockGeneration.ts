@@ -183,11 +183,7 @@ export function imageDataToBlockStates(
                     }
 
                     // Run optimization with chunkTones
-                    const { path } = optimizeColumnHeights(chunkTones, 0, 1, chunkHeight, workspace);
-                    let minChunkY = 0;
-                    for (let i = 0; i < path.length; i++) {
-                        if (path[i] < minChunkY) minChunkY = path[i];
-                    }
+                    const { path, min: minChunkY } = optimizeColumnHeights(chunkTones, 0, 1, chunkHeight, workspace);
                     const shiftY = -minChunkY;
 
                     for (let i = 0; i < path.length; i++) {
@@ -207,11 +203,7 @@ export function imageDataToBlockStates(
                     minFuturo: new Int32Array(height + 1),
                     path: new Int32Array(height)
                 };
-                const { path } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
-                let minPathY = 0;
-                for (let i = 0; i < path.length; i++) {
-                    if (path[i] < minPathY) minPathY = path[i];
-                }
+                const { path, min: minPathY } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
                 const shiftY = -minPathY;
 
                 for (let i = 0; i < path.length; i++) {

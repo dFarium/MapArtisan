@@ -10,6 +10,7 @@ export interface BitArray {
     num_bits: number;
     mask: bigint;
     volume: number;
+    uint32View?: Uint32Array;
 }
 
 /**
@@ -32,6 +33,7 @@ export function createBitArray(volume: number, paletteLength: number): BitArray 
     const num_bits = getNeededBits(paletteLength);
     const arrayLength = Math.ceil((volume * num_bits) / 64);
     const array = new BigInt64Array(arrayLength);
+    const uint32View = new Uint32Array(array.buffer);
 
     const mask = (1n << BigInt(num_bits)) - 1n;
 
@@ -40,44 +42,35 @@ export function createBitArray(volume: number, paletteLength: number): BitArray 
         mask,
         array,
         num_bits,
+        uint32View,
     };
 }
-
-// 64-bit unsigned maximum bitmask (equivalent to 0xFFFFFFFFFFFFFFFF)
-// Used to wrap JavaScript BigInt operations to exactly 64 bits.
-const ONE_64 = 0xFFFFFFFFFFFFFFFFn;
 
 /**
  * Packs a value into the target index of the BitArray.
  * Mutates the underlying BigInt64Array buffer in place.
  * 
- * Handles boundary crossing: if the bit field crosses a 64-bit boundary, 
- * the value is split: the lower bits go to array[startIdx], and the upper bits go to array[endIdx].
- * 
- * Uses `& ONE_64` to simulate unsigned bit operations on JavaScript signed BigInts.
+ * Handles boundary crossing using a fast 32-bit Uint32Array view to avoid slow BigInt operations.
  */
 export function set(bitArray: BitArray, index: number, value: number): BitArray {
-    const valueBI = BigInt(value);
-    const startOffset = index * bitArray.num_bits;
-    const startArrIndex = startOffset >> 6; // Divide by 64 (using shift)
-    const endArrIndex = ((index + 1) * bitArray.num_bits - 1) >> 6;
-    const startBitOffset = BigInt(startOffset & 0x3F); // Modulo 64 (using mask)
+    if (!bitArray.uint32View) {
+        bitArray.uint32View = new Uint32Array(bitArray.array.buffer);
+    }
+    const uint32View = bitArray.uint32View;
+    const num_bits = bitArray.num_bits;
+    const mask = (1 << num_bits) - 1;
 
-    // Calculate shifts
-    const fullValueShifted = (valueBI & bitArray.mask) << startBitOffset;
-    const fullMaskShifted = bitArray.mask << startBitOffset;
+    const startOffset = index * num_bits;
+    const wordIdx = startOffset >>> 5;
+    const bitOffset = startOffset & 31;
 
-    // Clear bits in the first word using the mask and then OR the new value
-    const mask1 = fullMaskShifted & ONE_64;
-    bitArray.array[startArrIndex] = (bitArray.array[startArrIndex] & ~mask1) | (fullValueShifted & ONE_64);
-
-    // Handle overflow into next 64-bit word if needed
-    if (startArrIndex !== endArrIndex) {
-        const shiftRightAmount = 64n - startBitOffset;
-        const part2Value = (valueBI & bitArray.mask) >> shiftRightAmount;
-        const mask2 = bitArray.mask >> shiftRightAmount;
-
-        bitArray.array[endArrIndex] = (bitArray.array[endArrIndex] & ~mask2) | part2Value;
+    if (bitOffset + num_bits <= 32) {
+        const maskShifted = mask << bitOffset;
+        uint32View[wordIdx] = (uint32View[wordIdx] & ~maskShifted) | ((value & mask) << bitOffset);
+    } else {
+        const bitsForFirstWord = 32 - bitOffset;
+        uint32View[wordIdx] = (uint32View[wordIdx] & ~(mask << bitOffset)) | ((value & mask) << bitOffset);
+        uint32View[wordIdx + 1] = (uint32View[wordIdx + 1] & ~(mask >>> bitsForFirstWord)) | ((value & mask) >>> bitsForFirstWord);
     }
 
     return bitArray;
@@ -85,26 +78,26 @@ export function set(bitArray: BitArray, index: number, value: number): BitArray 
 
 /**
  * Unpacks and retrieves a value from the target index of the BitArray.
- * Recombines split bits if the field crosses a 64-bit word boundary.
+ * Recombines split bits using a fast 32-bit Uint32Array view.
  */
 export function get(bitArray: BitArray, index: number): number {
-    const startOffset = index * bitArray.num_bits;
-    const startArrIndex = startOffset >> 6;
-    const endArrIndex = ((index + 1) * bitArray.num_bits - 1) >> 6;
-    const startBitOffset = BigInt(startOffset & 0x3F);
+    if (!bitArray.uint32View) {
+        bitArray.uint32View = new Uint32Array(bitArray.array.buffer);
+    }
+    const uint32View = bitArray.uint32View;
+    const num_bits = bitArray.num_bits;
+    const mask = (1 << num_bits) - 1;
 
-    if (startArrIndex === endArrIndex) {
-        const val = (bitArray.array[startArrIndex] >> startBitOffset) & bitArray.mask;
-        return Number(val);
+    const startOffset = index * num_bits;
+    const wordIdx = startOffset >>> 5;
+    const bitOffset = startOffset & 31;
+
+    if (bitOffset + num_bits <= 32) {
+        return (uint32View[wordIdx] >>> bitOffset) & mask;
     } else {
-        const endOffset = 64n - startBitOffset;
-
-        // Mask negative signed BigInt values with `ONE_64` to convert them
-        // to positive logical equivalents for correct right-shifting.
-        const word1Unsigned = bitArray.array[startArrIndex] & ONE_64;
-        const word2Unsigned = bitArray.array[endArrIndex] & ONE_64;
-
-        const val = ((word1Unsigned >> startBitOffset) | (word2Unsigned << endOffset)) & bitArray.mask;
-        return Number(val);
+        const bitsForFirstWord = 32 - bitOffset;
+        const val = (uint32View[wordIdx] >>> bitOffset) | (uint32View[wordIdx + 1] << bitsForFirstWord);
+        return val & mask;
     }
 }
+

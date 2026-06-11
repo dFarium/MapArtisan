@@ -323,6 +323,7 @@ export function processMapart(
             overallMin = 0;
             overallMax = 0;
             colHeights.fill(0);
+            heightPath = new Int32Array(width * height);
 
             // Pre-allocate workspace for Smart Drop to avoid GC pressure
             const workspace: SmartDropWorkspace = {
@@ -340,7 +341,7 @@ export function processMapart(
                         const chunkHeight = endY - startY;
 
                         // Pass direct buffer access
-                        const { min, max } = optimizeColumnHeights(
+                        const { min, max, path } = optimizeColumnHeights(
                             toneMap!,
                             startY * width + x, // startIndex
                             width,              // stride (skip one row width to go down)
@@ -353,9 +354,15 @@ export function processMapart(
 
                         const range = max - min;
                         if (range > colHeights[x]) colHeights[x] = range;
+
+                        // Normalize so minimum is 0 within each chunk and copy to heightPath
+                        const shift = -min;
+                        for (let i = 0; i < chunkHeight; i++) {
+                            heightPath[x * height + startY + i] = path[i] + shift;
+                        }
                     }
                 } else {
-                    const { min, max } = optimizeColumnHeights(
+                    const { min, max, path } = optimizeColumnHeights(
                         toneMap!,
                         x,      // startIndex (at top row, column x)
                         width,  // stride
@@ -366,63 +373,9 @@ export function processMapart(
                     if (min < overallMin) overallMin = min;
                     if (max > overallMax) overallMax = max;
                     colHeights[x] = max - min;
-                }
-            }
-        } // end if (buildMode === '3d_valley') — Phase 2 Smart Drop stats
 
-        // Collect Smart Drop paths into a flat column-major buffer.
-        // Layout: heightPath[x * height + y] = optimized Y for column x, row y.
-        // This avoids rerunning optimizeColumnHeights in build3DGeometry.
-        if (buildMode === '3d_valley') {
-            heightPath = new Int32Array(width * height);
-
-            const ws2: SmartDropWorkspace = {
-                ref: new Int32Array(height + 1),
-                minFuturo: new Int32Array(height + 1),
-                path: new Int32Array(height)
-            };
-
-            for (let x = 0; x < width; x++) {
-                if (independentMaps) {
-                    const numChunks = Math.ceil(height / 128);
-                    for (let c = 0; c < numChunks; c++) {
-                        const startY = c * 128;
-                        const endY = Math.min((c + 1) * 128, height);
-                        const chunkHeight = endY - startY;
-
-                        const { path } = optimizeColumnHeights(
-                            toneMap!,
-                            startY * width + x,
-                            width,
-                            chunkHeight,
-                            ws2
-                        );
-
-                        // Normalize so minimum is 0 within each chunk
-                        let minChunkY = 0;
-                        for (let i = 0; i < chunkHeight; i++) {
-                            if (path[i] < minChunkY) minChunkY = path[i];
-                        }
-                        const shift = -minChunkY;
-                        for (let i = 0; i < chunkHeight; i++) {
-                            heightPath[x * height + startY + i] = path[i] + shift;
-                        }
-                    }
-                } else {
-                    const { path } = optimizeColumnHeights(
-                        toneMap!,
-                        x,
-                        width,
-                        height,
-                        ws2
-                    );
-
-                    // Normalize so minimum is 0
-                    let minPathY = 0;
-                    for (let i = 0; i < height; i++) {
-                        if (path[i] < minPathY) minPathY = path[i];
-                    }
-                    const shift = -minPathY;
+                    // Normalize so minimum is 0 and copy to heightPath
+                    const shift = -min;
                     for (let i = 0; i < height; i++) {
                         heightPath[x * height + i] = path[i] + shift;
                     }

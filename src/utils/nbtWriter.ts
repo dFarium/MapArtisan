@@ -247,24 +247,38 @@ export class NBTWriter {
 
             case TagTypes.INT_ARRAY: {
                 const arr = value as number[] | Int32Array;
-                this.writeByType(TagTypes.INT, arr.length);
-                for (const item of arr) {
-                    this.writeByType(TagTypes.INT, item);
+                const len = arr.length;
+                this.writeByType(TagTypes.INT, len);
+                this.accommodate(len * 4);
+                for (let i = 0; i < len; i++) {
+                    this.dataView.setInt32(this.offset, arr[i], false);
+                    this.offset += 4;
                 }
                 break;
             }
 
             case TagTypes.LONG_ARRAY: {
                 if (value instanceof BigInt64Array) {
-                    this.writeByType(TagTypes.INT, value.length);
-                    for (let i = 0; i < value.length; i++) {
-                        this.writeBigInt(value[i]);
+                    const len = value.length;
+                    this.writeByType(TagTypes.INT, len);
+                    this.accommodate(len * 8);
+                    const uint32View = new Uint32Array(value.buffer, value.byteOffset, len * 2);
+                    for (let i = 0; i < len; i++) {
+                        const low = uint32View[i * 2];
+                        const high = uint32View[i * 2 + 1];
+                        this.dataView.setUint32(this.offset, high, false);
+                        this.dataView.setUint32(this.offset + 4, low, false);
+                        this.offset += 8;
                     }
                 } else {
                     const arr = value as [number, number][];
-                    this.writeByType(TagTypes.INT, arr.length);
+                    const len = arr.length;
+                    this.writeByType(TagTypes.INT, len);
+                    this.accommodate(len * 8);
                     for (const item of arr) {
-                        this.writeByType(TagTypes.LONG, item);
+                        this.dataView.setInt32(this.offset, item[0], false);
+                        this.dataView.setInt32(this.offset + 4, item[1], false);
+                        this.offset += 8;
                     }
                 }
                 break;

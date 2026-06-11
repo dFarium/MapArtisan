@@ -190,13 +190,7 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
                     const zEnd = Math.min((m + 1) * 128, height);
-                    const { path: mapPath } = optimizeColumnHeights(tones.slice(zStart, zEnd));
-                    let minChunkY = 0;
-                    for (let i = 0; i < mapPath.length; i++) {
-                        if (mapPath[i] < minChunkY) {
-                            minChunkY = mapPath[i];
-                        }
-                    }
+                    const { path: mapPath, min: minChunkY } = optimizeColumnHeights(tones.slice(zStart, zEnd));
                     const shiftY = -minChunkY;
                     sectionBaselines[m] = shiftY;
                     for (let i = 0; i < mapPath.length; i++) {
@@ -204,13 +198,7 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
                     }
                 }
             } else {
-                const { path: globalPath } = optimizeColumnHeights(tones);
-                let minPathY = 0;
-                for (let i = 0; i < globalPath.length; i++) {
-                    if (globalPath[i] < minPathY) {
-                        minPathY = globalPath[i];
-                    }
-                }
+                const { path: globalPath, min: minPathY } = optimizeColumnHeights(tones);
                 globalShiftY = -minPathY;
                 for (let i = 0; i < globalPath.length; i++) {
                     path[i] = globalPath[i] + globalShiftY;

@@ -27,12 +27,13 @@ const labCache = new Map<number, LAB>();
 // Color cache: RGB binary -> best candidate index (cleared per processMapart call)
 const colorCache = new Map<number, number>();
 
-/**
- * Converts an RGB color object into a single 24-bit binary integer key.
- * Used for fast lookup table indexing in color matching caches.
- */
-export function rgbToBinary(rgb: RGB): number {
-    return (Math.round(rgb.r) << 16) + (Math.round(rgb.g) << 8) + Math.round(rgb.b);
+export function rgbToBinary(rgb: RGB): number;
+export function rgbToBinary(r: number, g: number, b: number): number;
+export function rgbToBinary(rOrRgb: number | RGB, g?: number, b?: number): number {
+    if (typeof rOrRgb === 'object' && rOrRgb !== null) {
+        return (Math.round(rOrRgb.r) << 16) + (Math.round(rOrRgb.g) << 8) + Math.round(rOrRgb.b);
+    }
+    return (Math.round(rOrRgb) << 16) + (Math.round(g!) << 8) + Math.round(b!);
 }
 
 /**
@@ -106,16 +107,28 @@ const M2_B0 = MAPART.OKLAB_M2_B[0], M2_B1 = MAPART.OKLAB_M2_B[1], M2_B2 = MAPART
  * 3. Uses Math.cbrt (native op) for LMS^(1/3).
  * 4. Results are cached by 24-bit RGB key — computed at most once per unique color.
  */
-export function rgbToLab(rgb: RGB): LAB {
-    const key = rgbToBinary(rgb);
+export function rgbToLab(rgb: RGB): LAB;
+export function rgbToLab(r: number, g: number, b: number): LAB;
+export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
+    let r: number, gVal: number, bVal: number;
+    if (typeof rOrRgb === 'object' && rOrRgb !== null) {
+        r = rOrRgb.r;
+        gVal = rOrRgb.g;
+        bVal = rOrRgb.b;
+    } else {
+        r = rOrRgb;
+        gVal = g!;
+        bVal = b!;
+    }
+    const key = (Math.round(r) << 16) + (Math.round(gVal) << 8) + Math.round(bVal);
     if (labCache.has(key)) {
         return labCache.get(key)!;
     }
 
     // Step 1: sRGB → linear RGB via gamma LUT (identical to previous CIELab path)
-    const r1 = GAMMA_LUT[Math.round(rgb.r) & 0xFF];
-    const g1 = GAMMA_LUT[Math.round(rgb.g) & 0xFF];
-    const b1 = GAMMA_LUT[Math.round(rgb.b) & 0xFF];
+    const r1 = GAMMA_LUT[Math.round(r) & 0xFF];
+    const g1 = GAMMA_LUT[Math.round(gVal) & 0xFF];
+    const b1 = GAMMA_LUT[Math.round(bVal) & 0xFF];
 
     // Step 2: linear sRGB → LMS cone space (M1)
     const lms_l = M1_L0 * r1 + M1_L1 * g1 + M1_L2 * b1;
