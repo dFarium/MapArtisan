@@ -7,14 +7,7 @@ import paletteData from '../../data/palette.json';
 import type { RGB, BrightnessLevel, BuildMode, PaletteColor } from '../../types/mapart';
 import { rgbToLab, getColorCache, type LAB } from './colorSpace';
 
-// ---------------------------------------------------------------------------
-// Internal helper: build an RGB object from inline scalars for functions that
-// need an RGB (e.g. rgbToLab, colorDistanceSq). Defined once here to avoid
-// repeated object literals in callers.
-// ---------------------------------------------------------------------------
-function makeRGB(r: number, g: number, b: number): RGB {
-    return { r, g, b };
-}
+
 
 // ============================================================================
 // Types
