@@ -37,7 +37,7 @@ const api = {
      * @param selectedPaletteItems Palette selection mapping IDs to minecraft blocks.
      * @param threeDPrecision Height optimizations slider limits.
      * @param dithering Pixel error diffusion/threshold matrix strategy.
-     * @param useCielab Flag to compare colors using CIELAB distance instead of RGB.
+     * @param usePerceptual Flag to compare colors using OKLab perceptual distance instead of RGB.
      * @param hybridStrength Weighting factor for hybrid/adaptive dithering.
      * @param independentMaps Separate centering grids for multi-map setups.
      */
@@ -50,7 +50,7 @@ const api = {
         selectedPaletteItems: Record<number, string | null>,
         threeDPrecision: number,
         dithering: DitheringMode = 'none',
-        useCielab: boolean = true,
+        usePerceptual: boolean = true,
         hybridStrength: number = 50,
         independentMaps: boolean = false
     ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array; heightPath?: Int32Array | null } => {
@@ -77,7 +77,7 @@ const api = {
             selectedPaletteItems,
             threeDPrecision,
             dithering,
-            useCielab,
+            usePerceptual,
             hybridStrength,
             independentMaps
         );
@@ -159,7 +159,7 @@ const api = {
         metadata: Record<string, unknown>,
         threeDPrecision: number,
         dithering: DitheringMode,
-        useCielab: boolean,
+        usePerceptual: boolean,
         hybridStrength: number,
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
@@ -195,7 +195,7 @@ const api = {
             metadata,
             threeDPrecision,
             dithering,
-            useCielab,
+            usePerceptual,
             hybridStrength,
             independentMaps,
             manualEdits,
@@ -221,7 +221,7 @@ const api = {
         buildMode: BuildMode,
         threeDPrecision: number,
         dithering: DitheringMode,
-        useCielab: boolean,
+        usePerceptual: boolean,
         hybridStrength: number,
         independentMaps: boolean,
         manualEdits: Record<number, ManualEdit>,
@@ -252,7 +252,7 @@ const api = {
             buildMode,
             threeDPrecision,
             dithering,
-            useCielab,
+            usePerceptual,
             hybridStrength,
             independentMaps,
             manualEdits,

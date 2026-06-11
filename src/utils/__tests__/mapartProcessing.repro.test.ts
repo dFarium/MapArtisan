@@ -37,7 +37,7 @@ describe('mapartProcessing Idempotency', () => {
             selectedPaletteItems,
             50,        // 3D Precision
             'hybrid', // Dithering
-            true,      // CIELAB
+            true,      // OKLab perceptual
             50,        // Hybrid Strength
             false      // Independent Maps
         );
@@ -60,11 +60,11 @@ describe('mapartProcessing Idempotency', () => {
         console.log('Tone Checksum:', toneCheck);
         console.log('Indices Checksum:', indicesCheck);
 
-        // Checksums updated for Opt#2: Math.cbrt vs Math.pow(x, 1/3) produces
-        // sub-epsilon LAB differences that shift a small number of border pixels.
+        // Checksums updated for OKLab migration: OKLab produces different color
+        // assignments than CIELab for some border pixels, especially in blues/purples.
         // Results remain fully deterministic and internally consistent.
-        expect(toneCheck).toBe(-988);
-        expect(indicesCheck).toBe(112614);
+        expect(toneCheck).toBe(0);
+        expect(indicesCheck).toBe(114307);
 
         expect(result.packedResults.length).toBe(128 * 128);
     });

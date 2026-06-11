@@ -35,7 +35,7 @@ describe('mapart.worker performance', () => {
         };
         const threeDPrecision = 80;
         const dithering: DitheringMode = 'floyd-steinberg'; // Expensive dithering
-        const useCielab = true;
+        const usePerceptual = true;
 
         const iterations = 5;
         let totalTime = 0;
@@ -52,7 +52,7 @@ describe('mapart.worker performance', () => {
                 palette,
                 threeDPrecision,
                 dithering,
-                useCielab
+                usePerceptual
             );
 
             const end = performance.now();

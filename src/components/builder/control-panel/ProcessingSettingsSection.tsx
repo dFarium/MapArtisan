@@ -19,7 +19,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
     const {
         dithering, setDithering,
         hybridStrength, setHybridStrength,
-        useCielab, setUseCielab,
+        usePerceptual, setUsePerceptual,
         paletteVersion, setPaletteVersion,
         previewUrl
     } = useMapart();
@@ -113,17 +113,17 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                 </div>
             )}
 
-            {/* CIELAB Toggle */}
+            {/* OKLab Toggle */}
             <div className="space-y-1 p-2 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-bold uppercase">CIELAB Color Space</span>
+                    <span className="text-xs text-zinc-400 font-bold uppercase">OKLab Color Space</span>
                     <Checkbox
-                        checked={useCielab}
-                        onCheckedChange={setUseCielab}
+                        checked={usePerceptual}
+                        onCheckedChange={setUsePerceptual}
                     />
                 </div>
                 <p className="text-xs text-zinc-500 font-medium">
-                    {useCielab ? "Perceptually uniform (Recommended)" : "Faster RGB Distance"}
+                    {usePerceptual ? "Perceptually uniform · OKLab (Recommended)" : "Faster RGB Distance"}
                 </p>
             </div>
 

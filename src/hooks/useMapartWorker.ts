@@ -16,7 +16,7 @@ interface UseMapartWorkerProps {
     selectedPaletteItems: Record<number, string | null>;
     threeDPrecision: number;
     dithering: string;
-    useCielab: boolean;
+    usePerceptual: boolean;
     hybridStrength: number;
     independentMaps: boolean;
     setMapartStats: (stats: MapartStats | null) => void;
@@ -46,7 +46,7 @@ export const useMapartWorker = ({
     selectedPaletteItems,
     threeDPrecision,
     dithering,
-    useCielab,
+    usePerceptual,
     hybridStrength,
     independentMaps,
     setMapartStats,
@@ -272,7 +272,7 @@ export const useMapartWorker = ({
                         selectedPaletteItems,
                         threeDPrecision,
                         dithering as DitheringMode,
-                        useCielab,
+                        usePerceptual,
                         hybridStrength,
                         independentMaps
                     );
@@ -343,7 +343,7 @@ export const useMapartWorker = ({
         };
     }, [
         sourceImageVersion, buildMode, selectedPaletteItems, threeDPrecision, dithering,
-        useCielab, hybridStrength, independentMaps, initWorker, mapartResolution.width,
+        usePerceptual, hybridStrength, independentMaps, initWorker, mapartResolution.width,
         mapartResolution.height, setMapartStats, manualEdits
     ]);
 
@@ -410,7 +410,7 @@ export const useMapartWorker = ({
                 buildMode,
                 threeDPrecision,
                 dithering as DitheringMode,
-                useCielab,
+                usePerceptual,
                 hybridStrength,
                 independentMaps,
                 manualEdits,
@@ -423,7 +423,7 @@ export const useMapartWorker = ({
             console.error("Material calculation failed:", err);
             return null;
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion, exportMode]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion, exportMode]);
 
     const exportMapart = useCallback(async (
         filename: string,
@@ -450,7 +450,7 @@ export const useMapartWorker = ({
                 metadata,
                 threeDPrecision,
                 dithering as DitheringMode,
-                useCielab,
+                usePerceptual,
                 hybridStrength,
                 independentMaps,
                 manualEdits,
@@ -468,7 +468,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion, exportFormat]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion, exportFormat]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;

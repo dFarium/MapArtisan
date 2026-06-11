@@ -18,19 +18,19 @@ describe('mapartProcessing', () => {
             const white: RGB = { r: 255, g: 255, b: 255 };
             const lab = rgbToLab(white);
 
-            // White should have high L value (close to 255.5)
-            expect(lab.L).toBeCloseTo(255.5, 1);
-            // a and b should be close to 0.5 (neutral + offset)
-            expect(lab.a).toBeCloseTo(0.5, 1);
-            expect(lab.b).toBeCloseTo(0.5, 1);
+            // White should have L ≈ 1.0 in OKLab
+            expect(lab.L).toBeCloseTo(1.0, 3);
+            // a and b should be close to 0 (neutral, no OKLab offset)
+            expect(lab.a).toBeCloseTo(0.0, 3);
+            expect(lab.b).toBeCloseTo(0.0, 3);
         });
 
         it('converts pure black correctly', () => {
             const black: RGB = { r: 0, g: 0, b: 0 };
             const lab = rgbToLab(black);
 
-            // Black should have low L value (close to 0.5 due to offset)
-            expect(lab.L).toBeCloseTo(0.5, 1);
+            // Black should have L ≈ 0.0 in OKLab
+            expect(lab.L).toBeCloseTo(0.0, 3);
         });
 
         it('is deterministic and uses cache', () => {
@@ -46,8 +46,8 @@ describe('mapartProcessing', () => {
             const red: RGB = { r: 255, g: 0, b: 0 };
             const lab = rgbToLab(red);
 
-            // Red should have positive a value
-            expect(lab.a).toBeGreaterThan(50);
+            // Red should have positive a value (OKLab: a ≈ 0.225)
+            expect(lab.a).toBeGreaterThan(0.1);
         });
     });
 

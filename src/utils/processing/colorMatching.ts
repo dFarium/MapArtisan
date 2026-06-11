@@ -136,14 +136,14 @@ export function getValidColors(
  * Find the closest color candidate for a pixel given as inline RGB scalars.
  * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
  *
- * The useCielab branch is hoisted and candidates are structured as Struct of Arrays (SoA) for cache-friendly sequential memory access.
+ * The usePerceptual branch is hoisted and candidates are structured as Struct of Arrays (SoA) for cache-friendly sequential memory access.
  */
 export function findClosestColorIndex(
     tr: number,
     tg: number,
     tb: number,
     candidatesSoA: CandidatesSoA,
-    useCielab: boolean,
+    usePerceptual: boolean,
     skipCache: boolean = false,
     heightPenalty: number = 0
 ): ColorMatchResult {
@@ -154,7 +154,7 @@ export function findClosestColorIndex(
     if (!skipCache && colorCache.has(key)) {
         const cachedIndex = colorCache.get(key)!;
         let dist = 0;
-        if (useCielab) {
+        if (usePerceptual) {
             const targetLab = rgbToLab(makeRGB(tr, tg, tb));
             const dL = targetLab.L - candidatesSoA.labL[cachedIndex];
             const da = targetLab.a - candidatesSoA.labA[cachedIndex];
@@ -173,7 +173,7 @@ export function findClosestColorIndex(
     let bestDist = Infinity;
     const n = candidatesSoA.count;
 
-    if (useCielab) {
+    if (usePerceptual) {
         // --- LAB path: branch resolved once, tight loop over flat typed arrays ---
         const targetLab = rgbToLab(makeRGB(tr, tg, tb));
         const tL = targetLab.L;
@@ -218,7 +218,7 @@ export function findTwoClosestColors(
     tg: number,
     tb: number,
     candidatesSoA: CandidatesSoA,
-    useCielab: boolean,
+    usePerceptual: boolean,
     heightPenalty: number = 0
 ): { first: ColorMatchResult; second: ColorMatchResult } {
     let bestIndex = 0;
@@ -227,7 +227,7 @@ export function findTwoClosestColors(
     let secondDist = Infinity;
     const n = candidatesSoA.count;
 
-    if (useCielab) {
+    if (usePerceptual) {
         // --- LAB path ---
         const targetLab = rgbToLab(makeRGB(tr, tg, tb));
         const tL = targetLab.L;

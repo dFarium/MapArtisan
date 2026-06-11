@@ -73,8 +73,8 @@ export interface MapartState {
     selectedPaletteItems: Record<number, string | null>;
     /** Height penalty threshold for 3D steps (0% to 100%) */
     threeDPrecision: number;
-    /** Use CIELAB color delta E (true) or RGB Euclidean distance (false) */
-    useCielab: boolean;
+    /** Use OKLab perceptual distance (true) or RGB Euclidean distance (false) */
+    usePerceptual: boolean;
     /** Error diffusion threshold scale for adaptive/hybrid dithering */
     hybridStrength: number;
     /** Computed output structure dimensions and height limits stats */
@@ -111,7 +111,7 @@ export interface MapartState {
     resetCropSettings: () => void;
     setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
     setThreeDPrecision: (value: number) => void;
-    setUseCielab: (value: boolean) => void;
+    setUsePerceptual: (value: boolean) => void;
     setHybridStrength: (value: number) => void;
     setMapartStats: (stats: MapartStats | null) => void;
     setIndependentMaps: (value: boolean) => void;
@@ -146,7 +146,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     cropSettings: defaultCropSettings,
     selectedPaletteItems: {},
     threeDPrecision: 100,
-    useCielab: true,
+    usePerceptual: true,
     hybridStrength: 50,
     mapartStats: null,
     independentMaps: true,
@@ -204,8 +204,8 @@ export const useMapartStore = create<MapartState>((set) => ({
     setThreeDPrecision: (value) => set({
         threeDPrecision: value
     }),
-    setUseCielab: (value) => set({
-        useCielab: value
+    setUsePerceptual: (value) => set({
+        usePerceptual: value
     }),
     setHybridStrength: (value) => set({
         hybridStrength: value

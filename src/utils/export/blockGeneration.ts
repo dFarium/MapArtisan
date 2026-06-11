@@ -30,7 +30,7 @@ import type { BlockStatesBuffers } from './types';
  * @param applyOptimization True to optimize structural height utilizing Smart Drop.
  * @param threeDPrecision Height optimizations slider limits.
  * @param dithering Pixel error diffusion/threshold matrix strategy.
- * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
  * @param independentMaps Separate centering grids for independent map pieces.
  * @param manualEdits Map of indices to manual painted color overrides.
@@ -46,7 +46,7 @@ export function imageDataToBlockStates(
     applyOptimization: boolean = true,
     threeDPrecision: number = 0,
     dithering: DitheringMode = 'none',
-    useCielab: boolean = true,
+    usePerceptual: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
@@ -68,7 +68,7 @@ export function imageDataToBlockStates(
             selectedPaletteItems,
             threeDPrecision,
             dithering,
-            useCielab,
+            usePerceptual,
             hybridStrength,
             exportMode === 'full' ? false : independentMaps // Force global if full map
         );

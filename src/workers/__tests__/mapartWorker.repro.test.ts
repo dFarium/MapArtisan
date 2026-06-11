@@ -33,7 +33,7 @@ describe('mapart.worker idempotency', () => {
         };
         const threeDPrecision = 80;
         const dithering: DitheringMode = 'floyd-steinberg';
-        const useCielab = true;
+        const usePerceptual = true;
         const version = 1;
 
         // First run
@@ -46,7 +46,7 @@ describe('mapart.worker idempotency', () => {
             palette,
             threeDPrecision,
             dithering,
-            useCielab
+            usePerceptual
         );
 
         // Second run
@@ -59,7 +59,7 @@ describe('mapart.worker idempotency', () => {
             palette,
             threeDPrecision,
             dithering,
-            useCielab
+            usePerceptual
         );
 
         // Assertions

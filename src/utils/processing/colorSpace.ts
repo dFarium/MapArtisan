@@ -1,6 +1,7 @@
 /**
  * Color Space Utilities
- * CIELAB conversion, caching, and distance calculations
+ * OKLab conversion, caching, and distance calculations.
+ * Reference: Björn Ottosson — https://bottosson.github.io/posts/oklab/
  */
 
 import { MAPART } from '../constants';
@@ -50,8 +51,8 @@ export function getColorCache(): Map<number, number> {
 
 // ============================================================================
 // Gamma LUT: sRGB -> linear RGB for all 256 integer channel values
-// Built once at module load using the exact same formula as the original
-// rgbToLab, eliminating Math.pow(x, 2.4) calls at runtime.
+// Built once at module load using the exact same formula as before —
+// OKLab uses identical sRGB linearization.
 // ============================================================================
 
 const GAMMA_LUT: Float64Array = (() => {
@@ -69,19 +70,41 @@ const GAMMA_LUT: Float64Array = (() => {
     return lut;
 })();
 
+// ============================================================================
+// OKLab matrix coefficients — hoisted as module-level constants for zero
+// property-lookup overhead inside rgbToLab (called once per unique RGB color).
+// ============================================================================
+
+// M1: linear sRGB → LMS
+const M1_L0 = MAPART.OKLAB_M1_L[0], M1_L1 = MAPART.OKLAB_M1_L[1], M1_L2 = MAPART.OKLAB_M1_L[2];
+const M1_M0 = MAPART.OKLAB_M1_M[0], M1_M1 = MAPART.OKLAB_M1_M[1], M1_M2 = MAPART.OKLAB_M1_M[2];
+const M1_S0 = MAPART.OKLAB_M1_S[0], M1_S1 = MAPART.OKLAB_M1_S[1], M1_S2 = MAPART.OKLAB_M1_S[2];
+
+// M2: LMS^(1/3) → OKLab
+const M2_L0 = MAPART.OKLAB_M2_L[0], M2_L1 = MAPART.OKLAB_M2_L[1], M2_L2 = MAPART.OKLAB_M2_L[2];
+const M2_A0 = MAPART.OKLAB_M2_A[0], M2_A1 = MAPART.OKLAB_M2_A[1], M2_A2 = MAPART.OKLAB_M2_A[2];
+const M2_B0 = MAPART.OKLAB_M2_B[0], M2_B1 = MAPART.OKLAB_M2_B[1], M2_B2 = MAPART.OKLAB_M2_B[2];
 
 // ============================================================================
-// RGB to LAB Conversion
+// RGB to OKLab Conversion
 // ============================================================================
 
 /**
- * Transforms an RGB color into the CIELAB (L*a*b*) color space.
- * Matches mapartcraft's behavior to output matching shade calculations.
- * 
+ * Transforms an RGB color into the OKLab color space (Björn Ottosson, 2020).
+ *
+ * Output ranges:
+ *   L ∈ [0, 1]          — perceptual lightness
+ *   a ≈ [-0.4,  0.4]    — green↔red axis
+ *   b ≈ [-0.4,  0.4]    — blue↔yellow axis
+ *
+ * All three axes have a naturally similar scale, so Euclidean distance in
+ * OKLab is perceptually uniform without requiring L rescaling.
+ *
  * Performance features:
- * 1. Uses a precomputed 256-index gamma lookup table (`GAMMA_LUT`) to bypass sRGB to linear conversion.
- * 2. Employs the native `Math.cbrt` (cube root) operation to avoid `Math.pow(x, 1/3)` overhead.
- * 3. Scales L to a 0-255 range to preserve equal weight during Euclidean distance metrics.
+ * 1. Reuses the precomputed 256-entry GAMMA_LUT for sRGB→linear (same as before).
+ * 2. Matrix coefficients are hoisted to module-level scalars — zero object lookup.
+ * 3. Uses Math.cbrt (native op) for LMS^(1/3).
+ * 4. Results are cached by 24-bit RGB key — computed at most once per unique color.
  */
 export function rgbToLab(rgb: RGB): LAB {
     const key = rgbToBinary(rgb);
@@ -89,39 +112,32 @@ export function rgbToLab(rgb: RGB): LAB {
         return labCache.get(key)!;
     }
 
-    // sRGB to linear RGB — LUT lookup on rounded integer index (zero Math.pow at runtime)
+    // Step 1: sRGB → linear RGB via gamma LUT (identical to previous CIELab path)
     const r1 = GAMMA_LUT[Math.round(rgb.r) & 0xFF];
     const g1 = GAMMA_LUT[Math.round(rgb.g) & 0xFF];
     const b1 = GAMMA_LUT[Math.round(rgb.b) & 0xFF];
 
-    // Linear RGB to XYZ using coefficients defined in Constants
-    const { XYZ_R_COEFFS: Rc, XYZ_G_COEFFS: Gc, XYZ_B_COEFFS: Bc, XYZ_WHITE_REF: Wr } = MAPART;
+    // Step 2: linear sRGB → LMS cone space (M1)
+    const lms_l = M1_L0 * r1 + M1_L1 * g1 + M1_L2 * b1;
+    const lms_m = M1_M0 * r1 + M1_M1 * g1 + M1_M2 * b1;
+    const lms_s = M1_S0 * r1 + M1_S1 * g1 + M1_S2 * b1;
 
-    const f = (Rc[0] * r1 + Rc[1] * g1 + Rc[2] * b1) / Wr.X;
-    const h = (Gc[0] * r1 + Gc[1] * g1 + Gc[2] * b1) / Wr.Y;
-    const k = (Bc[0] * r1 + Bc[1] * g1 + Bc[2] * b1) / Wr.Z;
+    // Step 3: LMS^(1/3) — cube root of each cone response
+    const l_ = Math.cbrt(lms_l);
+    const m_ = Math.cbrt(lms_m);
+    const s_ = Math.cbrt(lms_s);
 
-    // XYZ to Lab — Math.cbrt replaces Math.pow(x, 1/3) (native op, no Math.pow overhead)
-    const { LAB_THRESHOLD: L_THRESH, LAB_FACTOR_LOW: L_FACT, LAB_OFFSET_LOW: L_OFF, LAB_DIVISOR_LOW: L_DIV } = MAPART;
-
-    const cbrtF = L_THRESH < f ? Math.cbrt(f) : (L_FACT * f + L_OFF) / L_DIV;
-    const cbrtH = L_THRESH < h ? Math.cbrt(h) : (L_FACT * h + L_OFF) / L_DIV;
-    const cbrtK = L_THRESH < k ? Math.cbrt(k) : (L_FACT * k + L_OFF) / L_DIV;
-
-    const l = cbrtH;
-    const m = MAPART.LAB_A_FACTOR * (cbrtF - l);
-    const n = MAPART.LAB_B_FACTOR * (l - cbrtK);
-
-    // Scale L to 0-255 range and offset coordinates
+    // Step 4: LMS^(1/3) → OKLab (M2)
     const lab: LAB = {
-        L: MAPART.CIELAB_SCALE / 100 * (MAPART.LAB_L_FACTOR * l - MAPART.LAB_L_OFFSET) + 0.5,
-        a: m + 0.5,
-        b: n + 0.5
+        L: M2_L0 * l_ + M2_L1 * m_ + M2_L2 * s_,
+        a: M2_A0 * l_ + M2_A1 * m_ + M2_A2 * s_,
+        b: M2_B0 * l_ + M2_B1 * m_ + M2_B2 * s_,
     };
 
     labCache.set(key, lab);
     return lab;
 }
+
 
 // ============================================================================
 // Distance Calculations

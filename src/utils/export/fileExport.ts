@@ -30,7 +30,7 @@ import { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
  * @param metadata Title, author, and description fields.
  * @param threeDPrecision Height optimizations slider limits.
  * @param dithering Pixel error diffusion/threshold matrix strategy.
- * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
  * @param independentMaps Separate centering grids for independent map pieces.
  * @param manualEdits Map of indices to manual painted color overrides.
@@ -48,7 +48,7 @@ export async function generateMapartExport(
     metadata: LitematicaMetadata = {},
     threeDPrecision: number = 0,
     dithering: DitheringMode = 'none',
-    useCielab: boolean = true,
+    usePerceptual: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
@@ -70,7 +70,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
             exportMode, precomputedPackedResults
         );
 
@@ -91,7 +91,7 @@ export async function generateMapartExport(
         // 1. Generate ALL blocks globally or per section depending on independentMaps
         const allBlocks = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, useCielab, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
             exportMode, precomputedPackedResults
         );
 

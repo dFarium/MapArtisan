@@ -2,27 +2,22 @@ export const MAPART = {
     // 3D Mode Penalty
     MAX_HEIGHT_PENALTY: 255 * 255 * 3 + 1,
 
-    // Color Space
-    CIELAB_SCALE: 255.0, // Scale L to 0-255 like mapartcraft
+    // sRGB → Linear RGB gamma correction (shared by OKLab and legacy CIELab)
     RGB_TO_LINEAR_THRESHOLD: 0.04045,
     RGB_TO_LINEAR_DIVISOR: 12.0,
     RGB_TO_LINEAR_OFFSET: 0.055,
     RGB_TO_LINEAR_POWER: 2.4,
 
-    // CIELAB Coefficients
-    XYZ_R_COEFFS: [0.43605202, 0.3850816, 0.14308742],
-    XYZ_G_COEFFS: [0.22249159, 0.71688604, 0.060621485],
-    XYZ_B_COEFFS: [0.013929122, 0.097097, 0.7141855],
-    XYZ_WHITE_REF: { X: 0.964221, Y: 1.0, Z: 0.825211 },
+    // OKLab matrices (Björn Ottosson, 2020 — https://bottosson.github.io/posts/oklab/)
+    // M1: linear sRGB → LMS cone space
+    // Row order: [l_row, m_row, s_row]
+    OKLAB_M1_L: [0.4122214708, 0.5363325363, 0.0514459929],
+    OKLAB_M1_M: [0.2119034982, 0.6806995451, 0.1073969566],
+    OKLAB_M1_S: [0.0883024619, 0.2817188376, 0.6299787005],
 
-    LAB_THRESHOLD: 0.008856452,
-    LAB_FACTOR_LOW: 903.2963,
-    LAB_OFFSET_LOW: 16.0,
-    LAB_DIVISOR_LOW: 116.0,
-    LAB_POWER: 1 / 3,
-
-    LAB_L_FACTOR: 116.0,
-    LAB_L_OFFSET: 16.0,
-    LAB_A_FACTOR: 500.0,
-    LAB_B_FACTOR: 200.0
+    // M2: LMS^(1/3) → OKLab (L, a, b)
+    // Row order: [L_row, a_row, b_row]
+    OKLAB_M2_L: [ 0.2104542553,  0.7936177850, -0.0040720468],
+    OKLAB_M2_A: [ 1.9779984951, -2.4285922050,  0.4505937099],
+    OKLAB_M2_B: [ 0.0259040371,  0.7827717662, -0.8086757660],
 };

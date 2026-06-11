@@ -1,6 +1,6 @@
 /**
  * Regression tests for Optimization #3:
- * Hoist the `useCielab` branch outside the inner candidate loop in
+ * Hoist the `usePerceptual` branch outside the inner candidate loop in
  * findClosestColorIndex and findTwoClosestColors.
  *
  * Both functions split into two specialized code paths (one per mode)
@@ -8,7 +8,7 @@
  * was previously evaluated once per candidate per pixel (~47M times on
  * a 512x512 image with 180 candidates).
  *
- * Results must be BIT-IDENTICAL for both useCielab=true and useCielab=false.
+ * Results must be BIT-IDENTICAL for both usePerceptual=true and usePerceptual=false.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -36,10 +36,10 @@ function makeGradientImage(w: number, h: number): ImageData {
 }
 
 // ---------------------------------------------------------------------------
-// TC1 — useCielab=true: two identical calls must produce bit-identical output
+// TC1 — usePerceptual=true: two identical calls must produce bit-identical output
 // Exercises findClosestColorIndex (error-diffusion path)
 // ---------------------------------------------------------------------------
-describe('Opt#3 — useCielab branch hoisted (regression)', () => {
+describe('Opt#3 — usePerceptual branch hoisted (regression)', () => {
 
     beforeEach(() => { clearColorCache(); });
 
@@ -56,7 +56,7 @@ describe('Opt#3 — useCielab branch hoisted (regression)', () => {
     });
 
     // ---------------------------------------------------------------------------
-    // TC2 — useCielab=false (RGB distance mode): ordered dithering uses
+    // TC2 — usePerceptual=false (RGB distance mode): ordered dithering uses
     // findTwoClosestColors — must also produce stable, valid output
     // ---------------------------------------------------------------------------
     it('TC2: RGB distance mode — ordered dithering produces valid output', () => {
@@ -98,10 +98,10 @@ describe('Opt#3 — useCielab branch hoisted (regression)', () => {
         }
         const img = new ImageData(data, W, H);
 
-        for (const useCielab of [true, false]) {
+        for (const usePerceptual of [true, false]) {
             for (const dithering of ['none', 'floyd-steinberg', 'ordered'] as const) {
                 clearColorCache();
-                const r = processMapart(img, '3d_valley', PALETTE_MULTI, 50, dithering, useCielab, 50, false);
+                const r = processMapart(img, '3d_valley', PALETTE_MULTI, 50, dithering, usePerceptual, 50, false);
 
                 // Every blockIndex must be in-bounds
                 for (let i = 0; i < W * H; i++) {

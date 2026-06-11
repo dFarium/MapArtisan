@@ -84,7 +84,7 @@ export type { BuildMode };
  * @param selectedPaletteItems Selected color indices mapped to block namespaces.
  * @param threeDPrecision Height limits/precision slider percentage.
  * @param dithering Pixel thresholding and error diffusion strategy.
- * @param useCielab Flag to compare colors in CIELAB space rather than RGB.
+ * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
  * @param independentMaps Separate map layouts for individual centering grids.
  */
@@ -94,7 +94,7 @@ export function processMapart(
     selectedPaletteItems: Record<number, string | null>,
     threeDPrecision: number,
     dithering: DitheringMode = 'none',
-    useCielab: boolean = true,
+    usePerceptual: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
 ): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null } {
@@ -148,7 +148,7 @@ export function processMapart(
 
     if (buildMode === '3d_valley') {
         if (threeDPrecision < 100) {
-            const PRACTICAL_MAX = useCielab ? 10000 : 200000;
+            const PRACTICAL_MAX = usePerceptual ? 0.25 : 200000;
             heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
             if (threeDPrecision === 0) heightPenalty = Infinity;
         }
@@ -210,7 +210,7 @@ export function processMapart(
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering
-                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidatesSoA, useCielab, heightPenalty);
+                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidatesSoA, usePerceptual, heightPenalty);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
                     const maxThreshold = is8x8 ? 65 : 17;
@@ -223,7 +223,7 @@ export function processMapart(
                     }
                 } else {
                     // Error diffusion / None
-                    const result = findClosestColorIndex(clampR, clampG, clampB, candidatesSoA, useCielab, isErrorDiffusion, heightPenalty);
+                    const result = findClosestColorIndex(clampR, clampG, clampB, candidatesSoA, usePerceptual, isErrorDiffusion, heightPenalty);
                     bestIndex = result.index;
                 }
 
