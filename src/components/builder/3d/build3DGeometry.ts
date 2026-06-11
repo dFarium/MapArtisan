@@ -12,7 +12,7 @@
  *   - Easily moved to a Web Worker in a future iteration
  */
 
-import { optimizeColumnHeights, unpackTone, unpackNeedsSupport } from '../../../utils/mapartProcessing';
+import { optimizeColumnHeights, unpackTone, unpackNeedsSupport, unpackCandidateIdx } from '../../../utils/mapartProcessing';
 import { type PreviewSection, type RGB } from '../../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ import { type PreviewSection, type RGB } from '../../../types/mapart';
 export interface Build3DGeometryProps {
     imageData: ImageData;
     /** Packed pixel results containing tone, block index, support flag */
-    packedResults?: Uint32Array | null;
+    packedResults: Uint32Array;
     /** "all" | "needed" | "gravity" */
     blockSupport: 'all' | 'needed' | 'gravity';
     /** Support block RGB color (r,g,b 0-255) */
@@ -33,12 +33,8 @@ export interface Build3DGeometryProps {
     independentMaps?: boolean;
     /** Optional section filter */
     previewSection?: PreviewSection;
-    /**
-     * Maps an RGB hex string (e.g. '#6d9930') to the selected block ID for that color.
-     * Build this from selectedPaletteItems + palette color values on the caller side.
-     * When provided, enables per-block texture assignment in the output.
-     */
-    blockIdMap?: Record<string, string>;
+    /** Block IDs array corresponding to candidate indices */
+    candidateBlocks: string[];
     /** Optional support block ID */
     supportBlockId?: string;
     /**
@@ -97,7 +93,7 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
         exportMode,
         independentMaps,
         previewSection,
-        blockIdMap,
+        candidateBlocks,
         supportBlockId,
         precomputedHeightPath,
     } = params;
@@ -120,23 +116,8 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
         return idx;
     };
 
-    // Resolve the support block texture index once
+    // ── Pre-register support texture index if available ──────────────────────
     const supportTextureIdx = supportBlockId ? registerTexture(supportBlockId) : -1;
-
-    // ── RGB-hex → textureIdx lookup (built from blockIdMap) ──────────────────
-    // blockIdMap maps '#rrggbb' → blockId. We pre-register all textures and
-    // build a fast Map for O(1) lookup inside the pixel loop.
-    const rgbToTextureIdx = new Map<number, number>(); // packed RGB (24-bit) → textureIdx
-    if (blockIdMap) {
-        for (const [hex, blockId] of Object.entries(blockIdMap)) {
-            // hex is '#rrggbb'
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            const packed = (r << 16) | (g << 8) | b;
-            rgbToTextureIdx.set(packed, registerTexture(blockId));
-        }
-    }
 
     // ── Upper-bound allocation ─────────────────────────────────────────────
     // Worst case: every pixel + a support block below it = 2× pixels.
@@ -184,35 +165,24 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
                     const zEnd = Math.min((m + 1) * 128, height);
-                    let minChunkY = 0;
-                    for (let i = zStart; i < zEnd; i++) {
-                        const v = precomputedHeightPath[colBase + i];
-                        if (v < minChunkY) minChunkY = v;
-                    }
-                    sectionBaselines[m] = -minChunkY;
+                    const firstTone = unpackTone(packedResults[yOffsets[zStart] + x]);
+                    sectionBaselines[m] = precomputedHeightPath[colBase + zStart] - firstTone;
                     for (let i = zStart; i < zEnd; i++) {
                         path[i] = precomputedHeightPath[colBase + i];
                     }
                 }
             } else {
-                let minPathY = 0;
+                const firstTone = unpackTone(packedResults[x]); // yOffsets[0] is 0
+                globalShiftY = precomputedHeightPath[colBase + 0] - firstTone;
                 for (let i = 0; i < height; i++) {
-                    const v = precomputedHeightPath[colBase + i];
-                    path[i] = v;
-                    if (v < minPathY) minPathY = v;
-                }
-                globalShiftY = -minPathY;
-                // Values are already normalized in processMapart — globalShiftY should be 0.
-                // Apply shift defensively in case of floating precision edge cases.
-                if (globalShiftY !== 0) {
-                    for (let i = 0; i < height; i++) path[i] += globalShiftY;
+                    path[i] = precomputedHeightPath[colBase + i];
                 }
             }
         } else {
             // Collect tones for this column (fallback: no precomputed path available)
             const tones = new Int8Array(height);
             for (let y = 0; y < height; y++) {
-                tones[y] = packedResults ? unpackTone(packedResults[yOffsets[y] + x]) : 0;
+                tones[y] = unpackTone(packedResults[yOffsets[y] + x]);
             }
 
             if (useIndependentSD) {
@@ -310,10 +280,13 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
                     colors[base + 1] = data[pxIdx + 1] / 255;
                     colors[base + 2] = data[pxIdx + 2] / 255;
 
-                    // Look up texture by the pixel's exact quantized RGB
-                    if (rgbToTextureIdx.size > 0) {
-                        const packed = (data[pxIdx] << 16) | (data[pxIdx + 1] << 8) | data[pxIdx + 2];
-                        textureIds[count] = rgbToTextureIdx.get(packed) ?? -1;
+                    // Look up texture precisely using the unpacked candidate index
+                    const linearIdx = yOffsets[y] + x;
+                    const packedVal = packedResults[linearIdx];
+                    const candidateIdx = unpackCandidateIdx(packedVal);
+                    const blockId = candidateBlocks[candidateIdx];
+                    if (blockId && blockId !== 'minecraft:air') {
+                        textureIds[count] = registerTexture(blockId);
                     }
                 }
                 count++;

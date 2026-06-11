@@ -129,7 +129,8 @@ const api = {
             lastBaseResult.processedImage,
             lastBaseResult.packedResults,
             manualEdits,
-            lastBaseResult.buildMode
+            lastBaseResult.buildMode,
+            lastBaseResult.candidates
         );
 
         // Here we can transfer directly because applyManualEdits created fresh buffers for result.

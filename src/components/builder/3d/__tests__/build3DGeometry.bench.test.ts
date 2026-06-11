@@ -113,6 +113,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -130,6 +131,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -146,6 +148,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -162,6 +165,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -178,6 +182,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'needed',
             supportColor: SUPPORT_COLOR,
         };
@@ -195,6 +200,7 @@ describe('build3DGeometry — performance baseline', () => {
         const params: Build3DGeometryProps = {
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         };
@@ -214,6 +220,7 @@ describe('build3DGeometry — performance baseline', () => {
         const geo = build3DGeometry({
             imageData,
             packedResults: makePackedResults(W, H, toneMap),
+            candidateBlocks: ['minecraft:stone'],
             blockSupport: 'all',
             supportColor: SUPPORT_COLOR,
         });

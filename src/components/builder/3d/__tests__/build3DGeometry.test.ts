@@ -81,7 +81,8 @@ describe('build3DGeometry', () => {
             const imageData = makeImageData(width, height);
             const params: Build3DGeometryProps = {
                 imageData,
-                packedResults: null,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'none' as unknown as 'all',
                 supportColor: GRAY_SUPPORT,
             };
@@ -98,7 +99,8 @@ describe('build3DGeometry', () => {
             const imageData = makeImageData(width, height);
             const params: Build3DGeometryProps = {
                 imageData,
-                packedResults: null,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed', // no extra blocks since all heights will be 0
                 supportColor: GRAY_SUPPORT,
             };
@@ -119,6 +121,7 @@ describe('build3DGeometry', () => {
             const params: Build3DGeometryProps = {
                 imageData,
                 packedResults: makePackedResults(width, height, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -136,7 +139,8 @@ describe('build3DGeometry', () => {
             const imageData = makeImageData(width, height);
             const params: Build3DGeometryProps = {
                 imageData,
-                packedResults: null,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -165,6 +169,7 @@ describe('build3DGeometry', () => {
             const params: Build3DGeometryProps = {
                 imageData,
                 packedResults: makePackedResults(1, 1, new Int8Array([0])),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             };
@@ -187,6 +192,7 @@ describe('build3DGeometry', () => {
             const params: Build3DGeometryProps = {
                 imageData,
                 packedResults: makePackedResults(1, 4, new Int8Array(4).fill(0)),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: { r: 255, g: 0, b: 255 }, // magenta support
             };
@@ -206,6 +212,67 @@ describe('build3DGeometry', () => {
             }
             expect(foundSupportColor).toBe(true);
         });
+
+        it('noobline height is correctly shifted relative to the first block in precomputed and slow path', () => {
+            const imageData = makeImageData(1, 4);
+            const toneMap = new Int8Array([1, 0, -1, 0]); // tone at y=0 is 1 (highlight)
+            const packedResults = makePackedResults(1, 4, toneMap);
+
+            // 1. Slow path test (precomputedHeightPath is not provided)
+            const geoSlow = build3DGeometry({
+                imageData,
+                packedResults,
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+            });
+
+            // For slow path, toneMap[0] = 1, path[0] = 1.
+            // minPathY is -1 (from y=2: tone -1, cumulative from path[0]=1, path[1]=1, path[2]=0, path[3]=0, minPathY is 0. But wait, optimizeColumnHeights outputs:
+            // ref = [0, 1, 1, 0, 0]
+            // Smart Drop outputs: path[0]=1, path[1]=1, path[2]=0, path[3]=0. min is 0. So shift = 0.
+            // So y=0 is at height 1. Noobline should be at 0.
+            let nooblineYSlow = -999;
+            let firstBlockYSlow = -999;
+            for (let i = 0; i < geoSlow.count; i++) {
+                const pos = getPos(geoSlow.positions, i);
+                if (Math.abs(pos.z - (-2.5)) < 0.01) { // noobline y=-1, worldZ = -1 - 1.5 = -2.5
+                    nooblineYSlow = pos.y;
+                } else if (Math.abs(pos.z - (-1.5)) < 0.01) { // block y=0, worldZ = 0 - 1.5 = -1.5
+                    firstBlockYSlow = pos.y;
+                }
+            }
+            expect(firstBlockYSlow - nooblineYSlow).toBe(1); // height difference should be toneMap[0] = 1
+
+            // 2. Fast path test (precomputedHeightPath is provided)
+            // Suppose precomputedHeightPath is [5, 5, 4, 4] (already shifted, toneMap[0] = 1)
+            const precomputedHeightPath = new Int32Array([5, 5, 4, 4]);
+            const geoFast = build3DGeometry({
+                imageData,
+                packedResults,
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+                precomputedHeightPath,
+            });
+
+            let nooblineYFast = -999;
+            let firstBlockYFast = -999;
+            for (let i = 0; i < geoFast.count; i++) {
+                const pos = getPos(geoFast.positions, i);
+                if (Math.abs(pos.z - (-2.5)) < 0.01) {
+                    nooblineYFast = pos.y;
+                } else if (Math.abs(pos.z - (-1.5)) < 0.01) {
+                    firstBlockYFast = pos.y;
+                }
+            }
+            // First block height should be precomputedHeightPath[0] = 5
+            expect(firstBlockYFast).toBe(5);
+            // Height difference should be toneMap[0] = 1
+            expect(firstBlockYFast - nooblineYFast).toBe(1);
+            // Therefore, noobline height should be 4
+            expect(nooblineYFast).toBe(4);
+        });
     });
 
     // ── Support blocks ─────────────────────────────────────────────────────
@@ -219,6 +286,7 @@ describe('build3DGeometry', () => {
             const withSupport = build3DGeometry({
                 imageData,
                 packedResults: makePackedResults(1, 2, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             });
@@ -226,6 +294,7 @@ describe('build3DGeometry', () => {
             const withoutSupport = build3DGeometry({
                 imageData,
                 packedResults: makePackedResults(1, 2, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             });
@@ -243,6 +312,7 @@ describe('build3DGeometry', () => {
             const geoWithGravity = build3DGeometry({
                 imageData,
                 packedResults: makePackedResults(2, 2, toneMap, needsSupportMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'gravity',
                 supportColor: GRAY_SUPPORT,
             });
@@ -250,6 +320,7 @@ describe('build3DGeometry', () => {
             const geoWithAll = build3DGeometry({
                 imageData,
                 packedResults: makePackedResults(2, 2, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             });
@@ -268,14 +339,16 @@ describe('build3DGeometry', () => {
 
             const fullGeo = build3DGeometry({
                 imageData,
-                packedResults: null,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
             });
 
             const sectionGeo = build3DGeometry({
                 imageData,
-                packedResults: null,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: GRAY_SUPPORT,
                 previewSection: { x: 0, y: 0 },
@@ -284,6 +357,34 @@ describe('build3DGeometry', () => {
 
             // Section should have roughly half the blocks
             expect(sectionGeo.count).toBeLessThan(fullGeo.count);
+        });
+
+        it('filters blocks outside previewSection Y range', () => {
+            const width = 128, height = 256; // two 128-tall sections stacked vertically
+            const imageData = makeImageData(width, height);
+
+            const fullGeo = build3DGeometry({
+                imageData,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+            });
+
+            const sectionGeo = build3DGeometry({
+                imageData,
+                packedResults: new Uint32Array(width * height),
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+                previewSection: { x: 0, y: 1 },
+                exportMode: 'sections',
+            });
+
+            // Section should have roughly half the blocks
+            expect(sectionGeo.count).toBeLessThan(fullGeo.count);
+            // Expected count: 128 columns * (128 blocks + 1 noobline) = 16512
+            expect(sectionGeo.count).toBe(128 * 129);
         });
     });
 
@@ -298,6 +399,7 @@ describe('build3DGeometry', () => {
             const params: Build3DGeometryProps = {
                 imageData,
                 packedResults: makePackedResults(width, height, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'all',
                 supportColor: GRAY_SUPPORT,
             };
@@ -327,6 +429,7 @@ describe('build3DGeometry', () => {
             const geo = build3DGeometry({
                 imageData,
                 packedResults: makePackedResults(1, 2, toneMap),
+                candidateBlocks: ['minecraft:stone'],
                 blockSupport: 'needed',
                 supportColor: { r: 128, g: 128, b: 128 },
             });

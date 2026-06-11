@@ -459,7 +459,8 @@ export function applyManualEdits(
     baseImageData: ImageData,
     basePackedResults: Uint32Array,
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB; needsSupport?: boolean }>,
-    buildMode: BuildMode
+    buildMode: BuildMode,
+    candidates?: ColorCandidate[]
 ): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } {
     const { width, height, data } = baseImageData;
 
@@ -495,7 +496,13 @@ export function applyManualEdits(
             needsSupport = unpackNeedsSupport(packed);
         }
 
-        const candidateIdx = unpackCandidateIdx(packed);
+        let candidateIdx = unpackCandidateIdx(packed);
+        if (candidates) {
+            const matchIdx = candidates.findIndex(c => c.blockId === edit.blockId && c.brightness === edit.brightness);
+            if (matchIdx !== -1) {
+                candidateIdx = matchIdx;
+            }
+        }
         newPackedResults[index] = packPixel(candidateIdx, tone, needsSupport);
     }
 

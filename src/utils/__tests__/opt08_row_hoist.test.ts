@@ -49,9 +49,7 @@ describe('Opt#8 — Row y * width hoist (regression)', () => {
         
         const mapartRes = processMapart(imageData, '3d_valley', selectedPaletteItems, 50, 'floyd-steinberg', true, 50, false);
         
-        const blockIdMap = {
-            '#000000': 'minecraft:stone'
-        };
+        const candidateBlocks = mapartRes.candidates.map(c => c.blockId);
 
         const geom1 = build3DGeometry({
             imageData: mapartRes.imageData,
@@ -60,7 +58,7 @@ describe('Opt#8 — Row y * width hoist (regression)', () => {
             supportColor: { r: 128, g: 128, b: 128 },
             exportMode: 'sections',
             independentMaps: true,
-            blockIdMap,
+            candidateBlocks,
             supportBlockId: 'minecraft:cobblestone'
         });
 
@@ -71,7 +69,7 @@ describe('Opt#8 — Row y * width hoist (regression)', () => {
             supportColor: { r: 128, g: 128, b: 128 },
             exportMode: 'sections',
             independentMaps: true,
-            blockIdMap,
+            candidateBlocks,
             supportBlockId: 'minecraft:cobblestone'
         });
 

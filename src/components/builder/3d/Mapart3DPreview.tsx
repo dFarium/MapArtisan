@@ -264,17 +264,10 @@ const MapartMesh = ({
     const selectedPaletteItems = useMapartStore(s => s.selectedPaletteItems);
     const buildMode = useMapartStore(s => s.buildMode);
 
-    // Build blockIdMap: RGB-hex → blockId (main-thread only, small data)
-    const blockIdMap = useMemo(() => {
+    // Build candidateBlocks array corresponding to candidate indices
+    const candidateBlocks = useMemo(() => {
         const candidates = getValidColors(selectedPaletteItems, buildMode);
-        const map: Record<string, string> = {};
-        for (const c of candidates) {
-            const r = c.rgb.r.toString(16).padStart(2, '0');
-            const g = c.rgb.g.toString(16).padStart(2, '0');
-            const b = c.rgb.b.toString(16).padStart(2, '0');
-            map[`#${r}${g}${b}`] = c.blockId;
-        }
-        return map;
+        return candidates.map(c => c.blockId);
     }, [selectedPaletteItems, buildMode]);
 
     // Resolve supportColor on the main thread (tiny palette lookup)
@@ -305,13 +298,13 @@ const MapartMesh = ({
 
         build3DGeometryAsync({
             imageData,
-            packedResults: packedResults ?? null,
+            packedResults: packedResults ?? new Uint32Array(0),
             blockSupport,
             supportColor,
             exportMode,
             independentMaps,
             previewSection,
-            blockIdMap,
+            candidateBlocks,
             supportBlockId,
             precomputedHeightPath: heightPath ?? null,
         }).then(result => {
@@ -322,7 +315,7 @@ const MapartMesh = ({
     }, [
         imageData, packedResults, heightPath, blockSupport, supportColor,
         exportMode, independentMaps, previewSection,
-        blockIdMap, supportBlockId, build3DGeometryAsync
+        candidateBlocks, supportBlockId, build3DGeometryAsync
     ]);
 
     // Create stable material with atlas shader set up ONCE.
@@ -525,7 +518,7 @@ if (vTexLayer >= 0.0) {
     return (
         <instancedMesh
             ref={meshRef}
-            args={[undefined, matRef.current, geometry?.count ?? 0]}
+            args={[undefined, matRef.current, 0]}
             position={[0, 0.5, 0]}
         >
             <boxGeometry args={[1, 1, 1]} />
