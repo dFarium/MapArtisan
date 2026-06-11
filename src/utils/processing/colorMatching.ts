@@ -5,7 +5,7 @@
 
 import paletteData from '../../data/palette.json';
 import type { RGB, BrightnessLevel, BuildMode, PaletteColor } from '../../types/mapart';
-import { rgbToLab, getColorCache } from './colorSpace';
+import { rgbToLab, getColorCache, type LAB } from './colorSpace';
 
 // ---------------------------------------------------------------------------
 // Internal helper: build an RGB object from inline scalars for functions that
@@ -26,7 +26,24 @@ export interface ColorCandidate {
     rgb: RGB;
     blockId: string;
     needsSupport: boolean;
+    lab?: LAB;
 }
+
+// ============================================================================
+// Precomputed static Minecraft palette LAB values
+// ============================================================================
+const paletteLabMap = new Map<string, LAB>();
+(() => {
+    const palette = paletteData.colors as unknown as PaletteColor[];
+    for (const color of palette) {
+        for (const level of ['lowest', 'low', 'normal', 'high'] as BrightnessLevel[]) {
+            const rgb = color.brightnessValues[level];
+            if (rgb) {
+                paletteLabMap.set(`${color.colorID}_${level}`, rgbToLab(rgb.r, rgb.g, rgb.b));
+            }
+        }
+    }
+})();
 
 export interface ColorMatchResult {
     index: number;
@@ -68,7 +85,7 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
         r[i] = c.rgb.r;
         g[i] = c.rgb.g;
         b[i] = c.rgb.b;
-        const lab = rgbToLab(c.rgb);
+        const lab = c.lab ?? rgbToLab(c.rgb.r, c.rgb.g, c.rgb.b);
         labL[i] = lab.L;
         labA[i] = lab.a;
         labB[i] = lab.b;
@@ -115,12 +132,14 @@ export function getValidColors(
         const needsSupport = blockInfo?.needsSupport ?? false;
 
         for (const level of levels) {
+            const key = `${color.colorID}_${level}`;
             candidates.push({
                 colorID: color.colorID,
                 brightness: level,
                 rgb: color.brightnessValues[level],
                 blockId,
-                needsSupport
+                needsSupport,
+                lab: paletteLabMap.get(key)
             });
         }
     }
