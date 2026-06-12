@@ -73,6 +73,18 @@ export const useMapartWorker = ({
     const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
     const [heightPath, setHeightPath] = useState<Int32Array | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
+    const [prevPreviewUrl, setPrevPreviewUrl] = useState<string | null>(null);
+
+    if (previewUrl !== prevPreviewUrl) {
+        setPrevPreviewUrl(previewUrl);
+        if (!previewUrl) {
+            setScaledPreviewUrl(null);
+            setOriginalTransformedUrl(null);
+            setPreviewImageData(null);
+            setPackedResults(null);
+            setHeightPath(null);
+        }
+    }
 
     const mapartResolution = {
         width: 128 * gridDimensions.x,
@@ -126,8 +138,6 @@ export const useMapartWorker = ({
     // 1. Prepare Image
     useEffect(() => {
         if (!previewUrl) {
-            setScaledPreviewUrl(null);
-            setOriginalTransformedUrl(null);
             sourceImageDataRef.current = null;
             return;
         }

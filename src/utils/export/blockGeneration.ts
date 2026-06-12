@@ -127,15 +127,10 @@ export function imageDataToBlockStates(
         // 1. Collect tones and raw incremental heights
         for (let y = 0; y < height; y++) {
             const linearIdx = y * width + x;
-            let tone = 0;
-
             const edit = manualEdits?.[linearIdx];
-            if (edit) {
-                tone = edit.brightness === 'high' ? 1 : (edit.brightness === 'low' ? -1 : 0);
-            } else {
-                const packedVal = packedResults[linearIdx];
-                tone = unpackTone(packedVal);
-            }
+            const tone = edit
+                ? (edit.brightness === 'high' ? 1 : (edit.brightness === 'low' ? -1 : 0))
+                : unpackTone(packedResults[linearIdx]);
 
             if (!is2D) {
                 h += tone;

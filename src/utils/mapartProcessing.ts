@@ -442,12 +442,9 @@ export function applyManualEdits(
             else if (edit.brightness === 'low') tone = -1;
         }
 
-        let needsSupport = false;
-        if (edit.needsSupport !== undefined) {
-            needsSupport = edit.needsSupport;
-        } else {
-            needsSupport = unpackNeedsSupport(packed);
-        }
+        const needsSupport = edit.needsSupport !== undefined
+            ? edit.needsSupport
+            : unpackNeedsSupport(packed);
 
         let candidateIdx = unpackCandidateIdx(packed);
         if (candidates) {

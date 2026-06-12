@@ -27,10 +27,12 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
     } = useMapart();
 
     const [localSupportId, setLocalSupportId] = useState(supportBlockId);
+    const [prevSupportBlockId, setPrevSupportBlockId] = useState(supportBlockId);
 
-    useEffect(() => {
+    if (supportBlockId !== prevSupportBlockId) {
+        setPrevSupportBlockId(supportBlockId);
         setLocalSupportId(supportBlockId);
-    }, [supportBlockId]);
+    }
 
     const handleApplySupportId = () => {
         setSupportBlockId(localSupportId);

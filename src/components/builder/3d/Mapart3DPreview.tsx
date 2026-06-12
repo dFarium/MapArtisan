@@ -253,7 +253,6 @@ const MapartMesh = ({
     build3DGeometryAsync: (props: Build3DGeometryProps) => Promise<WorkerGeometry | null>;
 }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
-    const matRef = useRef<THREE.MeshStandardMaterial | null>(null);
     const atlasRef = useRef<THREE.DataArrayTexture | null>(null);
     const capacityRef = useRef<number>(0);
     const matricesRef = useRef<Float32Array | null>(null);
@@ -270,7 +269,7 @@ const MapartMesh = ({
         return candidates.map(c => c.blockId);
     }, [selectedPaletteItems, buildMode]);
 
-    // Resolve supportColor on the main thread (tiny palette lookup)
+    // eslint-disable-next-line react-hooks/preserve-manual-memoization
     const supportColor = useMemo(() => {
         if (supportBlockId) {
             const palette = (paletteData as unknown as PaletteData).colors;
@@ -327,10 +326,10 @@ const MapartMesh = ({
     const pendingAtlasRef = useRef<THREE.DataArrayTexture | null>(null);
     const pendingLayersRef = useRef<number>(0);
 
-    if (!matRef.current) {
-        const mat = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, vertexColors: true });
+    const [mat] = useState(() => {
+        const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0, vertexColors: true });
 
-        mat.onBeforeCompile = (shader) => {
+        m.onBeforeCompile = (shader) => {
             // Use any atlas already available, or null placeholder
             shader.uniforms.uAtlas = { value: pendingAtlasRef.current };
             shader.uniforms.uAtlasLayers = { value: pendingLayersRef.current };
@@ -369,8 +368,8 @@ if (vTexLayer >= 0.0) {
             );
         };
 
-        matRef.current = mat;
-    }
+        return m;
+    });
 
 
     // ── Upload geometry (matrices + colors + textureIdx attribute) ────────────
@@ -383,7 +382,6 @@ if (vTexLayer >= 0.0) {
     // the current capacity, we grow the buffers by 10% headroom to prevent immediate future reallocations.
     useEffect(() => {
         const mesh = meshRef.current;
-        const mat = matRef.current;
         if (!mesh || !mat || !geometry || geometry.count === 0) return;
 
         const { positions, colors, textureIds, count } = geometry;
@@ -477,7 +475,7 @@ if (vTexLayer >= 0.0) {
         mesh.count = count;
 
         mesh.computeBoundingSphere();
-    }, [geometry]);
+    }, [geometry, mat]);
 
     // ── Load texture atlas asynchronously (doesn't block geometry render) ─────
     useEffect(() => {
@@ -510,15 +508,15 @@ if (vTexLayer >= 0.0) {
     // ── Dispose on unmount ─────────────────────────────────────────────────────
     useEffect(() => {
         return () => {
-            matRef.current?.dispose();
+            mat.dispose();
             atlasRef.current?.dispose();
         };
-    }, []);
+    }, [mat]);
 
     return (
         <instancedMesh
             ref={meshRef}
-            args={[undefined, matRef.current, 0]}
+            args={[undefined, mat, 0]}
             position={[0, 0.5, 0]}
         >
             <boxGeometry args={[1, 1, 1]} />
