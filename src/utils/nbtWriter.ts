@@ -65,9 +65,9 @@ export class NBTWriter {
     private arrayView: Uint8Array;
     private offset: number;
 
-    constructor() {
-        // Starts with 1KB and automatically doubles when capacity limits are crossed
-        this.buffer = new ArrayBuffer(1024);
+    constructor(initialSize: number = 1024) {
+        // Starts with specified size (default 1KB) and automatically doubles when capacity limits are crossed
+        this.buffer = new ArrayBuffer(initialSize);
         this.dataView = new DataView(this.buffer);
         this.arrayView = new Uint8Array(this.buffer);
         this.offset = 0;
@@ -308,11 +308,46 @@ export class NBTWriter {
 }
 
 /**
+ * Estimates the size of NBT output in bytes to avoid buffer reallocations.
+ */
+function estimateNBTSize(nbtData: NBTRoot): number {
+    // Check if it's Litematica NBT
+    const metadata = nbtData.value.Metadata?.value as NBTCompound | undefined;
+    if (metadata && metadata.TotalVolume) {
+        const volume = metadata.TotalVolume.value as number;
+        const regions = nbtData.value.Regions?.value as NBTCompound | undefined;
+        if (regions && regions.map) {
+            const mapRegion = regions.map.value as NBTCompound | undefined;
+            if (mapRegion && mapRegion.BlockStatePalette) {
+                const paletteVal = mapRegion.BlockStatePalette.value as { type: number; value: unknown[] } | undefined;
+                const paletteList = paletteVal?.value;
+                const paletteLen = paletteList ? paletteList.length : 2;
+                const numBits = Math.max(Math.ceil(Math.log2(paletteLen)), 2);
+                const bitArraySize = Math.ceil((volume * numBits) / 64) * 8;
+                // Add 8KB for metadata and structures
+                return bitArraySize + 8192;
+            }
+        }
+    }
+
+    // Check if it's Vanilla NBT
+    const blocksVal = nbtData.value.blocks?.value as { type: number; value: unknown[] } | undefined;
+    const blocksList = blocksVal?.value;
+    if (blocksList) {
+        // Roughly ~40 bytes per block
+        return blocksList.length * 40 + 4096;
+    }
+
+    return 1024;
+}
+
+/**
  * Serializes a JavaScript NBT tree object into a binary format
  * and compresses the output using standard GZIP compression (via pako).
  */
 export function serializeNBT(nbtData: NBTRoot): Uint8Array {
-    const writer = new NBTWriter();
+    const initialSize = estimateNBTSize(nbtData);
+    const writer = new NBTWriter(initialSize);
     writer.writeTopLevelCompound(nbtData);
     const buffer = writer.getData();
     const uint8Array = new Uint8Array(buffer);
