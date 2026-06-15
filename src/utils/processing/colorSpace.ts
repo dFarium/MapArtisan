@@ -192,15 +192,14 @@ export function colorDistanceSq(a: RGB, b: RGB): number {
 // ============================================================================
 
 // Bit-packing metadata bit offsets:
-// bits 0..12: Unused
-// bit 13: Needs support block flag (gravity blocks)
-// bits 14..15: Relative height adjustments (-1, 0, or 1 represented as unsigned 0..2)
-// bits 16..23: Palette candidate selection index (0..255)
-const CANDIDATE_SHIFT = 16;
-const CANDIDATE_MASK = 0xFF;
-const TONE_SHIFT = 14;
+// bits 0..9: Palette candidate selection index (0..1023)
+// bits 10..11: Relative height adjustments (-1, 0, or 1 represented as unsigned 0..2)
+// bit 12: Needs support block flag (gravity blocks)
+const CANDIDATE_SHIFT = 0;
+const CANDIDATE_MASK = 0x3FF;
+const TONE_SHIFT = 10;
 const TONE_MASK = 0x3;
-const SUPPORT_BIT = 13;
+const SUPPORT_BIT = 12;
 
 /**
  * Packs processing results for a single pixel into a 32-bit unsigned integer.
@@ -216,7 +215,8 @@ export function packPixel(candidateIdx: number, tone: number, needsSupport: bool
  * Unpacks the palette candidate index from the packed 32-bit pixel value.
  */
 export function unpackCandidateIdx(packed: number): number {
-    return (packed >> CANDIDATE_SHIFT) & CANDIDATE_MASK;
+    // Zero-shift shortcut for bits 0..9
+    return packed & CANDIDATE_MASK;
 }
 
 /**

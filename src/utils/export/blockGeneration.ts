@@ -88,11 +88,13 @@ export function imageDataToBlockStates(
 
     const is2D = buildMode === '2d';
 
-    // Growable buffers for blocks (instead of objects)
-    const xList: number[] = [];
-    const yList: number[] = [];
-    const zList: number[] = [];
-    const paletteIndicesList: number[] = [];
+    // Pre-allocated flat buffers for maximum performance (avoids JS array resize overhead)
+    const maxBlocks = width * height * 2 + width * 4 + 1000;
+    const xList = new Int32Array(maxBlocks);
+    const yList = new Int32Array(maxBlocks);
+    const zList = new Int32Array(maxBlocks);
+    const paletteIndicesList = new Uint32Array(maxBlocks);
+    let count = 0;
 
     // Local block palette mapping
     const palette: string[] = ['minecraft:air'];
@@ -144,17 +146,12 @@ export function imageDataToBlockStates(
         const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
         const useIndependent = independentMaps && exportMode === 'sections';
 
-        // Local column arrays for blocks
-        const colX: number[] = [];
-        const colY: number[] = [];
-        const colZ: number[] = [];
-        const colPaletteIndices: number[] = [];
-
         const addBlock = (bx: number, by: number, bz: number, blockId: string) => {
-            colX.push(bx);
-            colY.push(by);
-            colZ.push(bz);
-            colPaletteIndices.push(getPaletteIndex(blockId));
+            xList[count] = bx;
+            yList[count] = by;
+            zList[count] = bz;
+            paletteIndicesList[count] = getPaletteIndex(blockId);
+            count++;
         };
 
         if (applySD) {
@@ -246,10 +243,11 @@ export function imageDataToBlockStates(
             if (blockId === 'minecraft:air') continue;
 
             const blockY = finalHeights[y];
-            colX.push(x);
-            colY.push(blockY);
-            colZ.push(y + 1);
-            colPaletteIndices.push(paletteIdx);
+            xList[count] = x;
+            yList[count] = blockY;
+            zList[count] = y + 1;
+            paletteIndicesList[count] = paletteIdx;
+            count++;
 
             // Support blocks
             if (!is2D && blockY > 0) {
@@ -258,24 +256,18 @@ export function imageDataToBlockStates(
                 else if (blockSupport === 'gravity') addSupport = needsSupport;
 
                 if (addSupport) {
-                    colX.push(x);
-                    colY.push(blockY - 1);
-                    colZ.push(y + 1);
-                    colPaletteIndices.push(getPaletteIndex(supportBlockId));
+                    xList[count] = x;
+                    yList[count] = blockY - 1;
+                    zList[count] = y + 1;
+                    paletteIndicesList[count] = getPaletteIndex(supportBlockId);
+                    count++;
                 }
             }
         }
-
-        // Append column blocks to global lists
-        xList.push(...colX);
-        yList.push(...colY);
-        zList.push(...colZ);
-        paletteIndicesList.push(...colPaletteIndices);
     }
 
     // Global normalization (ensure nothing below 0)
     let globalMinY = 0;
-    const count = xList.length;
     for (let i = 0; i < count; i++) {
         if (yList[i] < globalMinY) {
             globalMinY = yList[i];
@@ -289,11 +281,11 @@ export function imageDataToBlockStates(
     }
 
     return {
-        x: new Int32Array(xList),
-        y: new Int32Array(yList),
-        z: new Int32Array(zList),
+        x: xList.subarray(0, count),
+        y: yList.subarray(0, count),
+        z: zList.subarray(0, count),
         palette,
-        paletteIndices: new Uint32Array(paletteIndicesList),
+        paletteIndices: paletteIndicesList.subarray(0, count),
         count
     };
 }
