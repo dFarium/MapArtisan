@@ -1,10 +1,8 @@
 import { describe, it } from 'vitest';
 import { performance } from 'perf_hooks';
 import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../mapartProcessing';
-import { generateMapartExport } from '../export/fileExport';
 import { imageDataToBlockStates } from '../export/blockGeneration';
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
-import type { DitheringMode } from '../mapartProcessing';
 
 // ============================================================================
 // Legacy Helpers & Constants (Baseline Representation)
@@ -41,17 +39,13 @@ function imageDataToBlockStatesLegacy(
     selectedPaletteItems: Record<number, string | null>,
     buildMode: BuildMode,
     applyOptimization: boolean = true,
-    threeDPrecision: number = 0,
-    dithering: DitheringMode = 'none',
-    usePerceptual: boolean = true,
-    hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
     supportBlockId: string = 'minecraft:cobblestone',
     exportMode: 'full' | 'sections' = 'sections',
     precomputedPackedResults?: Uint32Array
-): any {
+): unknown {
     const { width, height } = imageData;
 
     let packedResults: Uint32Array;
@@ -272,17 +266,13 @@ function imageDataToBlockStatesTypedArray(
     selectedPaletteItems: Record<number, string | null>,
     buildMode: BuildMode,
     applyOptimization: boolean = true,
-    threeDPrecision: number = 0,
-    dithering: DitheringMode = 'none',
-    usePerceptual: boolean = true,
-    hybridStrength: number = 50,
     independentMaps: boolean = false,
     manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>,
     blockSupport: 'all' | 'needed' | 'gravity' = 'all',
     supportBlockId: string = 'minecraft:cobblestone',
     exportMode: 'full' | 'sections' = 'sections',
     precomputedPackedResults?: Uint32Array
-): any {
+): unknown {
     const { width, height } = imageData;
 
     let packedResults: Uint32Array;
@@ -512,6 +502,7 @@ function makeImageData(width: number, height: number): ImageData {
         data[idx + 2] =  v        & 0xFF;
         data[idx + 3] = 255;
     }
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { ImageData: CanvasImageData } = require('canvas');
     return new CanvasImageData(data, width, height);
 }
@@ -574,7 +565,7 @@ describe('Schematic Export Performance Benchmarks', () => {
         const tBlockGenLegacy = runBench(blockGenIters, () => {
             imageDataToBlockStatesLegacy(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', packedResultsLegacy
             );
         });
@@ -590,7 +581,7 @@ describe('Schematic Export Performance Benchmarks', () => {
         const tBlockGenTypedArray = runBench(blockGenIters, () => {
             imageDataToBlockStatesTypedArray(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', packedResultsNew
             );
         });
@@ -613,7 +604,7 @@ describe('Schematic Export Performance Benchmarks', () => {
             }
             imageDataToBlockStatesLegacy(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', packedResultsLegacy
             );
         });
@@ -633,7 +624,7 @@ describe('Schematic Export Performance Benchmarks', () => {
             const processResult = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
             imageDataToBlockStatesTypedArray(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', processResult.packedResults
             );
         });

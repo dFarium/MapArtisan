@@ -9,7 +9,8 @@
     "build": "node scripts/generate-sw.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "bench": "vitest run --config vitest.bench.config.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

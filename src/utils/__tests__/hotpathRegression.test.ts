@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { processMapart, clearColorCache, unpackTone, unpackCandidateIdx } from '../mapartProcessing';
+import { generateMapartExport } from '../export/fileExport';
+import JSZip from 'jszip';
 
 const PALETTE_MULTI = {
     4:  'minecraft:stone',
@@ -83,5 +85,39 @@ describe('Hotpath Regression Tests (512x512)', () => {
         expect(toneCheck).toBe(0);
         expect(indicesCheck).toBe(888675);
         expect(result.packedResults.length).toBe(512 * 512);
+    });
+
+    it('TC4: E2E Export Pipeline Regression (2x2 Multi-Map Split)', async () => {
+        // Create a 256x256 image (which splits into exactly 2x2 = 4 maps of 128x128)
+        const img = makeGradientImage(256, 256);
+        const result = processMapart(img, '3d_valley', PALETTE_MULTI, 50, 'floyd-steinberg', true, 50, false);
+
+        // Run full export pipeline
+        const exportResult = await generateMapartExport(
+            img, PALETTE_MULTI, '3d_valley', 'regression_mapart.litematic',
+            { name: 'Regression', author: 'Author', description: 'Desc' },
+            0, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+            'sections', '1.20', result.packedResults
+        );
+
+        expect(exportResult.filename).toBe('regression_mapart_package.zip');
+        expect(exportResult.blob).toBeDefined();
+
+        // Load and verify the generated ZIP archive
+        const zip = await JSZip.loadAsync(await exportResult.blob.arrayBuffer());
+        const filenames = Object.keys(zip.files);
+
+        // Should contain exactly 4 section files
+        expect(filenames.length).toBe(4);
+        expect(filenames).toContain('regression_mapart_0_0.litematic');
+        expect(filenames).toContain('regression_mapart_0_1.litematic');
+        expect(filenames).toContain('regression_mapart_1_0.litematic');
+        expect(filenames).toContain('regression_mapart_1_1.litematic');
+
+        // Verify that each section contains non-empty binary data
+        for (const filename of filenames) {
+            const fileData = await zip.files[filename].async('uint8array');
+            expect(fileData.length).toBeGreaterThan(100); // Standard compressed NBT should be larger than 100 bytes
+        }
     });
 });
