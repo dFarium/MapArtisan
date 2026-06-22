@@ -24,7 +24,7 @@ export const DEFAULT_VERSION: SupportedVersion = '26.2';
  * Reference: https://minecraft.wiki/w/Data_version
  */
 export const MINECRAFT_DATA_VERSIONS: Record<SupportedVersion, number> = {
-    '26.2': 4895,
+    '26.2': 4903,
     '1.21.5': 4325,
     '1.21.4': 4189,
     '1.21.0': 3953,
