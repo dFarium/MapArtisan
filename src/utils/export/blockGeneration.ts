@@ -121,9 +121,29 @@ export function imageDataToBlockStates(
     }
 
     // Process each column
+    // Pre-allocate reusable buffers outside the loop to eliminate GC pressure
+    const rawHeights = new Int32Array(height);
+    const columnTones = new Int8Array(height);
+    const finalHeights = new Int32Array(height);
+    const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
+    const useIndependent = independentMaps && exportMode === 'sections';
+
+    // Pre-allocate SmartDrop workspaces outside the loop
+    const globalWorkspace = applySD ? {
+        ref: new Int32Array(height + 1),
+        minFuturo: new Int32Array(height + 1),
+        path: new Int32Array(height)
+    } : null;
+
+    const independentWorkspace = (applySD && useIndependent) ? {
+        ref: new Int32Array(129),
+        minFuturo: new Int32Array(129),
+        path: new Int32Array(128)
+    } : null;
+
+    const chunkTones = (applySD && useIndependent) ? new Int8Array(128) : null;
+
     for (let x = 0; x < width; x++) {
-        const rawHeights = new Int32Array(height);
-        const columnTones = new Int8Array(height);
         let h = 0;
 
         // 1. Collect tones and raw incremental heights
@@ -142,10 +162,6 @@ export function imageDataToBlockStates(
         }
 
         // 2. Optimization and Grounding
-        const finalHeights = new Int32Array(height);
-        const applySD = !is2D && applyOptimization && buildMode === '3d_valley';
-        const useIndependent = independentMaps && exportMode === 'sections';
-
         const addBlock = (bx: number, by: number, bz: number, blockId: string) => {
             xList[count] = bx;
             yList[count] = by;
@@ -158,24 +174,18 @@ export function imageDataToBlockStates(
             if (useIndependent) {
                 // Ground each 128-row section independently
                 const numMaps = Math.ceil(height / 128);
-                const workspace = {
-                    ref: new Int32Array(129),
-                    minFuturo: new Int32Array(129),
-                    path: new Int32Array(128)
-                };
 
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
                     const zEnd = Math.min((m + 1) * 128, height);
                     const chunkHeight = zEnd - zStart;
 
-                    const chunkTones = new Int8Array(chunkHeight);
                     for (let i = 0; i < chunkHeight; i++) {
-                        chunkTones[i] = columnTones[zStart + i];
+                        chunkTones![i] = columnTones[zStart + i];
                     }
 
                     // Run optimization with chunkTones
-                    const { path, min: minChunkY } = optimizeColumnHeights(chunkTones, 0, 1, chunkHeight, workspace);
+                    const { path, min: minChunkY } = optimizeColumnHeights(chunkTones!, 0, 1, chunkHeight, independentWorkspace!);
                     const shiftY = -minChunkY;
 
                     for (let i = 0; i < path.length; i++) {
@@ -190,12 +200,7 @@ export function imageDataToBlockStates(
                 }
             } else {
                 // Ground whole column
-                const workspace = {
-                    ref: new Int32Array(height + 1),
-                    minFuturo: new Int32Array(height + 1),
-                    path: new Int32Array(height)
-                };
-                const { path, min: minPathY } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
+                const { path, min: minPathY } = optimizeColumnHeights(columnTones, 0, 1, height, globalWorkspace!);
                 const shiftY = -minPathY;
 
                 for (let i = 0; i < path.length; i++) {
