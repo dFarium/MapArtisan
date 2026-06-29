@@ -4,7 +4,7 @@ import { MainCanvas } from '../components/builder/MainCanvas';
 import { ControlPanel } from '../components/builder/ControlPanel';
 import { MaterialList } from '../components/builder/MaterialList';
 import { useMapartWorker } from '../hooks/useMapartWorker';
-import { useMapart } from '../context/useMapart';
+import { useMapartStore as useMapart } from '../store/useMapartStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 const Builder: React.FC = () => {

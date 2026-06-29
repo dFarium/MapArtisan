@@ -1,4 +1,4 @@
-import { useMapart } from '../../../context/useMapart';
+import { useMapartStore as useMapart } from '../../../store/useMapartStore';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Crop, ImageIcon, Maximize, RefreshCw } from 'lucide-react';

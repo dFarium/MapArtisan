@@ -1,5 +1,5 @@
 
-import { useMapart } from '../../../context/useMapart';
+import { useMapartStore as useMapart } from '../../../store/useMapartStore';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Zap, Droplets, Sparkles, Eye } from 'lucide-react';
@@ -7,7 +7,7 @@ import { Checkbox } from '../../ui/Checkbox';
 import { Label } from '../../ui/Label';
 import { Select } from '../../ui/Select';
 import { Button } from '../../ui/Button';
-import { suggestDitheringMode } from '../../../utils/mapartProcessing';
+import { suggestDitheringMode } from '../../../utils/processing';
 import { SUPPORTED_VERSIONS } from '../../../data/supportedVersions';
 
 interface SectionProps {

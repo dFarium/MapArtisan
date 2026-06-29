@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import paletteData from '../../data/palette.json';
-import { useMapart } from '../../context/useMapart';
+import { useMapartStore as useMapart } from '../../store/useMapartStore';
 import type { PaletteColor } from '../../types/palette';
 import { usePalettePresets } from '../../utils/usePalettePresets';
 import { PresetsToolbar } from './palette/PresetsToolbar';

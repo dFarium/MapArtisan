@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useMapart, type BuildMode, type BlockSupport } from '../../../context/useMapart';
+import { useMapartStore as useMapart, type BlockSupport } from '../../../store/useMapartStore';
+import type { BuildMode } from '../../../types/mapart';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Hammer, Layers, Box } from 'lucide-react';

@@ -1,4 +1,4 @@
-import { useMapart } from '../../../context/useMapart';
+import { useMapartStore as useMapart } from '../../../store/useMapartStore';
 import { type LucideIcon, Paintbrush, Eraser, Move, ZoomIn } from 'lucide-react';
 
 interface HintItemProps {

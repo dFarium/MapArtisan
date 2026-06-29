@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useMapart } from '../../../context/useMapart';
+import { useMapartStore as useMapart } from '../../../store/useMapartStore';
 import type { ManualEdit } from '../../../types/mapart';
 
 interface InteractionLayerProps {

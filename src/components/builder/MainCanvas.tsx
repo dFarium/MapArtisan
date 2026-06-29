@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react';
-import { useMapart } from '../../context/useMapart';
+import { useMapartStore as useMapart } from '../../store/useMapartStore';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { type useMapartWorker } from '../../hooks/useMapartWorker';
 import { CanvasStatusBar } from './canvas/CanvasStatusBar';
