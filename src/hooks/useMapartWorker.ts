@@ -1,11 +1,11 @@
-import { wrap, type Remote, transfer as comlinkTransfer } from 'comlink';
+import { transfer as comlinkTransfer } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/processing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import type { Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { usePreviewState } from './usePreviewState';
+import { useWorkerManager } from './useWorkerManager';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -59,13 +59,12 @@ export const useMapartWorker = ({
     paletteVersion,
     exportFormat,
 }: UseMapartWorkerProps) => {
-    // References to the active web worker and its Comlink wrapped proxy API
-    const workerRef = useRef<Worker | null>(null);
-    const workerApiRef = useRef<Remote<MapartWorkerApi> | null>(null);
+    // Worker lifecycle management
+    const { workerApiRef, isProcessingRef, workerImageVersionRef } = useWorkerManager();
+    
+    // Source image data reference
     const sourceImageDataRef = useRef<ImageData | null>(null);
 
-    const isProcessingRef = useRef(false);
-    const workerImageVersionRef = useRef(-1);
     const highResTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
@@ -117,27 +116,6 @@ export const useMapartWorker = ({
             }, 'image/png');
         });
     };
-
-    /**
-     * Initializes the background worker, compiles it on module load,
-     * and sets up the Comlink proxy wrappers.
-     */
-    const initWorker = useCallback(() => {
-        if (workerRef.current) workerRef.current.terminate();
-        workerRef.current = new Worker(new URL('../workers/mapart.worker.ts', import.meta.url), {
-            type: 'module'
-        });
-        workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
-        isProcessingRef.current = false;
-        workerImageVersionRef.current = -1;
-    }, []);
-
-    useEffect(() => {
-        initWorker();
-        return () => {
-            workerRef.current?.terminate();
-        };
-    }, [initWorker]);
 
     // 1. Prepare Image
     useEffect(() => {
@@ -357,7 +335,7 @@ export const useMapartWorker = ({
         };
     }, [
         sourceImageVersion, buildMode, selectedPaletteItems, threeDPrecision, dithering,
-        usePerceptual, hybridStrength, independentMaps, initWorker, mapartResolution.width,
+        usePerceptual, hybridStrength, independentMaps, mapartResolution.width,
         mapartResolution.height, setMapartStats, manualEdits
     ]);
 

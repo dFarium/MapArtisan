@@ -1,0 +1,19 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`useWorkerManager > return structure > retorna estructura consistente 1`] = `
+[
+  "isProcessingRef",
+  "workerApiRef",
+  "workerImageVersionRef",
+]
+`;
+
+exports[`useWorkerManager > snapshot regression > mantiene estructura de retorno consistente 1`] = `
+{
+  "hasIsProcessingRef": true,
+  "hasWorkerApiRef": true,
+  "hasWorkerImageVersionRef": true,
+  "isProcessingValue": false,
+  "workerImageVersionValue": -1,
+}
+`;
