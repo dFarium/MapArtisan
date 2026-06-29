@@ -4,7 +4,7 @@ import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/processing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
-import type { Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
+import type { Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;

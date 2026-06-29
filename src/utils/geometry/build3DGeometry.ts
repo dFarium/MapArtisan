@@ -12,8 +12,8 @@
  *   - Easily moved to a Web Worker in a future iteration
  */
 
-import { optimizeColumnHeights, unpackTone, unpackNeedsSupport, unpackCandidateIdx } from '../../../utils/processing';
-import { type PreviewSection, type RGB } from '../../../types/mapart';
+import { optimizeColumnHeights, unpackTone, unpackNeedsSupport, unpackCandidateIdx } from '../processing';
+import { type PreviewSection, type RGB } from '../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public Types

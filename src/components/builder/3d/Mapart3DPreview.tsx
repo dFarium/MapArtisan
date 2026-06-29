@@ -3,7 +3,7 @@ import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
-import type { Build3DGeometryProps } from './build3DGeometry';
+import type { Build3DGeometryProps } from '../../../utils/geometry/build3DGeometry';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 import { getValidColors } from '../../../utils/processing';

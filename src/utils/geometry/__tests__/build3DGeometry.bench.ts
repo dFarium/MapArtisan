@@ -22,8 +22,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { build3DGeometry, type Build3DGeometryProps } from '../build3DGeometry';
-import { packPixel } from '../../../../utils/processing';
-import type { RGB } from '../../../../types/mapart';
+import { packPixel } from '../../processing';
+import type { RGB } from '../../../types/mapart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
