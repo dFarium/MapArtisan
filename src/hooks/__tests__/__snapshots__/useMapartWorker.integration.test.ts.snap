@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`useMapartWorker E2E > API pública > mantiene estructura de retorno consistente 1`] = `
+[
+  "build3DGeometryAsync",
+  "calculateMaterials",
+  "exportMapart",
+  "heightPath",
+  "isExporting",
+  "isProcessing",
+  "mapartResolution",
+  "originalTransformedUrl",
+  "packedResults",
+  "pickBlock",
+  "previewImageData",
+  "scaledPreviewUrl",
+]
+`;
+
+exports[`useMapartWorker E2E > snapshot regression > mantiene estructura de API pública 1`] = `
+{
+  "isExporting": false,
+  "isProcessing": false,
+  "keys": [
+    "build3DGeometryAsync",
+    "calculateMaterials",
+    "exportMapart",
+    "heightPath",
+    "isExporting",
+    "isProcessing",
+    "mapartResolution",
+    "originalTransformedUrl",
+    "packedResults",
+    "pickBlock",
+    "previewImageData",
+    "scaledPreviewUrl",
+  ],
+  "mapartResolution": {
+    "height": 128,
+    "width": 128,
+  },
+}
+`;

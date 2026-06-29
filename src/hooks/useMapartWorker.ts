@@ -8,7 +8,7 @@ import { usePreviewState } from './usePreviewState';
 import { useWorkerManager } from './useWorkerManager';
 import { useImagePreprocessing } from './useImagePreprocessing';
 
-interface UseMapartWorkerProps {
+export interface UseMapartWorkerProps {
     uploadedImage: File | null;
     previewUrl: string | null;
     gridDimensions: GridDimensions;
