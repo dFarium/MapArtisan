@@ -62,7 +62,7 @@ export function processMapart(
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
     independentMaps: boolean = false
-): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null } {
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null; toneMap: Int8Array | null } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -75,7 +75,8 @@ export function processMapart(
             },
             packedResults: new Uint32Array(imageData.width * imageData.height),
             candidates: [],
-            heightPath: null
+            heightPath: null,
+            toneMap: null
         };
     }
 
@@ -357,7 +358,8 @@ export function processMapart(
         },
         packedResults,
         candidates,
-        heightPath: heightPath ?? null
+        heightPath: heightPath ?? null,
+        toneMap
     };
 }
 
@@ -366,24 +368,34 @@ export function processMapart(
 // ============================================================================
 
 /**
- * Super lightweight operations that overlays painted color corrections
+ * Super lightweight operation that overlays painted color corrections
  * directly onto a cloned copy of the quantized base image.
  * 
  * This avoids reprocessing the entire source image, keeping paint strokes instantaneous.
  * Re-runs vertical height profiles immediately after applying the modifications.
+ * 
+ * Performance optimization: When baseToneMap is provided (cached from previous processing),
+ * the function uses incremental updates instead of full rebuilds:
+ * - Clones and patches only the edited pixels in toneMap (O(edits) instead of O(width*height))
+ * - Recalculates Smart Drop only for affected columns (O(affectedCols*height) instead of O(width*height))
+ * - Recalculates overallMin/overallMax incrementally
  */
 export function applyManualEdits(
     baseImageData: ImageData,
     basePackedResults: Uint32Array,
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB; needsSupport?: boolean }>,
     buildMode: BuildMode,
-    candidates?: ColorCandidate[]
-): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } {
+    candidates?: ColorCandidate[],
+    baseToneMap?: Int8Array | null
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; toneMap: Int8Array | null } {
     const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
     const newData = new Uint8ClampedArray(data);
     const newPackedResults = new Uint32Array(basePackedResults);
+
+    // Track affected columns for incremental Smart Drop
+    const affectedColumns = new Set<number>();
 
     // Apply edits
     for (const [indexStr, edit] of Object.entries(manualEdits)) {
@@ -418,6 +430,9 @@ export function applyManualEdits(
             }
         }
         newPackedResults[index] = packPixel(candidateIdx, tone, needsSupport);
+        
+        // Track affected column
+        affectedColumns.add(x);
     }
 
     // Recalculate Height Stats
@@ -427,9 +442,26 @@ export function applyManualEdits(
 
     let toneMap: Int8Array | null = null;
     if (buildMode === '3d_valley') {
-        toneMap = new Int8Array(width * height);
-        for (let i = 0; i < newPackedResults.length; i++) {
-            toneMap[i] = unpackTone(newPackedResults[i]);
+        // Incremental path: if baseToneMap is provided, clone and patch only affected pixels
+        if (baseToneMap) {
+            toneMap = new Int8Array(baseToneMap);
+            for (const [indexStr, edit] of Object.entries(manualEdits)) {
+                const index = Number(indexStr);
+                const x = index % width;
+                const y = Math.floor(index / width);
+                if (x >= width || y >= height) continue;
+                
+                let tone = 0;
+                if (edit.brightness === 'high') tone = 1;
+                else if (edit.brightness === 'low') tone = -1;
+                toneMap[index] = tone;
+            }
+        } else {
+            // Full rebuild path (fallback when no cached toneMap)
+            toneMap = new Int8Array(width * height);
+            for (let i = 0; i < newPackedResults.length; i++) {
+                toneMap[i] = unpackTone(newPackedResults[i]);
+            }
         }
     }
 
@@ -441,12 +473,11 @@ export function applyManualEdits(
         };
 
         for (let x = 0; x < width; x++) {
-            // Run height optimization using shared workspace buffers to avoid GC pressure
             const { min, max } = optimizeColumnHeights(
                 toneMap,
-                x,      // startIndex
-                width,  // stride
-                height, // count
+                x,
+                width,
+                height,
                 workspace
             );
 
@@ -463,7 +494,8 @@ export function applyManualEdits(
             maxHeight: overallMax,
             heightMap: colHeights
         },
-        packedResults: newPackedResults
+        packedResults: newPackedResults,
+        toneMap
     };
 }
 

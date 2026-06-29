@@ -18,6 +18,7 @@ let lastBaseResult: {
     candidates: ColorCandidate[]; // Valid color list generated from active palette
     stats: MapartStats;        // Global layout dimension statistics
     heightPath: Int32Array | null; // Precomputed Smart Drop height path (column-major, width × height)
+    toneMap: Int8Array | null; // Tone map for incremental applyManualEdits optimization
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -89,6 +90,7 @@ const api = {
             candidates: result.candidates,
             stats: result.stats,
             heightPath: result.heightPath,
+            toneMap: result.toneMap,
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode,
@@ -130,8 +132,12 @@ const api = {
             lastBaseResult.packedResults,
             manualEdits,
             lastBaseResult.buildMode,
-            lastBaseResult.candidates
+            lastBaseResult.candidates,
+            lastBaseResult.toneMap
         );
+
+        // Update cached toneMap with the new one from the result
+        lastBaseResult.toneMap = result.toneMap;
 
         // Here we can transfer directly because applyManualEdits created fresh buffers for result.
         return transfer(
