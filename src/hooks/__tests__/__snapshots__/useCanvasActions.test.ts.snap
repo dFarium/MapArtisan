@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`useCanvasActions > snapshot regression > produces consistent state structure 1`] = `
+{
+  "debounced3DImageData": {
+    "height": 1,
+    "width": 1,
+  },
+  "is3DMode": true,
+}
+`;
