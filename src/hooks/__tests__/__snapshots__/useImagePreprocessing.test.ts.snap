@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`useImagePreprocessing > return structure > retorna estructura consistente 1`] = `
+[
+  "sourceImageDataRef",
+]
+`;
+
+exports[`useImagePreprocessing > snapshot regression > mantiene estructura de retorno consistente 1`] = `
+{
+  "hasSourceImageDataRef": true,
+  "sourceImageDataValue": null,
+}
+`;

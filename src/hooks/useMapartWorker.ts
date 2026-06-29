@@ -1,11 +1,12 @@
 import { transfer as comlinkTransfer } from 'comlink';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { DitheringMode } from '../utils/processing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import type { Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { usePreviewState } from './usePreviewState';
 import { useWorkerManager } from './useWorkerManager';
+import { useImagePreprocessing } from './useImagePreprocessing';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -62,15 +63,6 @@ export const useMapartWorker = ({
     // Worker lifecycle management
     const { workerApiRef, isProcessingRef, workerImageVersionRef } = useWorkerManager();
     
-    // Source image data reference
-    const sourceImageDataRef = useRef<ImageData | null>(null);
-
-    const highResTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
-    const [heightPath, setHeightPath] = useState<Int32Array | null>(null);
-    const [prevPreviewUrl, setPrevPreviewUrl] = useState<string | null>(null);
-
     // Consolidated preview state management
     const {
         scaledPreviewUrl, setScaledPreviewUrl,
@@ -80,6 +72,30 @@ export const useMapartWorker = ({
         clearAll: clearPreviewState
     } = usePreviewState();
 
+    const mapartResolution = {
+        width: 128 * gridDimensions.x,
+        height: 128 * gridDimensions.y
+    };
+
+    // Image preprocessing
+    const { sourceImageDataRef } = useImagePreprocessing({
+        previewUrl,
+        mapartResolution,
+        imageFitMode,
+        cropSettings,
+        imageSettings,
+        previewState: {
+            setScaledPreviewUrl,
+            setOriginalTransformedUrl,
+            incrementSourceImageVersion,
+        },
+    });
+
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
+    const [heightPath, setHeightPath] = useState<Int32Array | null>(null);
+    const [prevPreviewUrl, setPrevPreviewUrl] = useState<string | null>(null);
+
     if (previewUrl !== prevPreviewUrl) {
         setPrevPreviewUrl(previewUrl);
         if (!previewUrl) {
@@ -88,11 +104,6 @@ export const useMapartWorker = ({
             setHeightPath(null);
         }
     }
-
-    const mapartResolution = {
-        width: 128 * gridDimensions.x,
-        height: 128 * gridDimensions.y
-    };
 
     /**
      * Helper to asynchronously convert an ImageData object into a Blob URL
@@ -116,112 +127,6 @@ export const useMapartWorker = ({
             }, 'image/png');
         });
     };
-
-    // 1. Prepare Image
-    useEffect(() => {
-        if (!previewUrl) {
-            sourceImageDataRef.current = null;
-            return;
-        }
-
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = mapartResolution.width;
-            canvas.height = mapartResolution.height;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            if (!ctx) return;
-
-            const filterString = `brightness(${100 + imageSettings.brightness}%) contrast(${100 + imageSettings.contrast}%) saturate(${imageSettings.saturation}%)`;
-            ctx.filter = filterString;
-            ctx.imageSmoothingEnabled = false;
-
-            let finalOffsetX = 0;
-            let finalOffsetY = 0;
-            let zoomedWidth = mapartResolution.width;
-            let zoomedHeight = mapartResolution.height;
-
-            if (imageFitMode === 'adjust') {
-                ctx.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
-            } else {
-                const { zoom, offsetX, offsetY } = cropSettings;
-                const imgAspect = img.width / img.height;
-                const canvasAspect = mapartResolution.width / mapartResolution.height;
-
-                let baseWidth, baseHeight;
-                if (imgAspect > canvasAspect) {
-                    baseHeight = img.height;
-                    baseWidth = img.height * canvasAspect;
-                } else {
-                    baseWidth = img.width;
-                    baseHeight = img.width / canvasAspect;
-                }
-
-                zoomedWidth = baseWidth / zoom;
-                zoomedHeight = baseHeight / zoom;
-
-                const maxOffsetX = (img.width - zoomedWidth) / 2;
-                const maxOffsetY = (img.height - zoomedHeight) / 2;
-                finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
-                finalOffsetY = (img.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
-
-                ctx.drawImage(
-                    img,
-                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
-                    0, 0, mapartResolution.width, mapartResolution.height
-                );
-            }
-
-            // Immediately set the low-resolution preview to ensure instant rendering updates
-            const lowResUrl = canvas.toDataURL('image/png');
-            setScaledPreviewUrl(lowResUrl);
-            setOriginalTransformedUrl(lowResUrl);
-
-            sourceImageDataRef.current = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-            incrementSourceImageVersion();
-
-            // Debounce the heavy high-resolution JPEG data URL generation for display sharpness
-            if (highResTimeoutRef.current !== null) {
-                clearTimeout(highResTimeoutRef.current);
-            }
-            highResTimeoutRef.current = setTimeout(() => {
-                const highResCanvas = document.createElement('canvas');
-                if (imageFitMode === 'adjust') {
-                    const targetAspect = mapartResolution.width / mapartResolution.height;
-                    const highResWidth = Math.min(img.width, 2048);
-                    const highResHeight = highResWidth / targetAspect;
-
-                    highResCanvas.width = highResWidth;
-                    highResCanvas.height = highResHeight;
-                    const highResCtx = highResCanvas.getContext('2d');
-                    if (highResCtx) {
-                        highResCtx.filter = filterString;
-                        highResCtx.drawImage(img, 0, 0, highResWidth, highResHeight);
-                    }
-                } else {
-                    highResCanvas.width = zoomedWidth;
-                    highResCanvas.height = zoomedHeight;
-                    const highResCtx = highResCanvas.getContext('2d');
-                    if (highResCtx) {
-                        highResCtx.filter = filterString;
-                        highResCtx.drawImage(
-                            img,
-                            finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
-                            0, 0, zoomedWidth, zoomedHeight
-                        );
-                    }
-                }
-                setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
-            }, 250);
-        };
-        img.src = previewUrl;
-
-        return () => {
-            if (highResTimeoutRef.current !== null) {
-                clearTimeout(highResTimeoutRef.current);
-            }
-        };
-    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings]);
 
     // 2a. Heavy Processing (Debounced processing when settings/image version change)
     useEffect(() => {
