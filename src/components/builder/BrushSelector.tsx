@@ -75,7 +75,7 @@ export const BrushSelector = ({ isOpen, onClose }: BrushSelectorProps) => {
 
     return createPortal(
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
             onClick={handleBackdropClick}
         >
             <div className="bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200 w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>

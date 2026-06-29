@@ -52,7 +52,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                 </div>
             </div>
 
-            <div className="h-px bg-zinc-800/50 mx-[-4px]" />
+            <div className="h-px bg-zinc-800/50 -mx-1" />
 
             {/* Fit & Crop */}
             <div className="space-y-2">
@@ -96,7 +96,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                 )}
             </div>
 
-            <div className="h-px bg-zinc-800/50 mx-[-4px]" />
+            <div className="h-px bg-zinc-800/50 -mx-1" />
 
             {/* Color Grading */}
             <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">

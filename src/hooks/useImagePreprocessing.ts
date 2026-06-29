@@ -25,7 +25,7 @@ export interface UseImagePreprocessingProps {
 }
 
 export interface UseImagePreprocessingReturn {
-    sourceImageDataRef: React.MutableRefObject<ImageData | null>;
+    sourceImageDataRef: React.RefObject<ImageData | null>;
 }
 
 export function useImagePreprocessing({

@@ -11,9 +11,9 @@ import type { MapartWorkerApi } from '../workers/mapart.worker';
  * - Exponer refs del worker para comunicación
  */
 export interface UseWorkerManagerReturn {
-  workerApiRef: React.MutableRefObject<Remote<MapartWorkerApi> | null>;
-  isProcessingRef: React.MutableRefObject<boolean>;
-  workerImageVersionRef: React.MutableRefObject<number>;
+  workerApiRef: React.RefObject<Remote<MapartWorkerApi> | null>;
+  isProcessingRef: React.RefObject<boolean>;
+  workerImageVersionRef: React.RefObject<number>;
 }
 
 export function useWorkerManager(): UseWorkerManagerReturn {
