@@ -106,6 +106,43 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
 }
 
 // ============================================================================
+// Shared Binary Search Helper
+// ============================================================================
+
+/**
+ * Binary search on L-sorted candidates to find the closest L index.
+ * Shared between findClosestColorIndex and findTwoClosestColors to eliminate
+ * ~24 lines of duplicated binary search logic.
+ */
+function findClosestLIndex(candidatesSoA: CandidatesSoA, tL: number): number {
+    const n = candidatesSoA.count;
+    let low = 0;
+    let high = n - 1;
+    let startIdx = 0;
+
+    while (low <= high) {
+        const mid = (low + high) >>> 1;
+        const midL = candidatesSoA.labL[mid];
+        if (midL < tL) {
+            low = mid + 1;
+        } else if (midL > tL) {
+            high = mid - 1;
+        } else {
+            startIdx = mid;
+            break;
+        }
+    }
+    if (low > high) {
+        if (high < 0) startIdx = 0;
+        else if (low >= n) startIdx = n - 1;
+        else {
+            startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
+        }
+    }
+    return startIdx;
+}
+
+// ============================================================================
 // Color Candidate Functions
 // ============================================================================
 
@@ -206,30 +243,8 @@ export function findClosestColorIndex(
         const ta = targetLab.a;
         const tbVal = targetLab.b;
 
-        // 1. Binary search for closest L
-        let low = 0;
-        let high = n - 1;
-        let startIdx = 0;
-
-        while (low <= high) {
-            const mid = (low + high) >>> 1;
-            const midL = candidatesSoA.labL[mid];
-            if (midL < tL) {
-                low = mid + 1;
-            } else if (midL > tL) {
-                high = mid - 1;
-            } else {
-                startIdx = mid;
-                break;
-            }
-        }
-        if (low > high) {
-            if (high < 0) startIdx = 0;
-            else if (low >= n) startIdx = n - 1;
-            else {
-                startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
-            }
-        }
+        // 1. Binary search for closest L (shared helper)
+        const startIdx = findClosestLIndex(candidatesSoA, tL);
 
         // 2. Initialize best with startIdx
         bestIndex = startIdx;
@@ -366,30 +381,8 @@ export function findTwoClosestColors(
         const ta = targetLab.a;
         const tbVal = targetLab.b;
 
-        // 1. Binary search for closest L
-        let low = 0;
-        let high = n - 1;
-        let startIdx = 0;
-
-        while (low <= high) {
-            const mid = (low + high) >>> 1;
-            const midL = candidatesSoA.labL[mid];
-            if (midL < tL) {
-                low = mid + 1;
-            } else if (midL > tL) {
-                high = mid - 1;
-            } else {
-                startIdx = mid;
-                break;
-            }
-        }
-        if (low > high) {
-            if (high < 0) startIdx = 0;
-            else if (low >= n) startIdx = n - 1;
-            else {
-                startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
-            }
-        }
+        // 1. Binary search for closest L (shared helper)
+        const startIdx = findClosestLIndex(candidatesSoA, tL);
 
         // 2. Initialize best with startIdx
         bestIndex = startIdx;
