@@ -61,8 +61,9 @@ export function processMapart(
     dithering: DitheringMode = 'none',
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
-    independentMaps: boolean = false
-): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null; toneMap: Int8Array | null } {
+    independentMaps: boolean = false,
+    existingFloatBuffer?: Float32Array | null
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; candidates: ColorCandidate[]; heightPath: Int32Array | null; toneMap: Int8Array | null; floatBuffer: Float32Array } {
     const candidates = getValidColors(selectedPaletteItems, buildMode);
 
     if (candidates.length === 0) {
@@ -76,7 +77,8 @@ export function processMapart(
             packedResults: new Uint32Array(imageData.width * imageData.height),
             candidates: [],
             heightPath: null,
-            toneMap: null
+            toneMap: null,
+            floatBuffer: existingFloatBuffer ?? new Float32Array(0)
         };
     }
 
@@ -92,8 +94,15 @@ export function processMapart(
     const PADDING_BOTTOM = 2;
     const paddedWidth = width + PADDING_LEFT + PADDING_RIGHT;
     const paddedHeight = height + PADDING_BOTTOM;
+    const requiredSize = paddedWidth * paddedHeight * 3;
 
-    const floatBuffer = new Float32Array(paddedWidth * paddedHeight * 3);
+    // Reuse existing buffer if it has the correct size, otherwise allocate new
+    let floatBuffer: Float32Array;
+    if (existingFloatBuffer && existingFloatBuffer.length === requiredSize) {
+        floatBuffer = existingFloatBuffer;
+    } else {
+        floatBuffer = new Float32Array(requiredSize);
+    }
     for (let i = 0; i < height; i++) {
         const srcRowOffset = i * width;
         const destRowOffset = i * paddedWidth + PADDING_LEFT;
@@ -359,7 +368,8 @@ export function processMapart(
         packedResults,
         candidates,
         heightPath: heightPath ?? null,
-        toneMap
+        toneMap,
+        floatBuffer
     };
 }
 

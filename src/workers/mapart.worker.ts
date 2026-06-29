@@ -19,6 +19,7 @@ let lastBaseResult: {
     stats: MapartStats;        // Global layout dimension statistics
     heightPath: Int32Array | null; // Precomputed Smart Drop height path (column-major, width × height)
     toneMap: Int8Array | null; // Tone map for incremental applyManualEdits optimization
+    floatBuffer: Float32Array | null; // Padded working buffer for error diffusion (reused across calls)
     width: number;
     height: number;
     buildMode: BuildMode;
@@ -80,7 +81,8 @@ const api = {
             dithering,
             usePerceptual,
             hybridStrength,
-            independentMaps
+            independentMaps,
+            lastBaseResult?.floatBuffer ?? null
         );
 
         lastBaseResult = {
@@ -91,6 +93,7 @@ const api = {
             stats: result.stats,
             heightPath: result.heightPath,
             toneMap: result.toneMap,
+            floatBuffer: result.floatBuffer,
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode,
