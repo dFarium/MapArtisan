@@ -43,3 +43,11 @@ export {
     findClosestColorIndex,
     findTwoClosestColors
 } from './colorMatching';
+
+// Pipeline (Main Processing Functions)
+export {
+    type BuildMode,
+    processMapart,
+    applyManualEdits,
+    suggestDitheringMode
+} from './pipeline';

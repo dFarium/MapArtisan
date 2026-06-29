@@ -9,7 +9,7 @@ import {
     packPixel,
     unpackTone,
     type LAB
-} from '../mapartProcessing';
+} from '../processing';
 import type { BrightnessLevel, RGB } from '../../types/mapart';
 
 describe('mapartProcessing', () => {

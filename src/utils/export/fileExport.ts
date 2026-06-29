@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import type { BuildMode, BrightnessLevel, ExportFormat } from '../../types/mapart';
-import type { DitheringMode } from '../mapartProcessing';
+import type { DitheringMode } from '../processing';
 import { serializeNBT } from '../nbtWriter';
 import { DEFAULT_VERSION } from '../../data/supportedVersions';
 import type { LitematicaMetadata, BlockStatesBuffers } from './types';

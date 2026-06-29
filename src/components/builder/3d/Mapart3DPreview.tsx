@@ -6,7 +6,7 @@ import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
 import type { Build3DGeometryProps } from './build3DGeometry';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
-import { getValidColors } from '../../../utils/mapartProcessing';
+import { getValidColors } from '../../../utils/processing';
 import { useMapartStore } from '../../../store/useMapartStore';
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
  */
 
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
-import type { DitheringMode } from '../mapartProcessing';
+import type { DitheringMode } from '../processing';
 import {
     processMapart,
     optimizeColumnHeights,
@@ -12,7 +12,7 @@ import {
     unpackCandidateIdx,
     unpackTone,
     unpackNeedsSupport
-} from '../mapartProcessing';
+} from '../processing';
 import type { BlockStatesBuffers } from './types';
 
 /**

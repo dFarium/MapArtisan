@@ -1,67 +1,32 @@
-/**
- * Map Art Processing - Main Entry Point
- * 
- * This module exports the main processing functions and re-exports
- * utilities from sub-modules for backwards compatibility.
- */
+import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../../types/mapart';
 
-import type { RGB, BrightnessLevel, MapartStats, BuildMode } from '../types/mapart';
-
-// Re-export from sub-modules
-export {
-    // Color Space
-    type LAB,
-    rgbToLab,
-    deltaE,
-    clearColorCache,
-    packPixel,
-    unpackCandidateIdx,
-    unpackTone,
-    unpackNeedsSupport,
-
-    // Dithering
-    type DitheringMode,
-    type FlatDitherKernel,
-    buildFlatDitherKernel,
-    DITHER_MATRICES,
-    BAYER_4X4,
-    BAYER_8X8,
-    calculateLocalVariance,
-
-    // Height Optimization
-    optimizeColumnHeights,
-
-    // Color Matching
-    type ColorCandidate,
-    type CandidatesSoA,
-    buildCandidatesSoA,
-    getValidColors,
-    findClosestColorIndex,
-    findTwoClosestColors
-} from './processing';
-
-// Import for internal use
 import {
     clearColorCache,
     packPixel,
     unpackCandidateIdx,
     unpackTone,
-    unpackNeedsSupport,
+    unpackNeedsSupport
+} from './colorSpace';
+import {
     type DitheringMode,
     type FlatDitherKernel,
     buildFlatDitherKernel,
     DITHER_MATRICES,
     BAYER_4X4,
     BAYER_8X8,
-    calculateLocalVariance,
+    calculateLocalVariance
+} from './dithering';
+import {
     optimizeColumnHeights,
-    type SmartDropWorkspace,
+    type SmartDropWorkspace
+} from './heightOptimization';
+import {
     type ColorCandidate,
     buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
     findTwoClosestColors
-} from './processing';
+} from './colorMatching';
 
 export type { BuildMode };
 

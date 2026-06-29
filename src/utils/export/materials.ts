@@ -4,7 +4,7 @@
  */
 
 import type { BuildMode, BrightnessLevel } from '../../types/mapart';
-import type { DitheringMode } from '../mapartProcessing';
+import type { DitheringMode } from '../processing';
 import { imageDataToBlockStates } from './blockGeneration';
 
 /**

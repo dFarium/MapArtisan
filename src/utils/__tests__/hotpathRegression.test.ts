@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { processMapart, clearColorCache, unpackTone, unpackCandidateIdx } from '../mapartProcessing';
+import { processMapart, clearColorCache, unpackTone, unpackCandidateIdx } from '../processing';
 import { generateMapartExport } from '../export/fileExport';
 import JSZip from 'jszip';
 

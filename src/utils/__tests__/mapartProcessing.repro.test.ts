@@ -1,6 +1,6 @@
 
 import { describe, it, expect } from 'vitest';
-import { processMapart, unpackTone, unpackCandidateIdx } from '../mapartProcessing';
+import { processMapart, unpackTone, unpackCandidateIdx } from '../processing';
 
 describe('mapartProcessing Idempotency', () => {
     it('produces consistent results for complex input', () => {

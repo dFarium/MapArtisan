@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { BuildMode, DitheringMode } from '../../utils/mapartProcessing';
+import type { BuildMode, DitheringMode } from '../../utils/processing';
 
 // Mock comlink
 vi.mock('comlink', () => ({

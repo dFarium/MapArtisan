@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { performance } from 'perf_hooks';
-import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../mapartProcessing';
+import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../processing';
 import { imageDataToBlockStates } from '../export/blockGeneration';
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
 
