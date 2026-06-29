@@ -4,7 +4,7 @@
  * Reference: Björn Ottosson — https://bottosson.github.io/posts/oklab/
  */
 
-import { MAPART } from '../constants';
+import { MAPART } from './colorConstants';
 import type { RGB } from '../../types/mapart';
 
 // ============================================================================
