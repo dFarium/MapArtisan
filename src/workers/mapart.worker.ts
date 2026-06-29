@@ -1,6 +1,6 @@
 import { expose, transfer } from 'comlink';
-import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/mapartProcessing';
-import { generateMapartExport, calculateMaterialCounts } from '../utils/litematicaExport';
+import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
+import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 

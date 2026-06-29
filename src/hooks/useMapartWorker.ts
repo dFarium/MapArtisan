@@ -2,7 +2,7 @@ import { wrap, type Remote, transfer as comlinkTransfer } from 'comlink';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
-import type { DitheringMode } from '../utils/mapartProcessing';
+import type { DitheringMode } from '../utils/processing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import type { Build3DGeometryProps } from '../components/builder/3d/build3DGeometry';
 
@@ -471,7 +471,7 @@ export const useMapartWorker = ({
                 exportFormat
             );
 
-            const { triggerDownload } = await import('../utils/litematicaExport');
+            const { triggerDownload } = await import('../utils/export');
             triggerDownload(result.blob, result.filename);
         } catch (err) {
             console.error("Export failed:", err);

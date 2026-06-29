@@ -5,7 +5,7 @@ import {
     calculateMaterialCounts,
     type BlockWithCoords,
     type BlockStatesBuffers
-} from '../litematicaExport';
+} from '../export';
 import type { BrightnessLevel } from '../../types/mapart';
 
 function getBlocksArray(buffers: BlockStatesBuffers): BlockWithCoords[] {
