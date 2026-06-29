@@ -34,7 +34,7 @@ export function useImagePreprocessing({
     imageFitMode,
     cropSettings,
     imageSettings,
-    previewState,
+    previewState: { setScaledPreviewUrl, setOriginalTransformedUrl, incrementSourceImageVersion },
 }: UseImagePreprocessingProps): UseImagePreprocessingReturn {
     const sourceImageDataRef = useRef<ImageData | null>(null);
     const highResTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,11 +95,11 @@ export function useImagePreprocessing({
 
             // Immediately set the low-resolution preview
             const lowResUrl = canvas.toDataURL('image/png');
-            previewState.setScaledPreviewUrl(lowResUrl);
-            previewState.setOriginalTransformedUrl(lowResUrl);
+            setScaledPreviewUrl(lowResUrl);
+            setOriginalTransformedUrl(lowResUrl);
 
             sourceImageDataRef.current = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-            previewState.incrementSourceImageVersion();
+            incrementSourceImageVersion();
 
             // Debounce the heavy high-resolution JPEG data URL generation
             if (highResTimeoutRef.current !== null) {
@@ -132,7 +132,7 @@ export function useImagePreprocessing({
                         );
                     }
                 }
-                previewState.setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
+                setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
             }, 250);
         };
         img.src = previewUrl;
@@ -142,7 +142,7 @@ export function useImagePreprocessing({
                 clearTimeout(highResTimeoutRef.current);
             }
         };
-    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings]);
+    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings, setScaledPreviewUrl, setOriginalTransformedUrl, incrementSourceImageVersion]);
 
     return {
         sourceImageDataRef,

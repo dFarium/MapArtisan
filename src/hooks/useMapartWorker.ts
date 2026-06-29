@@ -241,7 +241,9 @@ export const useMapartWorker = ({
     }, [
         sourceImageVersion, buildMode, selectedPaletteItems, threeDPrecision, dithering,
         usePerceptual, hybridStrength, independentMaps, mapartResolution.width,
-        mapartResolution.height, setMapartStats, manualEdits
+        mapartResolution.height, setMapartStats, manualEdits,
+        workerApiRef, isProcessingRef, workerImageVersionRef, sourceImageDataRef,
+        setPreviewImageData, setScaledPreviewUrl
     ]);
 
     // 2b. Light Processing (Manual Edits only)
@@ -284,7 +286,7 @@ export const useMapartWorker = ({
 
         applyEditsVideo();
         return () => { active = false; };
-    }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats, sourceImageVersion]);
+    }, [manualEdits, mapartResolution.width, mapartResolution.height, setMapartStats, sourceImageVersion, workerApiRef, isProcessingRef, workerImageVersionRef, setPreviewImageData, setScaledPreviewUrl]);
 
     const [isExporting, setIsExporting] = useState(false);
 
@@ -320,7 +322,7 @@ export const useMapartWorker = ({
             console.error("Material calculation failed:", err);
             return null;
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion, exportMode]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, sourceImageVersion, exportMode, sourceImageDataRef, workerApiRef, workerImageVersionRef]);
 
     const exportMapart = useCallback(async (
         filename: string,
@@ -365,7 +367,7 @@ export const useMapartWorker = ({
         } finally {
             setIsExporting(false);
         }
-    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion, exportFormat]);
+    }, [selectedPaletteItems, buildMode, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion, isExporting, sourceImageVersion, exportFormat, sourceImageDataRef, workerApiRef, workerImageVersionRef]);
 
     const pickBlock = async (x: number, y: number) => {
         if (!workerApiRef.current) return null;
@@ -401,7 +403,7 @@ export const useMapartWorker = ({
             console.error('[useMapartWorker] build3DGeometryAsync failed', e);
             return null;
         }
-    }, []);
+    }, [workerApiRef]);
 
     return {
         isProcessing,
