@@ -5,6 +5,7 @@ import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '.
 import type { DitheringMode } from '../utils/processing';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import type { Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
+import { usePreviewState } from './usePreviewState';
 
 interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -67,20 +68,23 @@ export const useMapartWorker = ({
     const workerImageVersionRef = useRef(-1);
     const highResTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
-    const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
-    const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
     const [packedResults, setPackedResults] = useState<Uint32Array | null>(null);
     const [heightPath, setHeightPath] = useState<Int32Array | null>(null);
-    const [sourceImageVersion, setSourceImageVersion] = useState(0);
     const [prevPreviewUrl, setPrevPreviewUrl] = useState<string | null>(null);
+
+    // Consolidated preview state management
+    const {
+        scaledPreviewUrl, setScaledPreviewUrl,
+        originalTransformedUrl, setOriginalTransformedUrl,
+        previewImageData, setPreviewImageData,
+        sourceImageVersion, incrementSourceImageVersion,
+        clearAll: clearPreviewState
+    } = usePreviewState();
 
     if (previewUrl !== prevPreviewUrl) {
         setPrevPreviewUrl(previewUrl);
         if (!previewUrl) {
-            setScaledPreviewUrl(null);
-            setOriginalTransformedUrl(null);
-            setPreviewImageData(null);
+            clearPreviewState();
             setPackedResults(null);
             setHeightPath(null);
         }
@@ -196,7 +200,7 @@ export const useMapartWorker = ({
             setOriginalTransformedUrl(lowResUrl);
 
             sourceImageDataRef.current = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
-            setSourceImageVersion(v => v + 1);
+            incrementSourceImageVersion();
 
             // Debounce the heavy high-resolution JPEG data URL generation for display sharpness
             if (highResTimeoutRef.current !== null) {

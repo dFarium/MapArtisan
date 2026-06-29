@@ -1,0 +1,14 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`usePreviewState > snapshot regression > produces consistent state structure 1`] = `
+{
+  "originalTransformedUrl": "data:image/jpeg;base64,test",
+  "previewImageData": {
+    "dataLength": 4,
+    "height": 1,
+    "width": 1,
+  },
+  "scaledPreviewUrl": "data:image/png;base64,test",
+  "sourceImageVersion": 1,
+}
+`;
