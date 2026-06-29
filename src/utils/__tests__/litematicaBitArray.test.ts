@@ -62,4 +62,84 @@ describe('litematicaBitArray', () => {
         const endGet = performance.now();
         console.log(`BitArray Get (Legacy) Time: ${(endGet - startGet).toFixed(2)}ms`);
     });
+
+    it('should correctly set batch values matching individual set calls (both identity and custom mappings)', () => {
+        const width = 10;
+        const height = 10;
+        const depth = 10;
+        const volume = width * height * depth;
+        const paletteSize = 16; // 4 bits
+
+        // Setup inputs
+        const count = 50;
+        const x = new Int32Array(count);
+        const y = new Int32Array(count);
+        const z = new Int32Array(count);
+        const paletteIndices = new Uint32Array(count);
+
+        // Fill with deterministic coordinate/index combinations, some out of bounds
+        for (let i = 0; i < count; i++) {
+            if (i === 10) {
+                // Out of bounds X
+                x[i] = 15; y[i] = 2; z[i] = 3;
+            } else if (i === 20) {
+                // Out of bounds Y
+                x[i] = 2; y[i] = -1; z[i] = 3;
+            } else {
+                x[i] = i % width;
+                y[i] = Math.floor(i / width) % height;
+                z[i] = Math.floor(i / (width * height)) % depth;
+            }
+            paletteIndices[i] = i % paletteSize;
+        }
+
+        // 1. Identity palette mapping: paletteMap[i] === i
+        const paletteMapIdentity = new Uint32Array(paletteSize);
+        for (let i = 0; i < paletteSize; i++) {
+            paletteMapIdentity[i] = i;
+        }
+
+        // 2. Custom non-identity palette mapping: paletteMap[i] === (i + 3) % paletteSize
+        const paletteMapCustom = new Uint32Array(paletteSize);
+        for (let i = 0; i < paletteSize; i++) {
+            paletteMapCustom[i] = (i + 3) % paletteSize;
+        }
+
+        // Compare identity setBatch with individual sets
+        const baBatchIdentity = bitArray.createBitArray(volume, paletteSize);
+        bitArray.setBatch(baBatchIdentity, x, y, z, paletteIndices, count, width, height, depth, paletteMapIdentity);
+
+        const baSetIdentity = bitArray.createBitArray(volume, paletteSize);
+        for (let i = 0; i < count; i++) {
+            const bx = x[i];
+            const by = y[i];
+            const bz = z[i];
+            if (bx < 0 || bx >= width || by < 0 || by >= height || bz < 0 || bz >= depth) {
+                continue;
+            }
+            const idx = (by * depth + bz) * width + bx;
+            bitArray.set(baSetIdentity, idx, paletteIndices[i]);
+        }
+
+        expect(Array.from(baBatchIdentity.array)).toEqual(Array.from(baSetIdentity.array));
+
+        // Compare custom mapping setBatch with individual sets
+        const baBatchCustom = bitArray.createBitArray(volume, paletteSize);
+        bitArray.setBatch(baBatchCustom, x, y, z, paletteIndices, count, width, height, depth, paletteMapCustom);
+
+        const baSetCustom = bitArray.createBitArray(volume, paletteSize);
+        for (let i = 0; i < count; i++) {
+            const bx = x[i];
+            const by = y[i];
+            const bz = z[i];
+            if (bx < 0 || bx >= width || by < 0 || by >= height || bz < 0 || bz >= depth) {
+                continue;
+            }
+            const idx = (by * depth + bz) * width + bx;
+            const mappedVal = paletteMapCustom[paletteIndices[i]];
+            bitArray.set(baSetCustom, idx, mappedVal);
+        }
+
+        expect(Array.from(baBatchCustom.array)).toEqual(Array.from(baSetCustom.array));
+    });
 });

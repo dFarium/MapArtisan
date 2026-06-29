@@ -101,14 +101,71 @@ export async function generateMapartExport(
 
         // 2. Group blocks by section (with boundary sharing)
         interface SectionBuffers {
-            x: number[];
-            y: number[];
-            z: number[];
-            paletteIndices: number[];
+            x: Int32Array;
+            y: Int32Array;
+            z: Int32Array;
+            paletteIndices: Uint32Array;
+            writePtr: number;
         }
 
-        const sectionedBlocks = new Map<string, SectionBuffers>();
+        // Pass 1: Count block allocations per section
+        const sectionCounts = new Int32Array(mapsX * mapsY);
+        for (let i = 0; i < allBlocks.count; i++) {
+            const bx = allBlocks.x[i];
+            const bz = allBlocks.z[i];
 
+            const mapXIndex = Math.floor(bx / 128);
+            if (mapXIndex < 0 || mapXIndex >= mapsX) continue;
+
+            if (bz === 0) {
+                sectionCounts[mapXIndex]++;
+            } else if (independentMaps) {
+                if (bz % 128 === 0) {
+                    const m = bz / 128;
+                    const yIdx = m < mapsY ? m : m - 1;
+                    if (yIdx >= 0 && yIdx < mapsY) {
+                        sectionCounts[mapXIndex + yIdx * mapsX]++;
+                    }
+                } else {
+                    const yIdx = Math.floor((bz - 1) / 128);
+                    if (yIdx >= 0 && yIdx < mapsY) {
+                        sectionCounts[mapXIndex + yIdx * mapsX]++;
+                    }
+                }
+            } else {
+                const yIdx = Math.floor((bz - 1) / 128);
+                if (yIdx >= 0 && yIdx < mapsY) {
+                    sectionCounts[mapXIndex + yIdx * mapsX]++;
+                }
+
+                if (bz > 0 && bz % 128 === 0) {
+                    const nextMapY = yIdx + 1;
+                    if (nextMapY >= 0 && nextMapY < mapsY) {
+                        sectionCounts[mapXIndex + nextMapY * mapsX]++;
+                    }
+                }
+            }
+        }
+
+        // Allocate exact TypedArrays per active section
+        const sections = new Array<SectionBuffers | null>(mapsX * mapsY).fill(null);
+        for (let y = 0; y < mapsY; y++) {
+            for (let x = 0; x < mapsX; x++) {
+                const idx = x + y * mapsX;
+                const count = sectionCounts[idx];
+                if (count > 0) {
+                    sections[idx] = {
+                        x: new Int32Array(count),
+                        y: new Int32Array(count),
+                        z: new Int32Array(count),
+                        paletteIndices: new Uint32Array(count),
+                        writePtr: 0
+                    };
+                }
+            }
+        }
+
+        // Pass 2: Populate the preallocated TypedArrays
         for (let i = 0; i < allBlocks.count; i++) {
             const bx = allBlocks.x[i];
             const by = allBlocks.y[i];
@@ -116,75 +173,71 @@ export async function generateMapartExport(
             const bPaletteIdx = allBlocks.paletteIndices[i];
 
             const mapXIndex = Math.floor(bx / 128);
-            const targetMapsY: number[] = [];
+            if (mapXIndex < 0 || mapXIndex >= mapsX) continue;
+
+            const appendToSection = (yIdx: number) => {
+                if (yIdx < 0 || yIdx >= mapsY) return;
+                const idx = mapXIndex + yIdx * mapsX;
+                const sec = sections[idx];
+                if (sec) {
+                    const ptr = sec.writePtr;
+                    sec.x[ptr] = bx;
+                    sec.y[ptr] = by;
+                    sec.z[ptr] = bz;
+                    sec.paletteIndices[ptr] = bPaletteIdx;
+                    sec.writePtr = ptr + 1;
+                }
+            };
 
             if (bz === 0) {
-                targetMapsY.push(0);
+                appendToSection(0);
             } else if (independentMaps) {
-                // In Independent mode, blocks at z = m*128 are explicit nooblines for map m
                 if (bz % 128 === 0) {
                     const m = bz / 128;
                     if (m < mapsY) {
-                        targetMapsY.push(m);
+                        appendToSection(m);
                     } else {
-                        // This might be the last row of the entire map art
-                        targetMapsY.push(m - 1);
+                        appendToSection(m - 1);
                     }
                 } else {
                     const mapYIdx = Math.floor((bz - 1) / 128);
-                    targetMapsY.push(mapYIdx);
+                    appendToSection(mapYIdx);
                 }
             } else {
-                // Global mode: Standard boundary sharing
                 const mapYIdx = Math.floor((bz - 1) / 128);
-                targetMapsY.push(mapYIdx);
+                appendToSection(mapYIdx);
 
                 if (bz > 0 && bz % 128 === 0) {
                     const nextMapY = mapYIdx + 1;
                     if (nextMapY < mapsY) {
-                        targetMapsY.push(nextMapY);
+                        appendToSection(nextMapY);
                     }
                 }
-            }
-
-            for (const yIdx of targetMapsY) {
-                const key = `${mapXIndex}_${yIdx}`;
-                if (yIdx >= mapsY) continue; // Safety
-
-                let section = sectionedBlocks.get(key);
-                if (!section) {
-                    section = { x: [], y: [], z: [], paletteIndices: [] };
-                    sectionedBlocks.set(key, section);
-                }
-                section.x.push(bx);
-                section.y.push(by);
-                section.z.push(bz);
-                section.paletteIndices.push(bPaletteIdx);
             }
         }
 
         // 3. Process each section (Grounding and NBT)
         for (let sY = 0; sY < mapsY; sY++) {
             for (let sX = 0; sX < mapsX; sX++) {
-                const key = `${sX}_${sY}`;
-                const section = sectionedBlocks.get(key);
+                const idx = sX + sY * mapsX;
+                const section = sections[idx];
 
-                if (!section || section.x.length === 0) continue;
+                if (!section || section.writePtr === 0) continue;
 
                 // Re-ground this specific section ONLY if it's independent
                 if (independentMaps) {
                     let minSectionY = section.y[0];
-                    for (let i = 1; i < section.y.length; i++) {
+                    for (let i = 1; i < section.writePtr; i++) {
                         if (section.y[i] < minSectionY) {
                             minSectionY = section.y[i];
                         }
                     }
-                    for (let i = 0; i < section.y.length; i++) {
+                    for (let i = 0; i < section.writePtr; i++) {
                         section.y[i] -= minSectionY;
                     }
                 }
 
-                for (let i = 0; i < section.x.length; i++) {
+                for (let i = 0; i < section.writePtr; i++) {
                     section.x[i] -= sX * 128;
                     // Z is trickier: global Z=0 is map 0 noobline.
                     // Map sY starts its blocks at global Z = sY * 128 + 1.
@@ -193,12 +246,12 @@ export async function generateMapartExport(
                 }
 
                 const blocksBuffer: BlockStatesBuffers = {
-                    x: new Int32Array(section.x),
-                    y: new Int32Array(section.y),
-                    z: new Int32Array(section.z),
+                    x: section.x,
+                    y: section.y,
+                    z: section.z,
                     palette: allBlocks.palette,
-                    paletteIndices: new Uint32Array(section.paletteIndices),
-                    count: section.x.length
+                    paletteIndices: section.paletteIndices,
+                    count: section.writePtr
                 };
 
                 const sectionNbt = isNbt

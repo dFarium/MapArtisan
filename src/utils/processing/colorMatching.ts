@@ -57,6 +57,7 @@ export interface CandidatesSoA {
     labA: Float64Array;
     labB: Float64Array;
     notNormal: Uint8Array; // 1 if brightness level is 'high' or 'low', 0 if 'normal'
+    sortedToOriginal: Int32Array; // Maps sorted position to original candidate index
 }
 
 /**
@@ -65,6 +66,21 @@ export interface CandidatesSoA {
  */
 export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA {
     const count = candidates.length;
+
+    // 1. Ensure all candidates have their LAB values pre-computed
+    for (let i = 0; i < count; i++) {
+        const c = candidates[i];
+        if (!c.lab) {
+            c.lab = rgbToLab(c.rgb.r, c.rgb.g, c.rgb.b);
+        }
+    }
+
+    // 2. Create index array and sort it by L (lightness) in ascending order
+    const indices = Array.from({ length: count }, (_, i) => i);
+    indices.sort((a, b) => candidates[a].lab!.L - candidates[b].lab!.L);
+    
+    const sortedToOriginal = new Int32Array(indices);
+
     const r = new Uint8Array(count);
     const g = new Uint8Array(count);
     const b = new Uint8Array(count);
@@ -74,18 +90,19 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
     const notNormal = new Uint8Array(count);
 
     for (let i = 0; i < count; i++) {
-        const c = candidates[i];
+        const origIdx = sortedToOriginal[i];
+        const c = candidates[origIdx];
         r[i] = c.rgb.r;
         g[i] = c.rgb.g;
         b[i] = c.rgb.b;
-        const lab = c.lab ?? rgbToLab(c.rgb.r, c.rgb.g, c.rgb.b);
+        const lab = c.lab!;
         labL[i] = lab.L;
         labA[i] = lab.a;
         labB[i] = lab.b;
         notNormal[i] = c.brightness !== 'normal' ? 1 : 0;
     }
 
-    return { count, r, g, b, labL, labA, labB, notNormal };
+    return { count, r, g, b, labL, labA, labB, notNormal, sortedToOriginal };
 }
 
 // ============================================================================
@@ -144,6 +161,14 @@ export function getValidColors(
 // Color Matching with Cache
 // ============================================================================
 
+// Reusable static result objects to eliminate garbage collection pressure
+const _singleResult: ColorMatchResult = { index: 0, distance: 0 };
+
+const _twoResult = {
+    first: { index: 0, distance: 0 },
+    second: { index: 0, distance: 0 }
+};
+
 /**
  * Find the closest color candidate for a pixel given as inline RGB scalars.
  * Accepts tr/tg/tb directly to avoid allocating a { r, g, b } object per pixel.
@@ -159,13 +184,15 @@ export function findClosestColorIndex(
     skipCache: boolean = false,
     heightPenalty: number = 0
 ): ColorMatchResult {
-    const key = (Math.round(tr) << 16) + (Math.round(tg) << 8) + Math.round(tb);
+    const key = (((tr + 0.5) | 0) << 16) | (((tg + 0.5) | 0) << 8) | ((tb + 0.5) | 0);
     const colorCache = getColorCache();
 
     // Check cache first (only for exact RGB matches, skip during error diffusion)
     if (!skipCache && colorCache.has(key)) {
         const cachedIndex = colorCache.get(key)!;
-        return { index: cachedIndex, distance: 0 };
+        _singleResult.index = cachedIndex;
+        _singleResult.distance = 0;
+        return _singleResult;
     }
 
     let bestIndex = 0;
@@ -173,27 +200,110 @@ export function findClosestColorIndex(
     const n = candidatesSoA.count;
 
     if (usePerceptual) {
-        // --- LAB path: branch resolved once, tight loop over flat typed arrays ---
+        // --- LAB path: binary search + 2-pointer scan on L-sorted array ---
         const targetLab = rgbToLab(tr, tg, tb);
         const tL = targetLab.L;
         const ta = targetLab.a;
         const tbVal = targetLab.b;
+
+        // 1. Binary search for closest L
+        let low = 0;
+        let high = n - 1;
+        let startIdx = 0;
+
+        while (low <= high) {
+            const mid = (low + high) >>> 1;
+            const midL = candidatesSoA.labL[mid];
+            if (midL < tL) {
+                low = mid + 1;
+            } else if (midL > tL) {
+                high = mid - 1;
+            } else {
+                startIdx = mid;
+                break;
+            }
+        }
+        if (low > high) {
+            if (high < 0) startIdx = 0;
+            else if (low >= n) startIdx = n - 1;
+            else {
+                startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
+            }
+        }
+
+        // 2. Initialize best with startIdx
+        bestIndex = startIdx;
+        const dL_start = tL - candidatesSoA.labL[startIdx];
+        const da_start = ta - candidatesSoA.labA[startIdx];
+        const db_start = tbVal - candidatesSoA.labB[startIdx];
+        bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
+        if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
+            bestDist += heightPenalty;
+        }
+
+        // 3. Two-pointer scan outwards
+        let left = startIdx - 1;
+        let right = startIdx + 1;
+
         if (heightPenalty > 0) {
-            for (let i = 0; i < n; i++) {
-                const dL = tL - candidatesSoA.labL[i];
-                const da = ta - candidatesSoA.labA[i];
-                const db = tbVal - candidatesSoA.labB[i];
-                let dist = dL * dL + da * da + db * db;
-                if (candidatesSoA.notNormal[i] !== 0) dist += heightPenalty;
-                if (dist < bestDist) { bestDist = dist; bestIndex = i; }
+            while (left >= 0 || right < n) {
+                if (left >= 0) {
+                    const dL = tL - candidatesSoA.labL[left];
+                    const dL2 = dL * dL;
+                    if (dL2 >= bestDist) {
+                        left = -1; // stop searching left
+                    } else {
+                        const da = ta - candidatesSoA.labA[left];
+                        const db = tbVal - candidatesSoA.labB[left];
+                        let dist = dL2 + da * da + db * db;
+                        if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
+                        if (dist < bestDist) { bestDist = dist; bestIndex = left; }
+                        left--;
+                    }
+                }
+                if (right < n) {
+                    const dL = tL - candidatesSoA.labL[right];
+                    const dL2 = dL * dL;
+                    if (dL2 >= bestDist) {
+                        right = n; // stop searching right
+                    } else {
+                        const da = ta - candidatesSoA.labA[right];
+                        const db = tbVal - candidatesSoA.labB[right];
+                        let dist = dL2 + da * da + db * db;
+                        if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
+                        if (dist < bestDist) { bestDist = dist; bestIndex = right; }
+                        right++;
+                    }
+                }
             }
         } else {
-            for (let i = 0; i < n; i++) {
-                const dL = tL - candidatesSoA.labL[i];
-                const da = ta - candidatesSoA.labA[i];
-                const db = tbVal - candidatesSoA.labB[i];
-                const dist = dL * dL + da * da + db * db;
-                if (dist < bestDist) { bestDist = dist; bestIndex = i; }
+            while (left >= 0 || right < n) {
+                if (left >= 0) {
+                    const dL = tL - candidatesSoA.labL[left];
+                    const dL2 = dL * dL;
+                    if (dL2 >= bestDist) {
+                        left = -1; // stop searching left
+                    } else {
+                        const da = ta - candidatesSoA.labA[left];
+                        const db = tbVal - candidatesSoA.labB[left];
+                        const dist = dL2 + da * da + db * db;
+                        if (dist < bestDist) { bestDist = dist; bestIndex = left; }
+                        left--;
+                    }
+                }
+                if (right < n) {
+                    const dL = tL - candidatesSoA.labL[right];
+                    const dL2 = dL * dL;
+                    if (dL2 >= bestDist) {
+                        right = n; // stop searching right
+                    } else {
+                        const da = ta - candidatesSoA.labA[right];
+                        const db = tbVal - candidatesSoA.labB[right];
+                        const dist = dL2 + da * da + db * db;
+                        if (dist < bestDist) { bestDist = dist; bestIndex = right; }
+                        right++;
+                    }
+                }
             }
         }
     } else {
@@ -218,10 +328,13 @@ export function findClosestColorIndex(
         }
     }
 
+    const finalIndex = candidatesSoA.sortedToOriginal[bestIndex];
     if (!skipCache) {
-        colorCache.set(key, bestIndex);
+        colorCache.set(key, finalIndex);
     }
-    return { index: bestIndex, distance: bestDist };
+    _singleResult.index = finalIndex;
+    _singleResult.distance = bestDist;
+    return _singleResult;
 }
 
 /**
@@ -247,36 +360,129 @@ export function findTwoClosestColors(
     const n = candidatesSoA.count;
 
     if (usePerceptual) {
-        // --- LAB path ---
+        // --- LAB path: binary search + 2-pointer scan on L-sorted array ---
         const targetLab = rgbToLab(tr, tg, tb);
         const tL = targetLab.L;
         const ta = targetLab.a;
         const tbVal = targetLab.b;
+
+        // 1. Binary search for closest L
+        let low = 0;
+        let high = n - 1;
+        let startIdx = 0;
+
+        while (low <= high) {
+            const mid = (low + high) >>> 1;
+            const midL = candidatesSoA.labL[mid];
+            if (midL < tL) {
+                low = mid + 1;
+            } else if (midL > tL) {
+                high = mid - 1;
+            } else {
+                startIdx = mid;
+                break;
+            }
+        }
+        if (low > high) {
+            if (high < 0) startIdx = 0;
+            else if (low >= n) startIdx = n - 1;
+            else {
+                startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
+            }
+        }
+
+        // 2. Initialize best with startIdx
+        bestIndex = startIdx;
+        const dL_start = tL - candidatesSoA.labL[startIdx];
+        const da_start = ta - candidatesSoA.labA[startIdx];
+        const db_start = tbVal - candidatesSoA.labB[startIdx];
+        bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
+        if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
+            bestDist += heightPenalty;
+        }
+
+        // 3. Two-pointer scan outwards
+        let left = startIdx - 1;
+        let right = startIdx + 1;
+
         if (heightPenalty > 0) {
-            for (let i = 0; i < n; i++) {
-                const dL = tL - candidatesSoA.labL[i];
-                const da = ta - candidatesSoA.labA[i];
-                const db = tbVal - candidatesSoA.labB[i];
-                let dist = dL * dL + da * da + db * db;
-                if (candidatesSoA.notNormal[i] !== 0) dist += heightPenalty;
-                if (dist < bestDist) {
-                    secondDist = bestDist; secondIndex = bestIndex;
-                    bestDist = dist;      bestIndex = i;
-                } else if (dist < secondDist) {
-                    secondDist = dist; secondIndex = i;
+            while (left >= 0 || right < n) {
+                if (left >= 0) {
+                    const dL = tL - candidatesSoA.labL[left];
+                    const dL2 = dL * dL;
+                    if (dL2 >= secondDist) {
+                        left = -1; // stop searching left
+                    } else {
+                        const da = ta - candidatesSoA.labA[left];
+                        const db = tbVal - candidatesSoA.labB[left];
+                        let dist = dL2 + da * da + db * db;
+                        if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
+                        if (dist < bestDist) {
+                            secondDist = bestDist; secondIndex = bestIndex;
+                            bestDist = dist;      bestIndex = left;
+                        } else if (dist < secondDist) {
+                            secondDist = dist; secondIndex = left;
+                        }
+                        left--;
+                    }
+                }
+                if (right < n) {
+                    const dL = tL - candidatesSoA.labL[right];
+                    const dL2 = dL * dL;
+                    if (dL2 >= secondDist) {
+                        right = n; // stop searching right
+                    } else {
+                        const da = ta - candidatesSoA.labA[right];
+                        const db = tbVal - candidatesSoA.labB[right];
+                        let dist = dL2 + da * da + db * db;
+                        if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
+                        if (dist < bestDist) {
+                            secondDist = bestDist; secondIndex = bestIndex;
+                            bestDist = dist;      bestIndex = right;
+                        } else if (dist < secondDist) {
+                            secondDist = dist; secondIndex = right;
+                        }
+                        right++;
+                    }
                 }
             }
         } else {
-            for (let i = 0; i < n; i++) {
-                const dL = tL - candidatesSoA.labL[i];
-                const da = ta - candidatesSoA.labA[i];
-                const db = tbVal - candidatesSoA.labB[i];
-                const dist = dL * dL + da * da + db * db;
-                if (dist < bestDist) {
-                    secondDist = bestDist; secondIndex = bestIndex;
-                    bestDist = dist;      bestIndex = i;
-                } else if (dist < secondDist) {
-                    secondDist = dist; secondIndex = i;
+            while (left >= 0 || right < n) {
+                if (left >= 0) {
+                    const dL = tL - candidatesSoA.labL[left];
+                    const dL2 = dL * dL;
+                    if (dL2 >= secondDist) {
+                        left = -1; // stop searching left
+                    } else {
+                        const da = ta - candidatesSoA.labA[left];
+                        const db = tbVal - candidatesSoA.labB[left];
+                        const dist = dL2 + da * da + db * db;
+                        if (dist < bestDist) {
+                            secondDist = bestDist; secondIndex = bestIndex;
+                            bestDist = dist;      bestIndex = left;
+                        } else if (dist < secondDist) {
+                            secondDist = dist; secondIndex = left;
+                        }
+                        left--;
+                    }
+                }
+                if (right < n) {
+                    const dL = tL - candidatesSoA.labL[right];
+                    const dL2 = dL * dL;
+                    if (dL2 >= secondDist) {
+                        right = n; // stop searching right
+                    } else {
+                        const da = ta - candidatesSoA.labA[right];
+                        const db = tbVal - candidatesSoA.labB[right];
+                        const dist = dL2 + da * da + db * db;
+                        if (dist < bestDist) {
+                            secondDist = bestDist; secondIndex = bestIndex;
+                            bestDist = dist;      bestIndex = right;
+                        } else if (dist < secondDist) {
+                            secondDist = dist; secondIndex = right;
+                        }
+                        right++;
+                    }
                 }
             }
         }
@@ -312,8 +518,9 @@ export function findTwoClosestColors(
         }
     }
 
-    return {
-        first:  { index: bestIndex,  distance: bestDist  },
-        second: { index: secondIndex, distance: secondDist }
-    };
+    _twoResult.first.index = candidatesSoA.sortedToOriginal[bestIndex];
+    _twoResult.first.distance = bestDist;
+    _twoResult.second.index = candidatesSoA.sortedToOriginal[secondIndex];
+    _twoResult.second.distance = secondDist;
+    return _twoResult;
 }

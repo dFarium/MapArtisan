@@ -31,9 +31,9 @@ export function rgbToBinary(rgb: RGB): number;
 export function rgbToBinary(r: number, g: number, b: number): number;
 export function rgbToBinary(rOrRgb: number | RGB, g?: number, b?: number): number {
     if (typeof rOrRgb === 'object' && rOrRgb !== null) {
-        return (Math.round(rOrRgb.r) << 16) + (Math.round(rOrRgb.g) << 8) + Math.round(rOrRgb.b);
+        return (((rOrRgb.r + 0.5) | 0) << 16) | (((rOrRgb.g + 0.5) | 0) << 8) | ((rOrRgb.b + 0.5) | 0);
     }
-    return (Math.round(rOrRgb) << 16) + (Math.round(g!) << 8) + Math.round(b!);
+    return (((rOrRgb + 0.5) | 0) << 16) | (((g! + 0.5) | 0) << 8) | ((b! + 0.5) | 0);
 }
 
 /**
@@ -120,15 +120,15 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
         gVal = g!;
         bVal = b!;
     }
-    const key = (Math.round(r) << 16) + (Math.round(gVal) << 8) + Math.round(bVal);
+    const key = (((r + 0.5) | 0) << 16) | (((gVal + 0.5) | 0) << 8) | ((bVal + 0.5) | 0);
     if (labCache.has(key)) {
         return labCache.get(key)!;
     }
 
     // Step 1: sRGB → linear RGB via gamma LUT (identical to previous CIELab path)
-    const r1 = GAMMA_LUT[Math.round(r) & 0xFF];
-    const g1 = GAMMA_LUT[Math.round(gVal) & 0xFF];
-    const b1 = GAMMA_LUT[Math.round(bVal) & 0xFF];
+    const r1 = GAMMA_LUT[((r + 0.5) | 0) & 0xFF];
+    const g1 = GAMMA_LUT[((gVal + 0.5) | 0) & 0xFF];
+    const b1 = GAMMA_LUT[((bVal + 0.5) | 0) & 0xFF];
 
     // Step 2: linear sRGB → LMS cone space (M1)
     const lms_l = M1_L0 * r1 + M1_L1 * g1 + M1_L2 * b1;
@@ -192,15 +192,14 @@ export function colorDistanceSq(a: RGB, b: RGB): number {
 // ============================================================================
 
 // Bit-packing metadata bit offsets:
-// bits 0..12: Unused
-// bit 13: Needs support block flag (gravity blocks)
-// bits 14..15: Relative height adjustments (-1, 0, or 1 represented as unsigned 0..2)
-// bits 16..23: Palette candidate selection index (0..255)
-const CANDIDATE_SHIFT = 16;
-const CANDIDATE_MASK = 0xFF;
-const TONE_SHIFT = 14;
+// bits 0..9: Palette candidate selection index (0..1023)
+// bits 10..11: Relative height adjustments (-1, 0, or 1 represented as unsigned 0..2)
+// bit 12: Needs support block flag (gravity blocks)
+const CANDIDATE_SHIFT = 0;
+const CANDIDATE_MASK = 0x3FF;
+const TONE_SHIFT = 10;
 const TONE_MASK = 0x3;
-const SUPPORT_BIT = 13;
+const SUPPORT_BIT = 12;
 
 /**
  * Packs processing results for a single pixel into a 32-bit unsigned integer.
@@ -216,7 +215,8 @@ export function packPixel(candidateIdx: number, tone: number, needsSupport: bool
  * Unpacks the palette candidate index from the packed 32-bit pixel value.
  */
 export function unpackCandidateIdx(packed: number): number {
-    return (packed >> CANDIDATE_SHIFT) & CANDIDATE_MASK;
+    // Zero-shift shortcut for bits 0..9
+    return packed & CANDIDATE_MASK;
 }
 
 /**

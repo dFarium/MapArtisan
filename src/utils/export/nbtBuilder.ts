@@ -83,13 +83,13 @@ export function createLitematicaNBT(
     const paletteBlocks: NBTCompound[] = [
         { Name: { type: TagTypes.STRING, value: 'minecraft:air' } }
     ];
-    const paletteMap = new Map<number, number>();
-    paletteMap.set(0, 0);
+    const paletteMap = new Uint32Array(buffers.palette.length);
+    paletteMap[0] = 0;
 
     for (let i = 0; i < buffers.palette.length; i++) {
         const key = buffers.palette[i];
         if (key === 'minecraft:air') {
-            paletteMap.set(i, 0);
+            paletteMap[i] = 0;
             continue;
         }
 
@@ -123,30 +123,26 @@ export function createLitematicaNBT(
             paletteEntry.Properties = { type: TagTypes.COMPOUND, value: props };
         }
 
-        paletteMap.set(i, paletteBlocks.length);
+        paletteMap[i] = paletteBlocks.length;
         paletteBlocks.push(paletteEntry);
     }
 
     // Initialize BitArray (default 0 = Air)
     let bitArrayData = bitArray.createBitArray(volume, paletteBlocks.length);
 
-    // Second Pass: Set Blocks directly
-    for (let i = 0; i < buffers.count; i++) {
-        const bx = buffers.x[i];
-        const by = buffers.y[i];
-        const bz = buffers.z[i];
-        if (bx < 0 || bx >= maxX || by < 0 || by >= maxY || bz < 0 || bz >= maxZ) {
-            continue;
-        }
-
-        const localPaletteIndex = buffers.paletteIndices[i];
-        const paletteIndex = paletteMap.get(localPaletteIndex) ?? 0;
-
-        // Calculate linear index: (y * maxZ + z) * maxX + x
-        const blockCoord = (by * maxZ + bz) * maxX + bx;
-
-        bitArrayData = bitArray.set(bitArrayData, blockCoord, paletteIndex);
-    }
+    // Second Pass: Set Blocks directly using optimized setBatch
+    bitArrayData = bitArray.setBatch(
+        bitArrayData,
+        buffers.x,
+        buffers.y,
+        buffers.z,
+        buffers.paletteIndices,
+        buffers.count,
+        maxX,
+        maxY,
+        maxZ,
+        paletteMap
+    );
 
     // Create NBT structure
     const now = Date.now();
@@ -285,7 +281,7 @@ export function createVanillaNBT(
 
     // Build palette
     const paletteBlocks: NBTCompound[] = [];
-    const paletteMap = new Map<number, number>();
+    const paletteMap = new Uint32Array(buffers.palette.length);
 
     for (let i = 0; i < buffers.palette.length; i++) {
         const key = buffers.palette[i];
@@ -319,7 +315,7 @@ export function createVanillaNBT(
             paletteEntry.Properties = { type: TagTypes.COMPOUND, value: props };
         }
 
-        paletteMap.set(i, paletteBlocks.length);
+        paletteMap[i] = paletteBlocks.length;
         paletteBlocks.push(paletteEntry);
     }
 
@@ -334,7 +330,7 @@ export function createVanillaNBT(
         }
 
         const localPaletteIndex = buffers.paletteIndices[i];
-        const paletteIndex = paletteMap.get(localPaletteIndex) ?? 0;
+        const paletteIndex = paletteMap[localPaletteIndex];
 
         blocks.push({
             pos: {

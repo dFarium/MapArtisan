@@ -180,6 +180,9 @@ export function processMapart(
     // Packed results buffer (stores candidateIndex, tone/brightness adjustments, and support flag in a single Uint32 per pixel)
     const packedResults = new Uint32Array(width * height);
 
+    // Will be populated during processing if buildMode is 3D valley
+    const toneMap = buildMode === '3d_valley' ? new Int8Array(width * height) : null;
+
     // Will be populated during the Smart Drop phase for 3D valley mode.
     // Column-major layout: heightPath[x * height + y] = normalized Y for column x, row y.
     let heightPath: Int32Array | null = null;
@@ -244,6 +247,9 @@ export function processMapart(
                     else if (bestBrightness === 'low') tone = -1;
                 }
                 packedResults[linearIdx] = packPixel(bestIndex, tone, best.needsSupport);
+                if (toneMap) {
+                    toneMap[linearIdx] = tone;
+                }
 
                 // Update height stats (standard/2d modes)
                 if (bestBrightness === 'high') colHeights[x]++;
@@ -307,14 +313,7 @@ export function processMapart(
         }
 
         // Reconstruct the 1D tone map for height optimization (Smart Drop).
-        // Tones are unpacked using bitwise shifting from the unified packedResults.
-        let toneMap: Int8Array | null = null;
-        if (buildMode === '3d_valley') {
-            toneMap = new Int8Array(width * height);
-            for (let i = 0; i < packedResults.length; i++) {
-                toneMap[i] = unpackTone(packedResults[i]);
-            }
-        }
+        // toneMap is already populated during Phase 1 standard processing.
 
         // ============================================================================
         // Phase 2: Height Optimization (Smart Drop) for 3D Valley

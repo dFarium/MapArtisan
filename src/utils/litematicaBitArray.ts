@@ -101,3 +101,94 @@ export function get(bitArray: BitArray, index: number): number {
     }
 }
 
+/**
+ * Batches setting multiple values in the BitArray directly from coordinates and indices buffers.
+ */
+export function setBatch(
+    bitArray: BitArray,
+    x: Int32Array,
+    y: Int32Array,
+    z: Int32Array,
+    paletteIndices: Uint32Array,
+    count: number,
+    maxX: number,
+    maxY: number,
+    maxZ: number,
+    paletteMap: Uint32Array
+): BitArray {
+    if (!bitArray.uint32View) {
+        bitArray.uint32View = new Uint32Array(bitArray.array.buffer);
+    }
+    const uint32View = bitArray.uint32View;
+    const num_bits = bitArray.num_bits;
+    const mask = (1 << num_bits) - 1;
+
+    // Detect if paletteMap is a simple identity mapping (i -> i)
+    let isIdentity = true;
+    for (let i = 0; i < paletteMap.length; i++) {
+        if (paletteMap[i] !== i) {
+            isIdentity = false;
+            break;
+        }
+    }
+
+    if (isIdentity) {
+        for (let i = 0; i < count; i++) {
+            const bx = x[i];
+            const by = y[i];
+            const bz = z[i];
+            if (bx < 0 || bx >= maxX || by < 0 || by >= maxY || bz < 0 || bz >= maxZ) {
+                continue;
+            }
+
+            const paletteIndex = paletteIndices[i];
+
+            // Calculate linear index: (y * maxZ + z) * maxX + x
+            const index = (by * maxZ + bz) * maxX + bx;
+
+            const startOffset = index * num_bits;
+            const wordIdx = startOffset >>> 5;
+            const bitOffset = startOffset & 31;
+
+            if (bitOffset + num_bits <= 32) {
+                const maskShifted = mask << bitOffset;
+                uint32View[wordIdx] = (uint32View[wordIdx] & ~maskShifted) | ((paletteIndex & mask) << bitOffset);
+            } else {
+                const bitsForFirstWord = 32 - bitOffset;
+                uint32View[wordIdx] = (uint32View[wordIdx] & ~(mask << bitOffset)) | ((paletteIndex & mask) << bitOffset);
+                uint32View[wordIdx + 1] = (uint32View[wordIdx + 1] & ~(mask >>> bitsForFirstWord)) | ((paletteIndex & mask) >>> bitsForFirstWord);
+            }
+        }
+    } else {
+        for (let i = 0; i < count; i++) {
+            const bx = x[i];
+            const by = y[i];
+            const bz = z[i];
+            if (bx < 0 || bx >= maxX || by < 0 || by >= maxY || bz < 0 || bz >= maxZ) {
+                continue;
+            }
+
+            const localPaletteIndex = paletteIndices[i];
+            const paletteIndex = paletteMap[localPaletteIndex];
+
+            // Calculate linear index: (y * maxZ + z) * maxX + x
+            const index = (by * maxZ + bz) * maxX + bx;
+
+            const startOffset = index * num_bits;
+            const wordIdx = startOffset >>> 5;
+            const bitOffset = startOffset & 31;
+
+            if (bitOffset + num_bits <= 32) {
+                const maskShifted = mask << bitOffset;
+                uint32View[wordIdx] = (uint32View[wordIdx] & ~maskShifted) | ((paletteIndex & mask) << bitOffset);
+            } else {
+                const bitsForFirstWord = 32 - bitOffset;
+                uint32View[wordIdx] = (uint32View[wordIdx] & ~(mask << bitOffset)) | ((paletteIndex & mask) << bitOffset);
+                uint32View[wordIdx + 1] = (uint32View[wordIdx + 1] & ~(mask >>> bitsForFirstWord)) | ((paletteIndex & mask) >>> bitsForFirstWord);
+            }
+        }
+    }
+
+    return bitArray;
+}
+
