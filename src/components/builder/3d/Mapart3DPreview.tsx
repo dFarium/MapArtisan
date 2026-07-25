@@ -365,6 +365,7 @@ if (vTexLayer >= 0.0) {
 
         if (needsNewAttributes) {
             const props = renderer.properties;
+            const geo = mesh.geometry;
             // Dispose old GPU buffers so Three.js releases WebGL buffer objects
             if (mesh.instanceMatrix) {
                 props.remove(mesh.instanceMatrix);
@@ -374,17 +375,21 @@ if (vTexLayer >= 0.0) {
                 props.remove(mesh.instanceColor);
                 mesh.instanceColor.dispose?.();
             }
-            const oldTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.BufferAttribute;
-            if (oldTexAttr) {
-                props.remove(oldTexAttr);
-                mesh.geometry.deleteAttribute('aTexLayer');
+            if (geo) {
+                const oldTexAttr = geo.getAttribute('aTexLayer') as THREE.BufferAttribute;
+                if (oldTexAttr) {
+                    props.remove(oldTexAttr);
+                    geo.deleteAttribute('aTexLayer');
+                }
             }
 
             mesh.instanceMatrix = new THREE.InstancedBufferAttribute(matrices, 16);
             mesh.instanceColor = new THREE.InstancedBufferAttribute(colorsRef.current!, 3);
 
-            const texAttr = new THREE.InstancedBufferAttribute(texLayers, 1);
-            mesh.geometry.setAttribute('aTexLayer', texAttr);
+            if (geo) {
+                const texAttr = new THREE.InstancedBufferAttribute(texLayers, 1);
+                geo.setAttribute('aTexLayer', texAttr);
+            }
         } else {
             // Recycle existing attributes and notify Three.js of changes
             mesh.instanceMatrix.needsUpdate = true;
@@ -392,9 +397,12 @@ if (vTexLayer >= 0.0) {
                 mesh.instanceColor.needsUpdate = true;
             }
 
-            const texAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
-            if (texAttr) {
-                texAttr.needsUpdate = true;
+            const geo = mesh.geometry;
+            if (geo) {
+                const texAttr = geo.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+                if (texAttr) {
+                    texAttr.needsUpdate = true;
+                }
             }
         }
 
@@ -407,10 +415,13 @@ if (vTexLayer >= 0.0) {
             mesh.instanceColor.addUpdateRange(0, count * 3);
         }
 
-        const activeTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
-        if (activeTexAttr) {
-            activeTexAttr.clearUpdateRanges();
-            activeTexAttr.addUpdateRange(0, count);
+        const geo = mesh.geometry;
+        if (geo) {
+            const activeTexAttr = geo.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+            if (activeTexAttr) {
+                activeTexAttr.clearUpdateRanges();
+                activeTexAttr.addUpdateRange(0, count);
+            }
         }
 
         // Update the instanced mesh's active count to match the number of current blocks

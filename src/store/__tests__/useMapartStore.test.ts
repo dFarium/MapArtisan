@@ -101,24 +101,24 @@ describe('Grid dimension limits', () => {
         expect(dims.y).toBeLessThanOrEqual(Math.floor(MAX_MAPS_TOTAL / 8));
     });
 
-    it('allows 64x1 grid (exactly at limit)', () => {
-        useMapartStore.getState().setGridDimensions({ x: 64, y: 1 });
-        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 64, y: 1 });
+    it('allows 128x1 grid (exactly at limit)', () => {
+        useMapartStore.getState().setGridDimensions({ x: 128, y: 1 });
+        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 128, y: 1 });
     });
 
-    it('allows 1x64 grid (exactly at limit)', () => {
-        useMapartStore.getState().setGridDimensions({ x: 1, y: 64 });
-        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 1, y: 64 });
+    it('allows 1x128 grid (exactly at limit)', () => {
+        useMapartStore.getState().setGridDimensions({ x: 1, y: 128 });
+        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 1, y: 128 });
     });
 
-    it('clamps 65x1 to 64x1', () => {
-        useMapartStore.getState().setGridDimensions({ x: 65, y: 1 });
-        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 64, y: 1 });
+    it('clamps 129x1 to 128x1', () => {
+        useMapartStore.getState().setGridDimensions({ x: 129, y: 1 });
+        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 128, y: 1 });
     });
 
-    it('clamps 1x65 to 1x64', () => {
-        useMapartStore.getState().setGridDimensions({ x: 1, y: 65 });
-        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 1, y: 64 });
+    it('clamps 1x129 to 1x128', () => {
+        useMapartStore.getState().setGridDimensions({ x: 1, y: 129 });
+        expect(useMapartStore.getState().gridDimensions).toEqual({ x: 1, y: 128 });
     });
 
     it('updates memoryEstimate when grid changes', () => {
@@ -136,16 +136,16 @@ describe('clampGridDimensions', () => {
     });
 
     it('clamps X when X changed and exceeds limit', () => {
-        expect(clampGridDimensions(10, 10, 8, 10)).toEqual({ x: 6, y: 10 });
+        expect(clampGridDimensions(13, 10, 12, 10)).toEqual({ x: 12, y: 10 });
     });
 
     it('clamps Y when Y changed and exceeds limit', () => {
-        expect(clampGridDimensions(10, 10, 10, 8)).toEqual({ x: 10, y: 6 });
+        expect(clampGridDimensions(10, 13, 10, 12)).toEqual({ x: 10, y: 12 });
     });
 
     it('handles edge case of 1 on one axis', () => {
-        expect(clampGridDimensions(65, 1, 64, 1)).toEqual({ x: 64, y: 1 });
-        expect(clampGridDimensions(1, 65, 1, 64)).toEqual({ x: 1, y: 64 });
+        expect(clampGridDimensions(129, 1, 128, 1)).toEqual({ x: 128, y: 1 });
+        expect(clampGridDimensions(1, 129, 1, 128)).toEqual({ x: 1, y: 128 });
     });
 });
 
@@ -166,13 +166,13 @@ describe('estimateMemoryUsage', () => {
         expect(est.riskLevel).toBe('high');
     });
 
-    it('marks exceedsSoftLimit when over 32 maps', () => {
-        expect(estimateMemoryUsage(6, 6).exceedsSoftLimit).toBe(true);
-        expect(estimateMemoryUsage(5, 6).exceedsSoftLimit).toBe(false);
+    it('marks exceedsSoftLimit when over 96 maps', () => {
+        expect(estimateMemoryUsage(10, 10).exceedsSoftLimit).toBe(true);
+        expect(estimateMemoryUsage(9, 10).exceedsSoftLimit).toBe(false);
     });
 
-    it('marks exceedsHardLimit when over 64 maps', () => {
-        expect(estimateMemoryUsage(9, 8).exceedsHardLimit).toBe(true);
-        expect(estimateMemoryUsage(8, 8).exceedsHardLimit).toBe(false);
+    it('marks exceedsHardLimit when over 128 maps', () => {
+        expect(estimateMemoryUsage(12, 11).exceedsHardLimit).toBe(true);
+        expect(estimateMemoryUsage(11, 11).exceedsHardLimit).toBe(false);
     });
 });

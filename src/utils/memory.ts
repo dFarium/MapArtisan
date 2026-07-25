@@ -20,8 +20,8 @@ export interface MemoryEstimate {
     usagePercent: number;
 }
 
-export const MAX_MAPS_TOTAL = 64;
-export const SOFT_LIMIT_MAPS = 32;
+export const MAX_MAPS_TOTAL = 128;
+export const SOFT_LIMIT_MAPS = 96;
 
 export function estimateMemoryUsage(mapsX: number, mapsY: number): MemoryEstimate {
     const width = mapsX * MAP_PIXELS;
