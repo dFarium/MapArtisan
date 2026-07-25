@@ -61,7 +61,7 @@ async function main() {
                 mockSelectedPalette,
                 100, // 3D Precision
                 'none', // No dithering for pure height analysis first
-                true, // CIELAB
+                true, // OKLab
                 50,
                 false // independentMaps
             );

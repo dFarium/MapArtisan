@@ -24,7 +24,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 - **Smart (Hybrid) by Default**: Blends Floyd-Steinberg with noise reduction for optimal balance
 - **Hybrid Strength Slider**: Fine-tune the tradeoff between detail and smoothness
 - **Auto-Detect Mode**: Analyzes your image to suggest the best dithering settings
-- **CIELAB Color Space**: Perceptually uniform color matching (enabled by default)
+- **OKLab Color Space**: Perceptually uniform color matching (enabled by default)
 
 ### Construction Model
 

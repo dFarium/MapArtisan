@@ -169,7 +169,7 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
 // ============================================================================
 
 /**
- * Calculates the standard Delta E 1976 distance between two CIELAB colors.
+ * Calculates the standard Delta E distance between two OKLab colors.
  */
 export function deltaE(lab1: LAB, lab2: LAB): number {
     const dL = lab1.L - lab2.L;
@@ -179,7 +179,7 @@ export function deltaE(lab1: LAB, lab2: LAB): number {
 }
 
 /**
- * Calculates the squared Delta E distance between two CIELAB colors.
+ * Calculates the squared Delta E distance between two OKLab colors.
  * Eliminating the Math.sqrt operation makes this significantly faster for comparative searches.
  */
 export function labDistanceSq(lab1: LAB, lab2: LAB): number {
@@ -202,6 +202,43 @@ export function colorDistanceSq(a: RGB, b: RGB): number {
 // ============================================================================
 // Bitpacking Result Utilities
 // ============================================================================
+
+/**
+ * Packed pixel result format (32-bit unsigned integer).
+ *
+ * Each pixel in the `packedResults` buffer encodes three pieces of information
+ * in a single Uint32 value, providing a 4x memory reduction compared to
+ * storing separate objects per pixel.
+ *
+ * Bit layout:
+ * ```
+ *  31                                0
+ *  +---------------------------------+
+ *  | 12 | 11..10 |  9 ............. 0 |
+ *  +---------------------------------+
+ *  |Supp|  Tone  |  Candidate Index   |
+ *  +---------------------------------+
+ * ```
+ *
+ * - **Bits 0..9 (10 bits)**: Palette candidate selection index (0..1023)
+ *   - Index into the `candidates` array returned by `processMapart()`
+ *   - Identifies which block type was chosen for this pixel
+ *
+ * - **Bits 10..11 (2 bits)**: Relative height adjustment (-1, 0, or 1)
+ *   - Stored as unsigned value: 0 = -1 (low), 1 = 0 (normal), 2 = +1 (high)
+ *   - Used by Smart Drop algorithm to compute vertical layout in 3D Valley mode
+ *   - Always 0 in 2D mode
+ *
+ * - **Bit 12 (1 bit)**: Needs support block flag
+ *   - 1 = This block requires a support block underneath (gravity blocks)
+ *   - 0 = No support needed
+ *
+ * Invariants:
+ * - `packedResults.length === width * height` (exactly one entry per pixel)
+ * - `unpackCandidateIdx(packedResults[i]) < candidates.length` for all valid i
+ * - `unpackTone(packedResults[i]) ∈ {-1, 0, 1}` for all i
+ * - In 2D mode, `unpackTone(packedResults[i]) === 0` for all i
+ */
 
 // Bit-packing metadata bit offsets:
 // bits 0..9: Palette candidate selection index (0..1023)

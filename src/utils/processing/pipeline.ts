@@ -97,6 +97,23 @@ function buildHeightLayout(
  * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
  * @param independentMaps Separate map layouts for individual centering grids.
+ * @returns Processing result containing:
+ *   - `imageData`: Quantized output image with matched block colors rendered as RGB.
+ *   - `stats`: Height statistics (`minHeight`, `maxHeight`, `heightMap` per column).
+ *   - `packedResults`: Flat Uint32Array (width × height) encoding candidate index, tone, and support flag per pixel.
+ *     See `packPixel()` in colorSpace.ts for bit layout details.
+ *   - `candidates`: Array of valid ColorCandidate objects from the active palette.
+ *   - `heightPath`: Int32Array (width × height) or null. Column-major layout where
+ *     `heightPath[x * height + y]` = normalized Y position for column x, row y.
+ *     Only populated in 3D Valley mode; null in 2D mode.
+ *     Invariants: all values >= 0; represents the "Smart Drop" optimized height profile.
+ *   - `toneMap`: Int8Array (width × height) or null. Row-major layout where
+ *     `toneMap[y * width + x]` ∈ {-1, 0, 1} representing the relative tone adjustment
+ *     for each pixel (-1 = low/dark, 0 = normal, 1 = high/light).
+ *     Only populated in 3D Valley mode; null in 2D mode.
+ *     Used by `applyManualEdits()` for incremental height recalculation.
+ *   - `floatBuffer`: Reusable Float32Array working buffer for error diffusion.
+ *     Can be passed back to subsequent calls to avoid reallocation.
  */
 export function processMapart(
     imageData: ImageData,

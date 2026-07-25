@@ -4,6 +4,32 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 
+/**
+ * Creates a deterministic cache key for worker processing results.
+ *
+ * The key is a JSON-serialized array of all parameters that affect the
+ * quantization output. If any of these parameters change, the cached
+ * result is invalidated and the full pipeline runs again.
+ *
+ * Parameters included in the cache key:
+ * - `version`: Source image version timestamp (changes when image or filters change)
+ * - `width`: Image width in pixels
+ * - `height`: Image height in pixels
+ * - `buildMode`: '2d' | '3d_valley'
+ * - `palette`: Sorted array of [colorIndex, blockId] pairs from selectedPaletteItems
+ * - `threeDPrecision`: Height precision slider value (0-100)
+ * - `dithering`: Dithering algorithm mode string
+ * - `usePerceptual`: OKLab vs RGB distance flag
+ * - `hybridStrength`: Hybrid dithering strength (0-100)
+ * - `independentMaps`: Whether maps are processed independently
+ *
+ * Parameters NOT included (do not affect quantization):
+ * - manualEdits (applied incrementally on top of cached results)
+ * - blockSupport, supportBlockId (only affect export/geometry, not color matching)
+ * - exportMode, exportFormat (only affect file output)
+ *
+ * @returns JSON string that uniquely identifies a processing configuration.
+ */
 export function createProcessingConfigKey(
     width: number,
     height: number,
