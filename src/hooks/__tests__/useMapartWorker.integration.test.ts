@@ -4,6 +4,10 @@ import { useMapartWorker } from '../useMapartWorker';
 import type { UseMapartWorkerProps } from '../useMapartWorker';
 import { wrap } from 'comlink';
 
+vi.mock('../../context/ToastContext', () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 // Mock del Worker
 class MockWorker {
   terminate = vi.fn();

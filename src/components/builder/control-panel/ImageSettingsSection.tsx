@@ -6,6 +6,7 @@ import { Label } from '../../ui/Label';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../utils/cn';
+import { MAX_MAPS_TOTAL } from '../../../utils/memory';
 
 interface SectionProps {
     isOpen?: boolean;
@@ -14,11 +15,27 @@ interface SectionProps {
 
 export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
-        gridDimensions, setGridDimensions,
+        gridDimensions, setGridDimensions, memoryEstimate,
         imageFitMode, setImageFitMode,
         cropSettings, setCropSettings, resetCropSettings,
         imageSettings, setImageSettings
     } = useMapart();
+
+    const riskColor = memoryEstimate.riskLevel === 'low'
+        ? 'text-emerald-400'
+        : memoryEstimate.riskLevel === 'medium'
+            ? 'text-amber-400'
+            : memoryEstimate.riskLevel === 'high'
+                ? 'text-orange-400'
+                : 'text-red-400';
+
+    const barColor = memoryEstimate.riskLevel === 'low'
+        ? 'bg-emerald-500'
+        : memoryEstimate.riskLevel === 'medium'
+            ? 'bg-amber-500'
+            : memoryEstimate.riskLevel === 'high'
+                ? 'bg-orange-500'
+                : 'bg-red-500';
 
     return (
         <CollapsibleSection
@@ -34,7 +51,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-zinc-600 font-semibold uppercase">Maps X</span>
                         <Input
-                            type="number" min="1" max="100"
+                            type="number" min="1" max={MAX_MAPS_TOTAL}
                             value={gridDimensions.x}
                             onChange={(e) => setGridDimensions({ ...gridDimensions, x: Math.max(1, parseInt(e.target.value) || 1) })}
                             className="font-mono h-8 text-xs"
@@ -43,12 +60,37 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-zinc-600 font-semibold uppercase">Maps Y</span>
                         <Input
-                            type="number" min="1" max="100"
+                            type="number" min="1" max={MAX_MAPS_TOTAL}
                             value={gridDimensions.y}
                             onChange={(e) => setGridDimensions({ ...gridDimensions, y: Math.max(1, parseInt(e.target.value) || 1) })}
                             className="font-mono h-8 text-xs"
                         />
                     </div>
+                </div>
+
+                {/* Memory Estimate */}
+                <div className="p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs text-zinc-500 font-semibold uppercase">Memory Estimate</span>
+                        <span className={`text-xs font-mono font-bold ${riskColor}`}>
+                            ~{memoryEstimate.estimatedMB} MB
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-zinc-500">
+                        <span>{memoryEstimate.width} × {memoryEstimate.height} px</span>
+                        <span>{memoryEstimate.totalMaps} / {MAX_MAPS_TOTAL} maps</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-200 ${barColor}`}
+                            style={{ width: `${memoryEstimate.usagePercent}%` }}
+                        />
+                    </div>
+                    {memoryEstimate.exceedsSoftLimit && (
+                        <span className="text-xs text-amber-400/80">
+                            ⚠ High memory usage — may slow down your browser
+                        </span>
+                    )}
                 </div>
             </div>
 

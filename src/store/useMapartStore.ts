@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
+import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
@@ -88,6 +89,8 @@ export interface MapartState {
     imageSettings: ImageSettings;
     /** Layout grid size in maps */
     gridDimensions: GridDimensions;
+    /** Estimated memory usage for current grid configuration */
+    memoryEstimate: MemoryEstimate;
     /** Output build layout strategy (2D flat vs 3D valley steps) */
     buildMode: BuildMode;
     /** Support block placement strategy */
@@ -174,6 +177,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     paletteVersion: DEFAULT_VERSION,
     imageSettings: { saturation: 100, brightness: 0, contrast: 0 },
     gridDimensions: { x: 1, y: 1 },
+    memoryEstimate: estimateMemoryUsage(1, 1),
     buildMode: '3d_valley',
     blockSupport: 'all',
     supportBlockId: 'minecraft:cobblestone',
@@ -205,10 +209,14 @@ export const useMapartStore = create<MapartState>((set) => ({
     setImageSettings: (settings) => set((state) => ({
         imageSettings: typeof settings === 'function' ? settings(state.imageSettings) : { ...state.imageSettings, ...settings }
     })),
-    setGridDimensions: (dim) => set({
-        gridDimensions: dim,
-        manualEdits: {}, // Clear manual edits on grid dimensions change to prevent misalignment / out-of-bounds indices
-        history: [], historyIndex: 0
+    setGridDimensions: (dim) => set((state) => {
+        const clamped = clampGridDimensions(dim.x, dim.y, state.gridDimensions.x, state.gridDimensions.y);
+        return {
+            gridDimensions: clamped,
+            memoryEstimate: estimateMemoryUsage(clamped.x, clamped.y),
+            manualEdits: {}, // Clear manual edits on grid dimensions change to prevent misalignment / out-of-bounds indices
+            history: [], historyIndex: 0
+        };
     }),
     setBuildMode: (mode) => set({
         buildMode: mode

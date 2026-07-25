@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import { usePreviewState } from './usePreviewState';
@@ -10,6 +10,8 @@ import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
 import type { ProcessingResult, ManualEdit } from './types';
 import { clearTextureCache } from '../components/builder/3d/textureAtlas';
+import { SOFT_LIMIT_MAPS } from '../utils/memory';
+import { useToast } from '../context/ToastContext';
 
 export interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -72,6 +74,8 @@ export const useMapartWorker = ({
     exportFormat,
 }: UseMapartWorkerProps) => {
     const { workerApiRef, isProcessingRef, workerImageVersionRef } = useWorkerManager();
+    const { showToast } = useToast();
+    const warnedRef = useRef(false);
 
     const {
         sourcePreviewImageData, setSourcePreviewImageData,
@@ -138,6 +142,20 @@ export const useMapartWorker = ({
         () => Object.values(selectedPaletteItems).some(value => value !== null),
         [selectedPaletteItems]
     );
+
+    useEffect(() => {
+        const totalMaps = gridDimensions.x * gridDimensions.y;
+        if (totalMaps > SOFT_LIMIT_MAPS && !warnedRef.current) {
+            warnedRef.current = true;
+            showToast(
+                `Grid de ${totalMaps} mapas consumirá ~${Math.round(totalMaps * 1.6)} MB de RAM. Puede ralentizar el navegador.`,
+                'warning',
+                8000
+            );
+        } else if (totalMaps <= SOFT_LIMIT_MAPS) {
+            warnedRef.current = false;
+        }
+    }, [gridDimensions.x, gridDimensions.y, showToast]);
 
     // A new source identity or resolution invalidates every result derived from
     // the previous image immediately, before the next decode/process completes.
