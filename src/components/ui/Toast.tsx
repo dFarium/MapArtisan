@@ -1,19 +1,32 @@
-import { useState, useCallback, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { ToastContext, type Toast } from '../../context/ToastContext';
 
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+    useEffect(() => {
+        const timers = timersRef.current;
+        return () => {
+            for (const timer of timers.values()) {
+                clearTimeout(timer);
+            }
+            timers.clear();
+        };
+    }, []);
 
     const showToast = useCallback((message: string, type: Toast['type'] = 'info', duration = 5000) => {
         const id = Math.random().toString(36).slice(2);
         setToasts(prev => [...prev, { id, message, type, duration }]);
 
         if (duration > 0) {
-            setTimeout(() => {
+            const timer = setTimeout(() => {
+                timersRef.current.delete(id);
                 setToasts(prev => prev.filter(t => t.id !== id));
             }, duration);
+            timersRef.current.set(id, timer);
         }
     }, []);
 

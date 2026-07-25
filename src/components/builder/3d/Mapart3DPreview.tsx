@@ -1,4 +1,4 @@
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
@@ -188,6 +188,7 @@ const MapartMesh = ({
     const matricesRef = useRef<Float32Array | null>(null);
     const colorsRef = useRef<Float32Array | null>(null);
     const texLayersRef = useRef<Float32Array | null>(null);
+    const { gl: renderer } = useThree();
 
     // Subscribe only to palette-relevant state
     const selectedPaletteItems = useMapartStore(s => s.selectedPaletteItems);
@@ -363,16 +364,19 @@ if (vTexLayer >= 0.0) {
         }
 
         if (needsNewAttributes) {
-            // Free old GPU buffers by detaching their arrays (allows GC to reclaim memory early)
+            const props = renderer.properties;
+            // Dispose old GPU buffers so Three.js releases WebGL buffer objects
             if (mesh.instanceMatrix) {
-                mesh.instanceMatrix.array = new Float32Array(0);
+                props.remove(mesh.instanceMatrix);
+                mesh.instanceMatrix.dispose?.();
             }
             if (mesh.instanceColor) {
-                mesh.instanceColor.array = new Float32Array(0);
+                props.remove(mesh.instanceColor);
+                mesh.instanceColor.dispose?.();
             }
-            const oldTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.InstancedBufferAttribute;
+            const oldTexAttr = mesh.geometry.getAttribute('aTexLayer') as THREE.BufferAttribute;
             if (oldTexAttr) {
-                oldTexAttr.array = new Float32Array(0);
+                props.remove(oldTexAttr);
                 mesh.geometry.deleteAttribute('aTexLayer');
             }
 
@@ -413,7 +417,7 @@ if (vTexLayer >= 0.0) {
         mesh.count = count;
 
         mesh.computeBoundingSphere();
-    }, [geometry, mat]);
+    }, [geometry, mat, renderer]);
 
     // ── Load texture atlas asynchronously (doesn't block geometry render) ─────
     useEffect(() => {
@@ -454,11 +458,22 @@ if (vTexLayer >= 0.0) {
 
     // ── Dispose on unmount ─────────────────────────────────────────────────────
     useEffect(() => {
+        const mesh = meshRef.current;
+        const atlas = atlasRef.current;
+
         return () => {
             mat.dispose();
-            atlasRef.current?.dispose();
+            atlas?.dispose();
+
+            if (mesh?.instanceMatrix) renderer.properties.remove(mesh.instanceMatrix);
+            if (mesh?.instanceColor) renderer.properties.remove(mesh.instanceColor);
+            const geo = mesh?.geometry;
+            if (geo) {
+                const texAttr = geo.getAttribute('aTexLayer');
+                if (texAttr) renderer.properties.remove(texAttr as THREE.BufferAttribute);
+            }
         };
-    }, [mat]);
+    }, [mat, renderer]);
 
     return (
         <instancedMesh

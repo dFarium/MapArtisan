@@ -231,7 +231,7 @@ const api = {
         exportFormat: ExportFormat = 'litematic'
     ) => {
         let imageData: ImageData;
-        let precomputedPackedResults: Uint32Array | undefined = undefined;
+        let precomputedPackedResults: Uint32Array;
         const configKey = createProcessingConfigKey(
             width, height, version, buildMode, selectedPaletteItems,
             threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
@@ -239,14 +239,60 @@ const api = {
 
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-            console.log(`[Worker] Export: Image cache updated (v${version})`);
+
+            if (lastBaseResult?.configKey === configKey) {
+                precomputedPackedResults = lastBaseResult.packedResults;
+                console.log(`[Worker] Export: Using cached packedResults with new image buffer (v${version})`);
+            } else {
+                const result = processMapart(
+                    imageData, buildMode, selectedPaletteItems,
+                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
+                    lastBaseResult?.floatBuffer ?? null
+                );
+                lastBaseResult = {
+                    sourceImage: imageData,
+                    processedImage: result.imageData,
+                    packedResults: result.packedResults,
+                    candidates: result.candidates,
+                    stats: result.stats,
+                    heightPath: result.heightPath,
+                    toneMap: result.toneMap,
+                    floatBuffer: result.floatBuffer,
+                    width: result.imageData.width,
+                    height: result.imageData.height,
+                    buildMode,
+                    independentMaps,
+                    sourceVersion: version,
+                    configKey,
+                };
+                precomputedPackedResults = result.packedResults;
+                console.log(`[Worker] Export: Processed and cached (v${version})`);
+            }
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
             if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
                 console.log(`[Worker] Export: Using cached precomputed packedResults (v${version})`);
             } else {
-                console.log(`[Worker] Export: Cache version mismatch or not matching config (cached v${lastBaseResult.sourceVersion}, requested v${version}). Re-processing.`);
+                const result = processMapart(
+                    imageData, buildMode, selectedPaletteItems,
+                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
+                    lastBaseResult.floatBuffer
+                );
+                lastBaseResult = {
+                    ...lastBaseResult,
+                    processedImage: result.imageData,
+                    packedResults: result.packedResults,
+                    candidates: result.candidates,
+                    stats: result.stats,
+                    heightPath: result.heightPath,
+                    toneMap: result.toneMap,
+                    floatBuffer: result.floatBuffer,
+                    sourceVersion: version,
+                    configKey,
+                };
+                precomputedPackedResults = result.packedResults;
+                console.log(`[Worker] Export: Config changed, re-processed and cached (v${version})`);
             }
         } else {
             throw new Error("Export failed: No image data provided and no cache available.");
@@ -295,7 +341,7 @@ const api = {
         exportMode: 'full' | 'sections' = 'sections'
     ) => {
         let imageData: ImageData;
-        let precomputedPackedResults: Uint32Array | undefined = undefined;
+        let precomputedPackedResults: Uint32Array;
         const configKey = createProcessingConfigKey(
             width, height, version, buildMode, selectedPaletteItems,
             threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
@@ -303,13 +349,60 @@ const api = {
 
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
+
+            if (lastBaseResult?.configKey === configKey) {
+                precomputedPackedResults = lastBaseResult.packedResults;
+                console.log(`[Worker] Materials: Using cached packedResults with new image buffer (v${version})`);
+            } else {
+                const result = processMapart(
+                    imageData, buildMode, selectedPaletteItems,
+                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
+                    lastBaseResult?.floatBuffer ?? null
+                );
+                lastBaseResult = {
+                    sourceImage: imageData,
+                    processedImage: result.imageData,
+                    packedResults: result.packedResults,
+                    candidates: result.candidates,
+                    stats: result.stats,
+                    heightPath: result.heightPath,
+                    toneMap: result.toneMap,
+                    floatBuffer: result.floatBuffer,
+                    width: result.imageData.width,
+                    height: result.imageData.height,
+                    buildMode,
+                    independentMaps,
+                    sourceVersion: version,
+                    configKey,
+                };
+                precomputedPackedResults = result.packedResults;
+                console.log(`[Worker] Materials: Processed and cached (v${version})`);
+            }
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
             if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
                 console.log(`[Worker] Materials: Using cached precomputed packedResults (v${version})`);
             } else {
-                console.log(`[Worker] Materials: Cache version mismatch or not matching config (cached v${lastBaseResult.sourceVersion}, requested v${version}). Re-processing.`);
+                const result = processMapart(
+                    imageData, buildMode, selectedPaletteItems,
+                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
+                    lastBaseResult.floatBuffer
+                );
+                lastBaseResult = {
+                    ...lastBaseResult,
+                    processedImage: result.imageData,
+                    packedResults: result.packedResults,
+                    candidates: result.candidates,
+                    stats: result.stats,
+                    heightPath: result.heightPath,
+                    toneMap: result.toneMap,
+                    floatBuffer: result.floatBuffer,
+                    sourceVersion: version,
+                    configKey,
+                };
+                precomputedPackedResults = result.packedResults;
+                console.log(`[Worker] Materials: Config changed, re-processed and cached (v${version})`);
             }
         } else {
             throw new Error(`Material calculation failed: No image data provided and no cache available (v${version}).`);

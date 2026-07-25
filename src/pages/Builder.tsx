@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PaletteSidebar } from '../components/builder/PaletteSidebar';
 import { MainCanvas } from '../components/builder/MainCanvas';
 import { ControlPanel } from '../components/builder/ControlPanel';
@@ -10,12 +10,22 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 const Builder: React.FC = () => {
     const [isMaterialListOpen, setIsMaterialListOpen] = useState(false);
 
+    const previewUrl = useMapart(s => s.previewUrl);
+
+    useEffect(() => {
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
+
     // Register global keyboard shortcuts for tool switches and undo/redo
     useKeyboardShortcuts();
 
     // Lift worker state to Builder so we can share it
     const {
-        uploadedImage, previewUrl, gridDimensions,
+        uploadedImage, gridDimensions,
         imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength,
         setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion,
         exportFormat

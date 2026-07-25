@@ -8,6 +8,13 @@ import type { Build3DGeometryProps } from '../../../../utils/geometry/build3DGeo
 
 vi.mock('@react-three/fiber', () => ({
     Canvas: ({ children }: { children: ReactNode }) => <>{children}</>,
+    useThree: () => ({
+        gl: {
+            properties: {
+                remove: vi.fn(),
+            },
+        },
+    }),
 }));
 
 vi.mock('@react-three/drei', () => ({

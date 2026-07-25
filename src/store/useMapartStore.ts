@@ -6,6 +6,47 @@ export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
 
 /**
+ * Delta entry for undo/redo history.
+ * Stores only the changes made in a single stroke instead of a full snapshot.
+ */
+export interface HistoryDelta {
+    /** Edits that were added or modified in this step */
+    added: Record<number, ManualEdit>;
+    /** Indices of edits that were removed in this step */
+    removed: number[];
+}
+
+/** Maximum number of history entries to keep */
+const MAX_HISTORY_ENTRIES = 50;
+/** Approximate memory budget per history entry in bytes (soft limit) */
+const MAX_BYTES_PER_ENTRY = 2 * 1024 * 1024; // 2MB
+
+/** Estimate memory usage of a delta entry */
+function estimateDeltaSize(delta: HistoryDelta): number {
+    let size = 0;
+    for (const edit of Object.values(delta.added)) {
+        size += (edit.blockId?.length ?? 0) * 2 + 16 + (edit.brightness?.length ?? 0) * 2 + 12;
+    }
+    size += delta.removed.length * 4;
+    return size;
+}
+
+/** Replay deltas from the beginning up to (but not including) targetIndex */
+function replayDeltas(deltas: HistoryDelta[], targetIndex: number): Record<number, ManualEdit> {
+    const state: Record<number, ManualEdit> = {};
+    for (let i = 0; i < targetIndex; i++) {
+        const delta = deltas[i];
+        for (const idx of delta.removed) {
+            delete state[idx];
+        }
+        for (const [idx, edit] of Object.entries(delta.added)) {
+            state[Number(idx)] = edit as ManualEdit;
+        }
+    }
+    return state;
+}
+
+/**
  * Filter settings applied to the source image before processing.
  */
 export interface ImageSettings {
@@ -89,8 +130,8 @@ export interface MapartState {
     isPicking: boolean;
     /** The block template loaded in the paint brush */
     brushBlock: ManualEdit | null;
-    /** Undo history stack */
-    history: Record<number, ManualEdit>[];
+    /** Undo history stack (delta-based) */
+    history: HistoryDelta[];
     /** History index pointer */
     historyIndex: number;
 
@@ -122,7 +163,7 @@ export interface MapartState {
     setIsPainting: (isPainting: boolean) => void;
     setIsPicking: (isPicking: boolean) => void;
     setBrushBlock: (block: ManualEdit | null) => void;
-    addToHistory: () => void;
+    addToHistory: (edits: Record<number, ManualEdit>, deletions?: number[]) => void;
     undo: () => void;
     redo: () => void;
 }
@@ -156,7 +197,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     brushBlock: null,
 
     // History
-    history: [{}],
+    history: [],
     historyIndex: 0,
 
     // Actions
@@ -167,7 +208,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     setGridDimensions: (dim) => set({
         gridDimensions: dim,
         manualEdits: {}, // Clear manual edits on grid dimensions change to prevent misalignment / out-of-bounds indices
-        history: [{}], historyIndex: 0
+        history: [], historyIndex: 0
     }),
     setBuildMode: (mode) => set({
         buildMode: mode
@@ -185,18 +226,18 @@ export const useMapartStore = create<MapartState>((set) => ({
             URL.revokeObjectURL(state.previewUrl);
         }
         const url = file ? URL.createObjectURL(file) : null;
-        return { uploadedImage: file, previewUrl: url, manualEdits: {}, history: [{}], historyIndex: 0 };
+        return { uploadedImage: file, previewUrl: url, manualEdits: {}, history: [], historyIndex: 0 };
     }),
-    setImageFitMode: (mode) => set({ imageFitMode: mode, manualEdits: {}, history: [{}], historyIndex: 0 }),
+    setImageFitMode: (mode) => set({ imageFitMode: mode, manualEdits: {}, history: [], historyIndex: 0 }),
     setCropSettings: (settings) => set((state) => ({
         cropSettings: typeof settings === 'function' ? settings(state.cropSettings) : { ...state.cropSettings, ...settings },
         manualEdits: {}, // Clear edits on crop change
-        history: [{}], historyIndex: 0
+        history: [], historyIndex: 0
     })),
     resetCropSettings: () => set({
         cropSettings: { zoom: 1, offsetX: 0, offsetY: 0 },
         manualEdits: {},
-        history: [{}], historyIndex: 0
+        history: [], historyIndex: 0
     }),
     setSelectedPaletteItems: (items) => set((state) => ({
         selectedPaletteItems: typeof items === 'function' ? items(state.selectedPaletteItems) : items
@@ -229,37 +270,53 @@ export const useMapartStore = create<MapartState>((set) => ({
         delete newEdits[index];
         return { manualEdits: newEdits };
     }),
-    clearManualEdits: () => set({ manualEdits: {}, history: [{}], historyIndex: 0 }),
+    clearManualEdits: () => set({ manualEdits: {}, history: [], historyIndex: 0 }),
     setIsPainting: (isPainting) => set({ isPainting, isPicking: false }),
     setIsPicking: (isPicking) => set({ isPicking }),
     setBrushBlock: (block) => set({ brushBlock: block }),
 
-    addToHistory: () => set((state) => {
-        const newHistory = state.history.slice(0, state.historyIndex + 1);
-        newHistory.push(state.manualEdits);
-        // Limit history size if needed (e.g. 50)
-        if (newHistory.length > 50) newHistory.shift();
+    addToHistory: (edits, deletions) => set((state) => {
+        const delta: HistoryDelta = {
+            added: edits,
+            removed: deletions ?? [],
+        };
+
+        const size = estimateDeltaSize(delta);
+        if (size > MAX_BYTES_PER_ENTRY) {
+            // Skip storing this entry if it exceeds memory budget
+            return {};
+        }
+
+        const newHistory = state.history.slice(0, state.historyIndex);
+        newHistory.push(delta);
+
+        // Enforce entry limit
+        while (newHistory.length > MAX_HISTORY_ENTRIES) {
+            newHistory.shift();
+        }
 
         return {
             history: newHistory,
-            historyIndex: newHistory.length - 1
+            historyIndex: newHistory.length
         };
     }),
     undo: () => set((state) => {
         if (state.historyIndex > 0) {
             const newIndex = state.historyIndex - 1;
+            const manualEdits = replayDeltas(state.history, newIndex);
             return {
-                manualEdits: state.history[newIndex],
+                manualEdits,
                 historyIndex: newIndex
             };
         }
         return {};
     }),
     redo: () => set((state) => {
-        if (state.historyIndex < state.history.length - 1) {
+        if (state.historyIndex < state.history.length) {
             const newIndex = state.historyIndex + 1;
+            const manualEdits = replayDeltas(state.history, newIndex);
             return {
-                manualEdits: state.history[newIndex],
+                manualEdits,
                 historyIndex: newIndex
             };
         }

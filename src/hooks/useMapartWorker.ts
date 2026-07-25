@@ -9,6 +9,7 @@ import { useExportPipeline } from './useExportPipeline';
 import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
 import type { ProcessingResult, ManualEdit } from './types';
+import { clearTextureCache } from '../components/builder/3d/textureAtlas';
 
 export interface UseMapartWorkerProps {
     uploadedImage: File | null;
@@ -143,6 +144,7 @@ export const useMapartWorker = ({
     useEffect(() => {
         workerImageVersionRef.current = -1;
         void workerApiRef.current?.clearCache?.();
+        clearTextureCache();
         clearPreviewState();
         setPackedResults(null);
         setHeightPath(null);
@@ -166,6 +168,7 @@ export const useMapartWorker = ({
 
         workerImageVersionRef.current = -1;
         void workerApiRef.current?.clearCache?.();
+        clearTextureCache();
         setPreviewImageData(null);
         setPackedResults(null);
         setHeightPath(null);

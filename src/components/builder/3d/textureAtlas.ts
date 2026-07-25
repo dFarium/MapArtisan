@@ -1,6 +1,22 @@
 import * as THREE from 'three';
 
+const MAX_TEXTURE_CACHE = 256;
 const imageCache = new Map<string, HTMLImageElement | null>();
+
+function cacheSet(blockId: string, image: HTMLImageElement | null): void {
+    if (imageCache.has(blockId)) {
+        imageCache.delete(blockId);
+    } else if (imageCache.size >= MAX_TEXTURE_CACHE) {
+        const oldestKey = imageCache.keys().next().value;
+        if (oldestKey !== undefined) imageCache.delete(oldestKey);
+    }
+    imageCache.set(blockId, image);
+}
+
+/** Clears the entire texture cache and releases all image references. */
+export function clearTextureCache(): void {
+    imageCache.clear();
+}
 
 /** Loads block textures into a WebGL2 texture array and returns a cancellation handle. */
 export function loadTextureAtlas(
@@ -47,6 +63,7 @@ export function loadTextureAtlas(
 
     for (const blockId of blockIds) {
         if (imageCache.has(blockId)) {
+            cacheSet(blockId, imageCache.get(blockId)!);
             pending--;
             tryBuild();
             continue;
@@ -55,12 +72,12 @@ export function loadTextureAtlas(
         const name = blockId.replace(/^minecraft:/, '');
         const image = new Image();
         image.onload = () => {
-            imageCache.set(blockId, image);
+            cacheSet(blockId, image);
             pending--;
             tryBuild();
         };
         image.onerror = () => {
-            imageCache.set(blockId, null);
+            cacheSet(blockId, null);
             pending--;
             tryBuild();
         };

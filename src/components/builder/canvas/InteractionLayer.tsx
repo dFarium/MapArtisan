@@ -104,11 +104,10 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
         const hasPendingDeletions = pendingDeletionsRef.current.size > 0;
 
         if (hasPendingEdits || hasPendingDeletions) {
-            applyBatchEdits(
-                pendingEditsRef.current,
-                Array.from(pendingDeletionsRef.current)
-            );
-            addToHistory();
+            const edits = { ...pendingEditsRef.current };
+            const deletions = Array.from(pendingDeletionsRef.current);
+            applyBatchEdits(edits, deletions);
+            addToHistory(edits, deletions);
         }
 
         // Reset pending state
