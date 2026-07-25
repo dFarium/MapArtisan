@@ -148,7 +148,7 @@ export const useMapartWorker = ({
         if (totalMaps > SOFT_LIMIT_MAPS && !warnedRef.current) {
             warnedRef.current = true;
             showToast(
-                `Grid de ${totalMaps} mapas consumirá ~${Math.round(totalMaps * 1.6)} MB de RAM. Puede ralentizar el navegador.`,
+                `Grid of ${totalMaps} maps will use ~${Math.round(totalMaps * 1.6)} MB of RAM. Large grids may slow down your browser.`,
                 'warning',
                 8000
             );
