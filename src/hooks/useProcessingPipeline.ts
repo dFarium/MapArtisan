@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { WorkerRefs, ProcessingResult, ProcessingParams } from './types';
 import type { DitheringMode } from '../utils/processing';
 import type { MapartStats } from '../types/mapart';
-import { imageDataToBlobUrl } from './utils';
+import { LatestWinsQueue } from './latestWinsQueue';
 
 export interface UseProcessingPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
@@ -15,6 +15,7 @@ export interface UseProcessingPipelineProps extends WorkerRefs {
 }
 
 const DEBOUNCE_MS = 50;
+const EDIT_DEBOUNCE_MS = 50;
 
 /**
  * Hook que coordina el procesamiento pesado (cuantización) y ligero (edits manuales).
@@ -49,6 +50,10 @@ export function useProcessingPipeline({
     const onResultRef = useRef(onResult);
     const onStatsUpdateRef = useRef(onStatsUpdate);
     const paramsRef = useRef(params);
+    const processingRequestIdRef = useRef(0);
+    const editsRequestIdRef = useRef(0);
+    const editsQueueRef = useRef<Promise<void>>(Promise.resolve());
+    const [heavyQueue] = useState(() => new LatestWinsQueue());
 
     useEffect(() => {
         onResultRef.current = onResult;
@@ -63,13 +68,26 @@ export function useProcessingPipeline({
     }, [params]);
 
     useEffect(() => {
-        if (!sourceImageDataRef.current || !workerApiRef.current) return;
+        const requestId = ++processingRequestIdRef.current;
+
+        if (!sourceImageDataRef.current || !workerApiRef.current) {
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+            return;
+        }
+
+        let active = true;
 
         const timerId = setTimeout(() => {
             const hasSelection = Object.values(paramsRef.current.selectedPaletteItems).some(v => v !== null);
-            if (!hasSelection) return;
-
-            let active = true;
+            if (!hasSelection) {
+                heavyQueue.clearPending();
+                if (processingRequestIdRef.current === requestId) {
+                    isProcessingRef.current = false;
+                    setIsProcessing(false);
+                }
+                return;
+            }
 
             const process = async (retryWithBuffer = false) => {
                 const startTime = performance.now();
@@ -104,7 +122,7 @@ export function useProcessingPipeline({
                         independentMaps
                     );
 
-                    if (!active) return;
+                    if (!active || processingRequestIdRef.current !== requestId) return;
 
                     if (result.error === 'CACHE_MISS') {
                         console.warn('[useProcessingPipeline] Worker cache miss, retrying with buffer...');
@@ -117,24 +135,19 @@ export function useProcessingPipeline({
 
                     const editsResult = await api.applyEdits(manualEdits);
 
-                    if (!active) return;
+                    if (!active || processingRequestIdRef.current !== requestId) return;
                     if (editsResult.version !== currentVersion) return;
 
                     const processedData = editsResult.imageData;
                     const finalStats = editsResult.stats;
                     const finalPackedResults = editsResult.packedResults;
-                    const finalHeightPath = result.heightPath ?? null;
-
-                    const blobUrl = await imageDataToBlobUrl(processedData);
-
-                    if (!active) return;
+                    const finalHeightPath = editsResult.heightPath ?? result.heightPath ?? null;
 
                     onResultRef.current({
                         imageData: processedData,
                         stats: finalStats,
                         packedResults: finalPackedResults,
                         heightPath: finalHeightPath,
-                        blobUrl,
                     });
 
                     onStatsUpdateRef.current(finalStats);
@@ -144,23 +157,20 @@ export function useProcessingPipeline({
                     const endTime = performance.now();
                     console.log(`[useProcessingPipeline] E2E Mapart generation (v${currentVersion}) complete in ${(endTime - startTime).toFixed(1)}ms`);
                 } catch (err) {
-                    if (active) console.error('Heavy processing failed', err);
+                    if (active && processingRequestIdRef.current === requestId) console.error('Heavy processing failed', err);
                 } finally {
-                    if (active) {
+                    if (active && processingRequestIdRef.current === requestId) {
                         setIsProcessing(false);
                         isProcessingRef.current = false;
                     }
                 }
             };
 
-            process();
-
-            return () => {
-                active = false;
-            };
+            heavyQueue.enqueue(process);
         }, DEBOUNCE_MS);
 
         return () => {
+            active = false;
             clearTimeout(timerId);
         };
     }, [
@@ -178,14 +188,23 @@ export function useProcessingPipeline({
         isProcessingRef,
         workerImageVersionRef,
         sourceImageDataRef,
+        heavyQueue,
     ]);
 
     useEffect(() => {
-        if (!workerApiRef.current || isProcessingRef.current) return;
+        if (!workerApiRef.current || isProcessingRef.current || heavyQueue.isRunning) return;
 
+        const requestId = ++editsRequestIdRef.current;
+        const processingRequestId = processingRequestIdRef.current;
         let active = true;
 
         const applyEditsOnly = async () => {
+            if (
+                !active ||
+                requestId !== editsRequestIdRef.current ||
+                isProcessingRef.current ||
+                heavyQueue.isRunning
+            ) return;
             try {
                 const currentVersion = sourceImageVersion;
                 if (workerImageVersionRef.current !== currentVersion) return;
@@ -193,34 +212,42 @@ export function useProcessingPipeline({
                 const api = workerApiRef.current!;
                 const result = await api.applyEdits(paramsRef.current.manualEdits);
 
-                if (!active) return;
+                if (
+                    !active ||
+                    requestId !== editsRequestIdRef.current ||
+                    processingRequestId !== processingRequestIdRef.current
+                ) return;
                 if (result.version !== currentVersion) return;
 
-                const { imageData: processedData, stats: finalStats, packedResults: finalPackedResults } = result;
-
-                const blobUrl = await imageDataToBlobUrl(processedData);
-
-                if (!active) return;
+                const {
+                    imageData: processedData,
+                    stats: finalStats,
+                    packedResults: finalPackedResults,
+                    heightPath: finalHeightPath,
+                } = result;
 
                 onResultRef.current({
                     imageData: processedData,
                     stats: finalStats,
                     packedResults: finalPackedResults,
-                    heightPath: null,
-                    blobUrl,
+                    heightPath: finalHeightPath,
                 });
 
                 onStatsUpdateRef.current(finalStats);
                 setPackedResults(finalPackedResults);
+                setHeightPath(finalHeightPath);
             } catch (e) {
                 console.error('Light processing failed', e);
             }
         };
 
-        applyEditsOnly();
+        const timerId = setTimeout(() => {
+            editsQueueRef.current = editsQueueRef.current.then(applyEditsOnly, applyEditsOnly);
+        }, EDIT_DEBOUNCE_MS);
 
         return () => {
             active = false;
+            clearTimeout(timerId);
         };
     }, [
         params.manualEdits,
@@ -230,6 +257,7 @@ export function useProcessingPipeline({
         workerApiRef,
         isProcessingRef,
         workerImageVersionRef,
+        heavyQueue,
     ]);
 
     return {

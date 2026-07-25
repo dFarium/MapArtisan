@@ -14,7 +14,6 @@ export interface ProcessingResult {
     stats: MapartStats;
     packedResults: Uint32Array;
     heightPath: Int32Array | null;
-    blobUrl: string;
 }
 
 export interface ProcessingParams {

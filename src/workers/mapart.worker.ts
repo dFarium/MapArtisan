@@ -1,8 +1,38 @@
 import { expose, transfer } from 'comlink';
-import { processMapart, applyManualEdits, unpackCandidateIdx, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
+import { processMapart, applyManualEdits, unpackCandidateIdx, clearColorCache, clearLabCache, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
+
+export function createProcessingConfigKey(
+    width: number,
+    height: number,
+    version: number,
+    buildMode: BuildMode,
+    selectedPaletteItems: Record<number, string | null>,
+    threeDPrecision: number,
+    dithering: DitheringMode,
+    usePerceptual: boolean,
+    hybridStrength: number,
+    independentMaps: boolean
+): string {
+    const palette = Object.entries(selectedPaletteItems)
+        .map(([index, blockId]) => [Number(index), blockId] as const)
+        .sort(([a], [b]) => a - b);
+
+    return JSON.stringify([
+        version,
+        width,
+        height,
+        buildMode,
+        palette,
+        threeDPrecision,
+        dithering,
+        usePerceptual,
+        hybridStrength,
+        independentMaps,
+    ]);
+}
 
 /**
  * In-memory thread state caching the results of the last base color quantization.
@@ -23,10 +53,18 @@ let lastBaseResult: {
     width: number;
     height: number;
     buildMode: BuildMode;
+    independentMaps: boolean;
     sourceVersion: number;
+    configKey: string;
 } | null = null;
 
 const api = {
+    clearCache: (): void => {
+        lastBaseResult = null;
+        clearColorCache();
+        clearLabCache();
+    },
+
     /**
      * Performs color matching, error diffusion, and height profile calculations.
      * Caches the results in thread memory to accelerate subsequent paint actions.
@@ -58,6 +96,10 @@ const api = {
     ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array; heightPath?: Int32Array | null } => {
 
         let sourceImage: ImageData;
+        const configKey = createProcessingConfigKey(
+            width, height, version, buildMode, selectedPaletteItems,
+            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
+        );
 
         if (imageDataBuffer) {
             // New image data provided, update cache
@@ -65,7 +107,13 @@ const api = {
             console.log(`[Worker] Source Image Updated. Version: ${version}`);
         } else {
             // No buffer provided, check cache
-            if (!lastBaseResult || !lastBaseResult.sourceImage) {
+            if (
+                !lastBaseResult ||
+                !lastBaseResult.sourceImage ||
+                lastBaseResult.sourceVersion !== version ||
+                lastBaseResult.width !== width ||
+                lastBaseResult.height !== height
+            ) {
                 console.warn(`[Worker] Cache miss: No cached source available for version ${version}`);
                 return { error: 'CACHE_MISS', version };
             }
@@ -97,7 +145,9 @@ const api = {
             width: result.imageData.width,
             height: result.imageData.height,
             buildMode,
-            sourceVersion: version
+            independentMaps,
+            sourceVersion: version,
+            configKey
         };
 
         // Transfer large arrays to avoid cloning, but we MUST return a CLONE 
@@ -125,7 +175,7 @@ const api = {
      * 
      * @param manualEdits Map of indices to manual painted color overrides.
      */
-    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; packedResults: Uint32Array } => {
+    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; heightPath: Int32Array | null } => {
         if (!lastBaseResult) {
             throw new Error("No base mapart processed yet. Call processMapart first.");
         }
@@ -136,21 +186,22 @@ const api = {
             manualEdits,
             lastBaseResult.buildMode,
             lastBaseResult.candidates,
-            lastBaseResult.toneMap
+            lastBaseResult.toneMap,
+            lastBaseResult.independentMaps
         );
 
-        // Update cached toneMap with the new one from the result
-        lastBaseResult.toneMap = result.toneMap;
-
         // Here we can transfer directly because applyManualEdits created fresh buffers for result.
+        const transferList: Transferable[] = [result.imageData.data.buffer, result.packedResults.buffer];
+        if (result.heightPath) transferList.push(result.heightPath.buffer);
         return transfer(
             {
                 version: lastBaseResult.sourceVersion,
                 imageData: result.imageData,
                 stats: result.stats,
-                packedResults: result.packedResults
+                packedResults: result.packedResults,
+                heightPath: result.heightPath
             },
-            [result.imageData.data.buffer, result.packedResults.buffer]
+            transferList
         );
     },
 
@@ -181,13 +232,17 @@ const api = {
     ) => {
         let imageData: ImageData;
         let precomputedPackedResults: Uint32Array | undefined = undefined;
+        const configKey = createProcessingConfigKey(
+            width, height, version, buildMode, selectedPaletteItems,
+            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
+        );
 
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
             console.log(`[Worker] Export: Image cache updated (v${version})`);
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
-            if (lastBaseResult.sourceVersion === version && lastBaseResult.buildMode === buildMode) {
+            if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
                 console.log(`[Worker] Export: Using cached precomputed packedResults (v${version})`);
             } else {
@@ -241,12 +296,16 @@ const api = {
     ) => {
         let imageData: ImageData;
         let precomputedPackedResults: Uint32Array | undefined = undefined;
+        const configKey = createProcessingConfigKey(
+            width, height, version, buildMode, selectedPaletteItems,
+            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
+        );
 
         if (imageDataBuffer) {
             imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
-            if (lastBaseResult.sourceVersion === version && lastBaseResult.buildMode === buildMode) {
+            if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
                 console.log(`[Worker] Materials: Using cached precomputed packedResults (v${version})`);
             } else {

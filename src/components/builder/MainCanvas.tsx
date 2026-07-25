@@ -10,6 +10,7 @@ import { ManualEditsOverlay } from './canvas/ManualEditsOverlay';
 import { PixelGridOverlay } from './canvas/PixelGridOverlay';
 import { InteractionLayer } from './canvas/InteractionLayer';
 import { InteractionHints } from './canvas/InteractionHints';
+import { ImageDataCanvas } from './canvas/ImageDataCanvas';
 
 // Lazy load heavy 3D preview
 const Mapart3DPreview = lazy(() => import('./3d/Mapart3DPreview').then(m => ({ default: m.Mapart3DPreview })));
@@ -20,7 +21,7 @@ interface MainCanvasProps {
 
 export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const {
-        uploadedImage, setUploadedImage, previewUrl, gridDimensions,
+        uploadedImage, setUploadedImage, gridDimensions,
         selectedPaletteItems,
         mapartStats,
         blockSupport,
@@ -34,11 +35,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     // Use passed worker state
     const {
         isProcessing,
-        scaledPreviewUrl,
+        sourcePreviewImageData,
         previewImageData: workerImageData,
         packedResults,
         heightPath,
-        originalTransformedUrl,
         mapartResolution,
         isExporting,
         exportMapart,
@@ -54,10 +54,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         handleExportSchematic,
         handleDownloadPreview
     } = useCanvasActions({
-        scaledPreviewUrl,
         isExporting,
         exportFormat,
         gridDimensions,
+        exportMode,
         exportMapart,
         workerImageData
     });
@@ -66,7 +66,6 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
     const isPainting = useMapart(s => s.isPainting);
 
     const containerRef = useRef<HTMLDivElement>(null);
-    const imageRef = useRef<HTMLImageElement>(null);
 
     // UI State (Moved up for calc)
     const [showOriginal, setShowOriginal] = useState(true);
@@ -120,12 +119,12 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         onToggle3D={handleToggle3D}
                         is3DMode={is3DMode}
                         onExport={handleExportSchematic}
-                        canExport={!!scaledPreviewUrl && hasSelection}
+                        canExport={!!workerImageData && hasSelection}
                         onClearImage={() => setUploadedImage(null)}
                         isProcessing={isProcessing}
                         isExporting={isExporting}
                         onDownloadPreview={handleDownloadPreview}
-                        canDownloadPreview={!!scaledPreviewUrl}
+                        canDownloadPreview={!!workerImageData}
                         isPainting={isPainting}
                         exportFormat={exportFormat}
                     />
@@ -178,15 +177,12 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                             >
                                 {/* ... content ... */}
                                 {/* Original Image */}
-                                {showOriginal && (
+                                {showOriginal && sourcePreviewImageData && (
                                     <div className="relative">
                                         <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
-                                        <img
-                                            ref={imageRef}
-                                            src={originalTransformedUrl || previewUrl!}
-                                            alt="Original"
+                                        <ImageDataCanvas
+                                            imageData={sourcePreviewImageData}
                                             className="max-w-none pointer-events-none select-none ring-1 ring-zinc-600 rendering-pixelated"
-                                            draggable={false}
                                             style={{
                                                 width: mapartResolution.width,
                                                 height: mapartResolution.height,
@@ -197,7 +193,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 )}
 
                                 {/* Mapart Preview */}
-                                {scaledPreviewUrl && (
+                                {workerImageData && (
                                     <div className="relative group">
 
                                         {/* Interaction Layer (Painting, Hover) - Isolated Render */}
@@ -217,11 +213,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                         </div>
 
                                         <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-green-500 font-semibold">Map Art Preview</div>
-                                        <img
-                                            src={scaledPreviewUrl}
-                                            alt="Map Art Preview"
+                                        <ImageDataCanvas
+                                            imageData={workerImageData}
                                             className="max-w-none pointer-events-none select-none ring-1 ring-green-600/50 rendering-pixelated"
-                                            draggable={false}
                                             style={{
                                                 width: mapartResolution.width,
                                                 height: mapartResolution.height,

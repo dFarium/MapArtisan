@@ -146,6 +146,47 @@ export function createLitematicaNBT(
 
     // Create NBT structure
     const now = Date.now();
+    const metadataCompound: NBTCompound = {
+        TimeCreated: {
+            type: TagTypes.LONG,
+            value: [Math.floor(now / 0x100000000), now % 0x100000000],
+        },
+        TimeModified: {
+            type: TagTypes.LONG,
+            value: [Math.floor(now / 0x100000000), now % 0x100000000],
+        },
+        EnclosingSize: {
+            type: TagTypes.COMPOUND,
+            value: {
+                x: { type: TagTypes.INT, value: maxX },
+                y: { type: TagTypes.INT, value: maxY },
+                z: { type: TagTypes.INT, value: maxZ },
+            },
+        },
+        Description: {
+            type: TagTypes.STRING,
+            value: metadata.description || 'MapArt created by MapArtisan',
+        },
+        RegionCount: { type: TagTypes.INT, value: 1 },
+        TotalBlocks: { type: TagTypes.INT, value: buffers.count },
+        Author: {
+            type: TagTypes.STRING,
+            value: metadata.author || 'MapArtisan',
+        },
+        TotalVolume: { type: TagTypes.INT, value: volume },
+        Name: {
+            type: TagTypes.STRING,
+            value: metadata.name || 'MapArt',
+        },
+    };
+
+    if (metadata.previewImageBase64) {
+        metadataCompound.PreviewImageDataAsString = {
+            type: TagTypes.STRING,
+            value: metadata.previewImageBase64,
+        };
+    }
+
     const nbt: NBTRoot = {
         name: '',
         value: {
@@ -153,39 +194,7 @@ export function createLitematicaNBT(
             Version: { type: TagTypes.INT, value: LITEMATICA_VERSION },
             Metadata: {
                 type: TagTypes.COMPOUND,
-                value: {
-                    TimeCreated: {
-                        type: TagTypes.LONG,
-                        value: [Math.floor(now / 0x100000000), now % 0x100000000],
-                    },
-                    TimeModified: {
-                        type: TagTypes.LONG,
-                        value: [Math.floor(now / 0x100000000), now % 0x100000000],
-                    },
-                    EnclosingSize: {
-                        type: TagTypes.COMPOUND,
-                        value: {
-                            x: { type: TagTypes.INT, value: maxX },
-                            y: { type: TagTypes.INT, value: maxY },
-                            z: { type: TagTypes.INT, value: maxZ },
-                        },
-                    },
-                    Description: {
-                        type: TagTypes.STRING,
-                        value: metadata.description || 'MapArt created by MapArtisan',
-                    },
-                    RegionCount: { type: TagTypes.INT, value: 1 },
-                    TotalBlocks: { type: TagTypes.INT, value: buffers.count },
-                    Author: {
-                        type: TagTypes.STRING,
-                        value: metadata.author || 'MapArtisan',
-                    },
-                    TotalVolume: { type: TagTypes.INT, value: volume },
-                    Name: {
-                        type: TagTypes.STRING,
-                        value: metadata.name || 'MapArt',
-                    },
-                },
+                value: metadataCompound,
             },
             Regions: {
                 type: TagTypes.COMPOUND,

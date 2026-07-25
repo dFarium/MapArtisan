@@ -1,48 +1,29 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
-/**
- * Hook para manejar el estado de previews de mapart.
- * 
- * Consolidación del manejo de:
- * - scaledPreviewUrl: URL de la imagen procesada (baja resolución, PNG)
- * - originalTransformedUrl: URL de la imagen original con filtros (alta resolución, JPEG)
- * - previewImageData: ImageData de la imagen procesada
- * - sourceImageVersion: contador de versiones para tracking de cambios
- * 
- * Reemplaza el manejo disperso de estos estados en useMapartWorker.ts.
- */
+/** Owns the source and processed ImageData references displayed by the builder. */
 export const usePreviewState = () => {
-    const [scaledPreviewUrl, setScaledPreviewUrl] = useState<string | null>(null);
-    const [originalTransformedUrl, setOriginalTransformedUrl] = useState<string | null>(null);
+    const [sourcePreviewImageData, setSourcePreviewImageData] = useState<ImageData | null>(null);
     const [previewImageData, setPreviewImageData] = useState<ImageData | null>(null);
     const [sourceImageVersion, setSourceImageVersion] = useState(0);
 
     const incrementSourceImageVersion = useCallback(() => {
-        setSourceImageVersion(v => v + 1);
+        setSourceImageVersion(version => version + 1);
     }, []);
 
     const clearAll = useCallback(() => {
-        setScaledPreviewUrl(null);
-        setOriginalTransformedUrl(null);
+        setSourcePreviewImageData(null);
         setPreviewImageData(null);
-        setSourceImageVersion(0);
-    }, []);
-
-    const clearUrls = useCallback(() => {
-        setScaledPreviewUrl(null);
-        setOriginalTransformedUrl(null);
+        // Keep the version monotonic so a new image cannot match stale worker data.
+        setSourceImageVersion(version => version + 1);
     }, []);
 
     return {
-        scaledPreviewUrl,
-        originalTransformedUrl,
+        sourcePreviewImageData,
         previewImageData,
         sourceImageVersion,
-        setScaledPreviewUrl,
-        setOriginalTransformedUrl,
+        setSourcePreviewImageData,
         setPreviewImageData,
         incrementSourceImageVersion,
         clearAll,
-        clearUrls
     };
 };

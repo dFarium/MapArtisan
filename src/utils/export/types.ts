@@ -26,4 +26,8 @@ export interface LitematicaMetadata {
     author?: string;
     name?: string;
     description?: string;
+    /** PNG preview image as Base64-encoded string (single map) */
+    previewImageBase64?: string;
+    /** Per-section PNG previews as Base64, keyed by "sX_sY" (multi-map sections) */
+    sectionPreviews?: Record<string, string>;
 }

@@ -9,11 +9,10 @@ exports[`useMapartWorker E2E > API pública > mantiene estructura de retorno con
   "isExporting",
   "isProcessing",
   "mapartResolution",
-  "originalTransformedUrl",
   "packedResults",
   "pickBlock",
   "previewImageData",
-  "scaledPreviewUrl",
+  "sourcePreviewImageData",
 ]
 `;
 
@@ -29,11 +28,10 @@ exports[`useMapartWorker E2E > snapshot regression > mantiene estructura de API 
     "isExporting",
     "isProcessing",
     "mapartResolution",
-    "originalTransformedUrl",
     "packedResults",
     "pickBlock",
     "previewImageData",
-    "scaledPreviewUrl",
+    "sourcePreviewImageData",
   ],
   "mapartResolution": {
     "height": 128,

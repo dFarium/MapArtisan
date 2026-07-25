@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
 import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
 import { usePreviewState } from './usePreviewState';
@@ -73,8 +73,7 @@ export const useMapartWorker = ({
     const { workerApiRef, isProcessingRef, workerImageVersionRef } = useWorkerManager();
 
     const {
-        scaledPreviewUrl, setScaledPreviewUrl,
-        originalTransformedUrl, setOriginalTransformedUrl,
+        sourcePreviewImageData, setSourcePreviewImageData,
         previewImageData, setPreviewImageData,
         sourceImageVersion, incrementSourceImageVersion,
         clearAll: clearPreviewState
@@ -92,19 +91,10 @@ export const useMapartWorker = ({
         cropSettings,
         imageSettings,
         previewState: {
-            setScaledPreviewUrl,
-            setOriginalTransformedUrl,
+            setSourcePreviewImageData,
             incrementSourceImageVersion,
         },
     });
-
-    const [prevPreviewUrl, setPrevPreviewUrl] = useState<string | null>(null);
-    if (previewUrl !== prevPreviewUrl) {
-        setPrevPreviewUrl(previewUrl);
-        if (!previewUrl) {
-            clearPreviewState();
-        }
-    }
 
     const processingParams = useMemo(() => ({
         buildMode,
@@ -118,9 +108,8 @@ export const useMapartWorker = ({
     }), [buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits]);
 
     const handleProcessingResult = useCallback((result: ProcessingResult) => {
-        setScaledPreviewUrl(result.blobUrl);
         setPreviewImageData(result.imageData);
-    }, [setScaledPreviewUrl, setPreviewImageData]);
+    }, [setPreviewImageData]);
 
     const handleStatsUpdate = useCallback((stats: MapartStats) => {
         setMapartStats(stats);
@@ -144,10 +133,53 @@ export const useMapartWorker = ({
         onStatsUpdate: handleStatsUpdate,
     });
 
-    if (!previewUrl && (packedResults !== null || heightPath !== null)) {
+    const hasSelection = useMemo(
+        () => Object.values(selectedPaletteItems).some(value => value !== null),
+        [selectedPaletteItems]
+    );
+
+    // A new source identity or resolution invalidates every result derived from
+    // the previous image immediately, before the next decode/process completes.
+    useEffect(() => {
+        workerImageVersionRef.current = -1;
+        void workerApiRef.current?.clearCache?.();
+        clearPreviewState();
         setPackedResults(null);
         setHeightPath(null);
-    }
+        setMapartStats(null);
+    }, [
+        previewUrl,
+        gridDimensions.x,
+        gridDimensions.y,
+        workerApiRef,
+        workerImageVersionRef,
+        clearPreviewState,
+        setPackedResults,
+        setHeightPath,
+        setMapartStats,
+    ]);
+
+    // With no palette there is no valid processed result. Keep only the bounded
+    // source preview and release worker/main-thread processing buffers.
+    useEffect(() => {
+        if (hasSelection || !previewUrl) return;
+
+        workerImageVersionRef.current = -1;
+        void workerApiRef.current?.clearCache?.();
+        setPreviewImageData(null);
+        setPackedResults(null);
+        setHeightPath(null);
+        setMapartStats(null);
+    }, [
+        hasSelection,
+        previewUrl,
+        workerApiRef,
+        workerImageVersionRef,
+        setPreviewImageData,
+        setPackedResults,
+        setHeightPath,
+        setMapartStats,
+    ]);
 
     const exportParams = useMemo(() => ({
         ...processingParams,
@@ -179,11 +211,10 @@ export const useMapartWorker = ({
     return {
         isProcessing,
         isExporting,
-        scaledPreviewUrl,
+        sourcePreviewImageData,
         previewImageData,
         packedResults,
         heightPath,
-        originalTransformedUrl,
         mapartResolution,
         exportMapart,
         calculateMaterials,

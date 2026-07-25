@@ -254,12 +254,16 @@ export async function generateMapartExport(
                     count: section.writePtr
                 };
 
+                const sectionKey = `${sX}_${sY}`;
+                const sectionPreview = metadata.sectionPreviews?.[sectionKey];
+
                 const sectionNbt = isNbt
                     ? createVanillaNBT(blocksBuffer, metadata, targetVersion)
                     : createLitematicaNBT(blocksBuffer, {
                         ...metadata,
                         name: `${metadata.name || 'MapArt'} (${sX},${sY})`,
-                        description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`
+                        description: `Section ${sX},${sY} - ${metadata.description || 'MapArt created by MapArtisan'}`,
+                        previewImageBase64: sectionPreview,
                     }, targetVersion);
 
                 const sectionBuffer = serializeNBT(sectionNbt);

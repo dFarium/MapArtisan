@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useMapartWorker } from '../useMapartWorker';
 import type { UseMapartWorkerProps } from '../useMapartWorker';
+import { wrap } from 'comlink';
 
 // Mock del Worker
 class MockWorker {
@@ -18,8 +19,13 @@ class MockWorker {
 vi.stubGlobal('Worker', MockWorker);
 
 // Mock de Comlink
-vi.mock('comlink', () => ({
+vi.mock('comlink', () => {
+  const releaseProxy = Symbol('releaseProxy');
+  return {
+  releaseProxy,
   wrap: vi.fn(() => ({
+    [releaseProxy]: vi.fn(),
+    clearCache: vi.fn(),
     processMapart: vi.fn().mockResolvedValue({
       version: 1,
       stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128) },
@@ -54,7 +60,8 @@ vi.mock('comlink', () => ({
     }),
   })),
   transfer: vi.fn((obj) => obj),
-}));
+  };
+});
 
 describe('useMapartWorker E2E', () => {
   const defaultProps: UseMapartWorkerProps = {
@@ -107,11 +114,9 @@ describe('useMapartWorker E2E', () => {
       
       expect(result.current.isProcessing).toBe(false);
       expect(result.current.isExporting).toBe(false);
-      expect(result.current.scaledPreviewUrl).toBeNull();
       expect(result.current.previewImageData).toBeNull();
       expect(result.current.packedResults).toBeNull();
       expect(result.current.heightPath).toBeNull();
-      expect(result.current.originalTransformedUrl).toBeNull();
     });
 
     it('calcula mapartResolution correctamente', () => {
@@ -137,6 +142,37 @@ describe('useMapartWorker E2E', () => {
         isExporting: result.current.isExporting,
         mapartResolution: result.current.mapartResolution,
       }).toMatchSnapshot();
+    });
+  });
+
+  describe('memory cleanup', () => {
+    it('clears worker and main results whenever the source image identity changes', () => {
+      const { rerender } = renderHook(
+        (props: UseMapartWorkerProps) => useMapartWorker(props),
+        { initialProps: defaultProps }
+      );
+      const api = vi.mocked(wrap).mock.results.at(-1)!.value as { clearCache: ReturnType<typeof vi.fn> };
+      const initialClearCount = api.clearCache.mock.calls.length;
+
+      rerender({ ...defaultProps, previewUrl: 'blob:new-source' });
+
+      expect(api.clearCache.mock.calls.length).toBeGreaterThan(initialClearCount);
+      expect(defaultProps.setMapartStats).toHaveBeenCalledWith(null);
+    });
+
+    it('clears worker buffers when the palette becomes empty', () => {
+      const props = { ...defaultProps, previewUrl: 'blob:source' };
+      const { rerender } = renderHook(
+        (nextProps: UseMapartWorkerProps) => useMapartWorker(nextProps),
+        { initialProps: props }
+      );
+      const api = vi.mocked(wrap).mock.results.at(-1)!.value as { clearCache: ReturnType<typeof vi.fn> };
+      const initialClearCount = api.clearCache.mock.calls.length;
+
+      rerender({ ...props, selectedPaletteItems: {} });
+
+      expect(api.clearCache.mock.calls.length).toBeGreaterThan(initialClearCount);
+      expect(defaultProps.setMapartStats).toHaveBeenCalledWith(null);
     });
   });
 });

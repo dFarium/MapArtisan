@@ -87,6 +87,62 @@ describe('Processing Pipeline - Regression Tests', () => {
         expect(editResult.stats).toBeDefined();
     });
 
+    it('applyManualEdits returns a height path consistent with its tone map', () => {
+        const img = makeTestImage(2, 4);
+        const baseResult = processMapart(img, '3d_valley', PALETTE, 100, 'none', true, 50, false);
+        const manualEdits = {
+            0: { blockId: 'minecraft:stone', brightness: 'high' as const, rgb: { r: 128, g: 128, b: 128 } }
+        };
+
+        const editResult = applyManualEdits(
+            baseResult.imageData,
+            baseResult.packedResults,
+            manualEdits,
+            '3d_valley',
+            baseResult.candidates,
+            baseResult.toneMap,
+            false
+        );
+
+        expect(editResult.heightPath).not.toBeNull();
+        expect(editResult.heightPath).toHaveLength(8);
+        expect(editResult.toneMap?.[0]).toBe(1);
+    });
+
+    it('segments edited height paths at independent map boundaries', () => {
+        const width = 1;
+        const height = 129;
+        const data = new Uint8ClampedArray(width * height * 4).fill(255);
+        const baseImage = new ImageData(data, width, height);
+        const basePacked = new Uint32Array(width * height);
+        const baseTones = new Int8Array(width * height);
+        baseTones[127] = 1;
+        baseTones[128] = 1;
+
+        const result = applyManualEdits(
+            baseImage,
+            basePacked,
+            {},
+            '3d_valley',
+            undefined,
+            baseTones,
+            true
+        );
+        const continuousResult = applyManualEdits(
+            baseImage,
+            basePacked,
+            {},
+            '3d_valley',
+            undefined,
+            baseTones,
+            false
+        );
+
+        expect(result.heightPath?.[127]).toBe(1);
+        expect(result.heightPath?.[128]).toBe(1);
+        expect(continuousResult.heightPath?.[128]).toBe(2);
+    });
+
     it('suggestDitheringMode returns valid mode', () => {
         const img = makeTestImage(64, 64);
         const suggestion = suggestDitheringMode(img);

@@ -14,6 +14,7 @@ const createMockWorkerRefs = (): WorkerRefs => ({
                 imageData: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
                 stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128) },
                 packedResults: new Uint32Array(128 * 128),
+                heightPath: new Int32Array(128 * 128),
             }),
         } as unknown as Remote<MapartWorkerApi>,
     },
@@ -230,6 +231,123 @@ describe('useProcessingPipeline', () => {
                 'setHeightPath',
                 'setPackedResults',
             ]);
+        });
+    });
+
+    describe('concurrency', () => {
+        it('keeps one heavy request active and runs only the latest pending settings', async () => {
+            const refs = createMockWorkerRefs();
+            refs.workerImageVersionRef.current = -1;
+            const sourceImageDataRef = {
+                current: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
+            };
+            const onResult = vi.fn();
+            const pending: Array<(value: {
+                version: number;
+                stats: { minHeight: number; maxHeight: number; heightMap: Int32Array };
+                packedResults: Uint32Array;
+                heightPath: Int32Array;
+            }) => void> = [];
+
+            vi.mocked(refs.workerApiRef.current!.processMapart).mockImplementation(() =>
+                new Promise(resolve => pending.push(resolve)) as ReturnType<Remote<MapartWorkerApi>['processMapart']>
+            );
+
+            const initialParams = createMockParams();
+            const { rerender } = renderHook(
+                ({ params }) => useProcessingPipeline({
+                    ...refs,
+                    sourceImageDataRef,
+                    sourceImageVersion: 1,
+                    mapartResolution: { width: 128, height: 128 },
+                    params,
+                    onResult,
+                    onStatsUpdate: vi.fn(),
+                }),
+                { initialProps: { params: initialParams } }
+            );
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(50);
+            });
+            expect(pending).toHaveLength(1);
+
+            for (let precision = 51; precision <= 75; precision++) {
+                rerender({ params: { ...initialParams, threeDPrecision: precision } });
+                await act(async () => {
+                    await vi.advanceTimersByTimeAsync(50);
+                });
+            }
+            expect(pending).toHaveLength(1);
+
+            await act(async () => {
+                pending[0]({
+                    version: 1,
+                    stats: { minHeight: 0, maxHeight: 1, heightMap: new Int32Array(128) },
+                    packedResults: new Uint32Array(128 * 128).fill(1),
+                    heightPath: new Int32Array(128 * 128).fill(1),
+                });
+                await Promise.resolve();
+            });
+            await vi.waitFor(() => expect(pending).toHaveLength(2));
+            expect(vi.mocked(refs.workerApiRef.current!.processMapart).mock.calls[1][6]).toBe(75);
+            expect(onResult).not.toHaveBeenCalled();
+
+            await act(async () => {
+                pending[1]({
+                    version: 1,
+                    stats: { minHeight: 0, maxHeight: 2, heightMap: new Int32Array(128) },
+                    packedResults: new Uint32Array(128 * 128).fill(2),
+                    heightPath: new Int32Array(128 * 128).fill(2),
+                });
+                await Promise.resolve();
+                await Promise.resolve();
+            });
+            expect(onResult).toHaveBeenCalledTimes(1);
+            expect(refs.workerApiRef.current!.processMapart).toHaveBeenCalledTimes(2);
+        });
+
+        it('coalesces a burst of manual edits into one worker request', async () => {
+            const refs = createMockWorkerRefs();
+            const sourceImageDataRef = {
+                current: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
+            };
+            const initialParams = createMockParams();
+            initialParams.selectedPaletteItems = {};
+
+            const { rerender } = renderHook(
+                ({ params }) => useProcessingPipeline({
+                    ...refs,
+                    sourceImageDataRef,
+                    sourceImageVersion: 1,
+                    mapartResolution: { width: 128, height: 128 },
+                    params,
+                    onResult: vi.fn(),
+                    onStatsUpdate: vi.fn(),
+                }),
+                { initialProps: { params: initialParams } }
+            );
+
+            for (let index = 0; index < 50; index++) {
+                rerender({
+                    params: {
+                        ...initialParams,
+                        manualEdits: {
+                            [index]: {
+                                blockId: 'minecraft:stone',
+                                brightness: 'normal',
+                                rgb: { r: 128, g: 128, b: 128 },
+                            },
+                        },
+                    },
+                });
+            }
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(50);
+            });
+
+            expect(refs.workerApiRef.current!.applyEdits).toHaveBeenCalledTimes(1);
         });
     });
 });

@@ -30,6 +30,51 @@ import {
 
 export type { BuildMode };
 
+function buildHeightLayout(
+    toneMap: Int8Array,
+    width: number,
+    height: number,
+    independentMaps: boolean
+): { minHeight: number; maxHeight: number; heightMap: Int32Array; heightPath: Int32Array } {
+    let minHeight = 0;
+    let maxHeight = 0;
+    const heightMap = new Int32Array(width);
+    const heightPath = new Int32Array(width * height);
+    const workspace: SmartDropWorkspace = {
+        ref: new Int32Array(height + 1),
+        minFuturo: new Int32Array(height + 1),
+        path: new Int32Array(height)
+    };
+
+    for (let x = 0; x < width; x++) {
+        const chunkCount = independentMaps ? Math.ceil(height / 128) : 1;
+        for (let chunk = 0; chunk < chunkCount; chunk++) {
+            const startY = independentMaps ? chunk * 128 : 0;
+            const endY = independentMaps ? Math.min((chunk + 1) * 128, height) : height;
+            const chunkHeight = endY - startY;
+            const { min, max, path } = optimizeColumnHeights(
+                toneMap,
+                startY * width + x,
+                width,
+                chunkHeight,
+                workspace
+            );
+
+            if (min < minHeight) minHeight = min;
+            if (max > maxHeight) maxHeight = max;
+            const range = max - min;
+            if (range > heightMap[x]) heightMap[x] = range;
+
+            const shift = -min;
+            for (let i = 0; i < chunkHeight; i++) {
+                heightPath[x * height + startY + i] = path[i] + shift;
+            }
+        }
+    }
+
+    return { minHeight, maxHeight, heightMap, heightPath };
+}
+
 // ============================================================================
 // Main Processing Function
 // ============================================================================
@@ -294,67 +339,11 @@ export function processMapart(
         // Phase 2: Height Optimization (Smart Drop) for 3D Valley
         // ============================================================================
         if (buildMode === '3d_valley') {
-            overallMin = 0;
-            overallMax = 0;
-            colHeights.fill(0);
-            heightPath = new Int32Array(width * height);
-
-            // Pre-allocate workspace for Smart Drop to avoid GC pressure
-            const workspace: SmartDropWorkspace = {
-                ref: new Int32Array(height + 1),
-                minFuturo: new Int32Array(height + 1),
-                path: new Int32Array(height)
-            };
-
-            for (let x = 0; x < width; x++) {
-                if (independentMaps) {
-                    const numChunks = Math.ceil(height / 128);
-                    for (let c = 0; c < numChunks; c++) {
-                        const startY = c * 128;
-                        const endY = Math.min((c + 1) * 128, height);
-                        const chunkHeight = endY - startY;
-
-                        // Pass direct buffer access
-                        const { min, max, path } = optimizeColumnHeights(
-                            toneMap!,
-                            startY * width + x, // startIndex
-                            width,              // stride (skip one row width to go down)
-                            chunkHeight,        // count
-                            workspace
-                        );
-
-                        if (min < overallMin) overallMin = min;
-                        if (max > overallMax) overallMax = max;
-
-                        const range = max - min;
-                        if (range > colHeights[x]) colHeights[x] = range;
-
-                        // Normalize so minimum is 0 within each chunk and copy to heightPath
-                        const shift = -min;
-                        for (let i = 0; i < chunkHeight; i++) {
-                            heightPath[x * height + startY + i] = path[i] + shift;
-                        }
-                    }
-                } else {
-                    const { min, max, path } = optimizeColumnHeights(
-                        toneMap!,
-                        x,      // startIndex (at top row, column x)
-                        width,  // stride
-                        height, // count
-                        workspace
-                    );
-
-                    if (min < overallMin) overallMin = min;
-                    if (max > overallMax) overallMax = max;
-                    colHeights[x] = max - min;
-
-                    // Normalize so minimum is 0 and copy to heightPath
-                    const shift = -min;
-                    for (let i = 0; i < height; i++) {
-                        heightPath[x * height + i] = path[i] + shift;
-                    }
-                }
-            }
+            const layout = buildHeightLayout(toneMap!, width, height, independentMaps);
+            overallMin = layout.minHeight;
+            overallMax = layout.maxHeight;
+            colHeights.set(layout.heightMap);
+            heightPath = layout.heightPath;
         }
     }
 
@@ -396,8 +385,9 @@ export function applyManualEdits(
     manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB; needsSupport?: boolean }>,
     buildMode: BuildMode,
     candidates?: ColorCandidate[],
-    baseToneMap?: Int8Array | null
-): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; toneMap: Int8Array | null } {
+    baseToneMap?: Int8Array | null,
+    independentMaps: boolean = false
+): { imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; toneMap: Int8Array | null; heightPath: Int32Array | null } {
     const { width, height, data } = baseImageData;
 
     // Clone data to avoid mutating base
@@ -410,6 +400,7 @@ export function applyManualEdits(
     // Apply edits
     for (const [indexStr, edit] of Object.entries(manualEdits)) {
         const index = Number(indexStr);
+        if (!Number.isInteger(index) || index < 0 || index >= width * height) continue;
         const x = index % width;
         const y = Math.floor(index / width);
 
@@ -457,6 +448,7 @@ export function applyManualEdits(
             toneMap = new Int8Array(baseToneMap);
             for (const [indexStr, edit] of Object.entries(manualEdits)) {
                 const index = Number(indexStr);
+                if (!Number.isInteger(index) || index < 0 || index >= width * height) continue;
                 const x = index % width;
                 const y = Math.floor(index / width);
                 if (x >= width || y >= height) continue;
@@ -475,26 +467,13 @@ export function applyManualEdits(
         }
     }
 
+    let heightPath: Int32Array | null = null;
     if (buildMode === '3d_valley' && toneMap) {
-        const workspace: SmartDropWorkspace = {
-            ref: new Int32Array(height + 1),
-            minFuturo: new Int32Array(height + 1),
-            path: new Int32Array(height)
-        };
-
-        for (let x = 0; x < width; x++) {
-            const { min, max } = optimizeColumnHeights(
-                toneMap,
-                x,
-                width,
-                height,
-                workspace
-            );
-
-            if (min < overallMin) overallMin = min;
-            if (max > overallMax) overallMax = max;
-            colHeights[x] = max - min;
-        }
+        const layout = buildHeightLayout(toneMap, width, height, independentMaps);
+        overallMin = layout.minHeight;
+        overallMax = layout.maxHeight;
+        colHeights.set(layout.heightMap);
+        heightPath = layout.heightPath;
     }
 
     return {
@@ -505,7 +484,8 @@ export function applyManualEdits(
             heightMap: colHeights
         },
         packedResults: newPackedResults,
-        toneMap
+        toneMap,
+        heightPath
     };
 }
 

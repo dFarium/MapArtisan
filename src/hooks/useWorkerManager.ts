@@ -1,4 +1,4 @@
-import { wrap, type Remote } from 'comlink';
+import { releaseProxy, wrap, type Remote } from 'comlink';
 import { useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 
@@ -26,8 +26,13 @@ export function useWorkerManager(): UseWorkerManagerReturn {
    * Inicializa el worker y configura el proxy de Comlink
    */
   const initWorker = useCallback(() => {
+    if (workerApiRef.current) {
+      workerApiRef.current[releaseProxy]();
+      workerApiRef.current = null;
+    }
     if (workerRef.current) {
       workerRef.current.terminate();
+      workerRef.current = null;
     }
     
     workerRef.current = new Worker(
@@ -44,7 +49,14 @@ export function useWorkerManager(): UseWorkerManagerReturn {
   useEffect(() => {
     initWorker();
     return () => {
+      if (workerApiRef.current) {
+        workerApiRef.current[releaseProxy]();
+        workerApiRef.current = null;
+      }
       workerRef.current?.terminate();
+      workerRef.current = null;
+      isProcessingRef.current = false;
+      workerImageVersionRef.current = -1;
     };
   }, [initWorker]);
 

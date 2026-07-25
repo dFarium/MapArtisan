@@ -1,15 +1,10 @@
-import { useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MapartState } from '../store/useMapartStore';
+import { applyImageFiltersInPlace } from '../utils/processing/imageFilters';
 
 /**
- * Hook para manejar el preprocessing de imágenes.
- * 
- * Responsabilidades:
- * - Carga de imagen desde URL
- * - Aplicación de filtros CSS (brightness, contrast, saturation)
- * - Manejo de crop/zoom
- * - Generación de low-res y high-res previews
- * - Almacenamiento de sourceImageData
+ * Handles image decoding, crop/filter preprocessing and the bounded preview used
+ * as the worker source. The uploaded image is decoded once per URL.
  */
 export interface UseImagePreprocessingProps {
     previewUrl: string | null;
@@ -18,8 +13,7 @@ export interface UseImagePreprocessingProps {
     cropSettings: MapartState['cropSettings'];
     imageSettings: MapartState['imageSettings'];
     previewState: {
-        setScaledPreviewUrl: (url: string | null) => void;
-        setOriginalTransformedUrl: (url: string | null) => void;
+        setSourcePreviewImageData: (imageData: ImageData | null) => void;
         incrementSourceImageVersion: () => void;
     };
 }
@@ -34,117 +28,134 @@ export function useImagePreprocessing({
     imageFitMode,
     cropSettings,
     imageSettings,
-    previewState: { setScaledPreviewUrl, setOriginalTransformedUrl, incrementSourceImageVersion },
+    previewState: { setSourcePreviewImageData, incrementSourceImageVersion },
 }: UseImagePreprocessingProps): UseImagePreprocessingReturn {
     const sourceImageDataRef = useRef<ImageData | null>(null);
-    const highResTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const loadedImageRef = useRef<HTMLImageElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [imageLoadVersion, setImageLoadVersion] = useState(0);
 
     useEffect(() => {
+        sourceImageDataRef.current = null;
+        loadedImageRef.current = null;
         if (!previewUrl) {
-            sourceImageDataRef.current = null;
+            if (canvasRef.current) {
+                canvasRef.current.width = 0;
+                canvasRef.current.height = 0;
+            }
             return;
         }
 
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = mapartResolution.width;
-            canvas.height = mapartResolution.height;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            if (!ctx) return;
+        let active = true;
+        const image = new Image();
+        image.onload = () => {
+            if (!active) return;
+            loadedImageRef.current = image;
+            setImageLoadVersion(version => version + 1);
+        };
+        image.src = previewUrl;
 
-            const filterString = `brightness(${100 + imageSettings.brightness}%) contrast(${100 + imageSettings.contrast}%) saturate(${imageSettings.saturation}%)`;
-            ctx.filter = filterString;
-            ctx.imageSmoothingEnabled = false;
+        return () => {
+            active = false;
+            image.onload = null;
+            if (!image.complete) image.src = '';
+        };
+    }, [previewUrl]);
 
-            let finalOffsetX = 0;
-            let finalOffsetY = 0;
-            let zoomedWidth = mapartResolution.width;
-            let zoomedHeight = mapartResolution.height;
+    useEffect(() => {
+        const loadedImage = loadedImageRef.current;
+        if (!loadedImage || !previewUrl) return;
+
+        sourceImageDataRef.current = null;
+        let active = true;
+        const preprocessingTimeout = setTimeout(() => {
+            if (!active) return;
+
+            const canvas = canvasRef.current ?? document.createElement('canvas');
+            canvasRef.current = canvas;
+            if (
+                canvas.width !== mapartResolution.width ||
+                canvas.height !== mapartResolution.height
+            ) {
+                canvas.width = mapartResolution.width;
+                canvas.height = mapartResolution.height;
+            }
+            const context = canvas.getContext('2d', { willReadFrequently: true });
+            if (!context) return;
+
+            // Keep CanvasFilter away from the decoded full-resolution source.
+            // Filters run in-place over the bounded output ImageData instead.
+            context.filter = 'none';
+            context.imageSmoothingEnabled = false;
 
             if (imageFitMode === 'adjust') {
-                ctx.drawImage(img, 0, 0, mapartResolution.width, mapartResolution.height);
+                context.drawImage(loadedImage, 0, 0, mapartResolution.width, mapartResolution.height);
             } else {
                 const { zoom, offsetX, offsetY } = cropSettings;
-                const imgAspect = img.width / img.height;
+                const imageAspect = loadedImage.width / loadedImage.height;
                 const canvasAspect = mapartResolution.width / mapartResolution.height;
 
-                let baseWidth, baseHeight;
-                if (imgAspect > canvasAspect) {
-                    baseHeight = img.height;
-                    baseWidth = img.height * canvasAspect;
+                let baseWidth: number;
+                let baseHeight: number;
+                if (imageAspect > canvasAspect) {
+                    baseHeight = loadedImage.height;
+                    baseWidth = loadedImage.height * canvasAspect;
                 } else {
-                    baseWidth = img.width;
-                    baseHeight = img.width / canvasAspect;
+                    baseWidth = loadedImage.width;
+                    baseHeight = loadedImage.width / canvasAspect;
                 }
 
-                zoomedWidth = baseWidth / zoom;
-                zoomedHeight = baseHeight / zoom;
+                const zoomedWidth = baseWidth / zoom;
+                const zoomedHeight = baseHeight / zoom;
+                const maxOffsetX = (loadedImage.width - zoomedWidth) / 2;
+                const maxOffsetY = (loadedImage.height - zoomedHeight) / 2;
+                const sourceX = (loadedImage.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
+                const sourceY = (loadedImage.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
 
-                const maxOffsetX = (img.width - zoomedWidth) / 2;
-                const maxOffsetY = (img.height - zoomedHeight) / 2;
-                finalOffsetX = (img.width - zoomedWidth) / 2 + offsetX * maxOffsetX;
-                finalOffsetY = (img.height - zoomedHeight) / 2 + offsetY * maxOffsetY;
-
-                ctx.drawImage(
-                    img,
-                    finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
+                context.drawImage(
+                    loadedImage,
+                    sourceX, sourceY, zoomedWidth, zoomedHeight,
                     0, 0, mapartResolution.width, mapartResolution.height
                 );
             }
 
-            // Immediately set the low-resolution preview
-            const lowResUrl = canvas.toDataURL('image/png');
-            setScaledPreviewUrl(lowResUrl);
-            setOriginalTransformedUrl(lowResUrl);
+            const sourceImageData = applyImageFiltersInPlace(context.getImageData(
+                0,
+                0,
+                mapartResolution.width,
+                mapartResolution.height
+            ), imageSettings);
 
-            sourceImageDataRef.current = ctx.getImageData(0, 0, mapartResolution.width, mapartResolution.height);
+            if (!active) return;
+            sourceImageDataRef.current = sourceImageData;
+            setSourcePreviewImageData(sourceImageData);
             incrementSourceImageVersion();
-
-            // Debounce the heavy high-resolution JPEG data URL generation
-            if (highResTimeoutRef.current !== null) {
-                clearTimeout(highResTimeoutRef.current);
-            }
-            highResTimeoutRef.current = setTimeout(() => {
-                const highResCanvas = document.createElement('canvas');
-                if (imageFitMode === 'adjust') {
-                    const targetAspect = mapartResolution.width / mapartResolution.height;
-                    const highResWidth = Math.min(img.width, 2048);
-                    const highResHeight = highResWidth / targetAspect;
-
-                    highResCanvas.width = highResWidth;
-                    highResCanvas.height = highResHeight;
-                    const highResCtx = highResCanvas.getContext('2d');
-                    if (highResCtx) {
-                        highResCtx.filter = filterString;
-                        highResCtx.drawImage(img, 0, 0, highResWidth, highResHeight);
-                    }
-                } else {
-                    highResCanvas.width = zoomedWidth;
-                    highResCanvas.height = zoomedHeight;
-                    const highResCtx = highResCanvas.getContext('2d');
-                    if (highResCtx) {
-                        highResCtx.filter = filterString;
-                        highResCtx.drawImage(
-                            img,
-                            finalOffsetX, finalOffsetY, zoomedWidth, zoomedHeight,
-                            0, 0, zoomedWidth, zoomedHeight
-                        );
-                    }
-                }
-                setOriginalTransformedUrl(highResCanvas.toDataURL('image/jpeg', 0.9));
-            }, 250);
-        };
-        img.src = previewUrl;
+        }, 100);
 
         return () => {
-            if (highResTimeoutRef.current !== null) {
-                clearTimeout(highResTimeoutRef.current);
-            }
+            active = false;
+            clearTimeout(preprocessingTimeout);
         };
-    }, [previewUrl, mapartResolution.width, mapartResolution.height, imageFitMode, cropSettings, imageSettings, setScaledPreviewUrl, setOriginalTransformedUrl, incrementSourceImageVersion]);
+    }, [
+        imageLoadVersion,
+        previewUrl,
+        mapartResolution.width,
+        mapartResolution.height,
+        imageFitMode,
+        cropSettings,
+        imageSettings,
+        setSourcePreviewImageData,
+        incrementSourceImageVersion,
+    ]);
 
-    return {
-        sourceImageDataRef,
-    };
+    useEffect(() => () => {
+        loadedImageRef.current = null;
+        if (canvasRef.current) {
+            canvasRef.current.width = 0;
+            canvasRef.current.height = 0;
+            canvasRef.current = null;
+        }
+    }, []);
+
+    return { sourceImageDataRef };
 }

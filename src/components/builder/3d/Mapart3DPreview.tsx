@@ -4,10 +4,13 @@ import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
 import type { Build3DGeometryProps } from '../../../utils/geometry/build3DGeometry';
+import { getNextInstanceCapacity } from './instanceCapacity';
 import paletteData from '../../../data/palette.json';
 import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 import { getValidColors } from '../../../utils/processing';
 import { useMapartStore } from '../../../store/useMapartStore';
+import { LatestWinsQueue } from '../../../hooks/latestWinsQueue';
+import { loadTextureAtlas } from './textureAtlas';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -156,79 +159,6 @@ export const Mapart3DPreview = ({
     );
 };
 
-// ── Texture atlas loader ───────────────────────────────────────────────────────
-// Loads all block textures into a single DataArrayTexture (WebGL2 texture array).
-// One load per unique blockId, cached globally. Returns the atlas + index map.
-const imageCache = new Map<string, HTMLImageElement | null>();
-
-function loadTextureAtlas(
-    blockIds: string[],
-    onReady: (atlas: THREE.DataArrayTexture, idxMap: Int16Array) => void
-): void {
-    if (blockIds.length === 0) return;
-
-    const SIZE = 16;
-    const idxMap = new Int16Array(blockIds.length).fill(-1);
-    let pending = 0;
-
-    const tryBuild = () => {
-        if (pending > 0) return;
-
-        // Build atlas from loaded images
-        const data = new Uint8Array(blockIds.length * SIZE * SIZE * 4);
-        for (let layer = 0; layer < blockIds.length; layer++) {
-            const img = imageCache.get(blockIds[layer]);
-            if (img) {
-                // Draw to offscreen canvas to get pixel data
-                const canvas = document.createElement('canvas');
-                canvas.width = SIZE;
-                canvas.height = SIZE;
-                const ctx = canvas.getContext('2d')!;
-                ctx.drawImage(img, 0, 0, SIZE, SIZE);
-                const pixels = ctx.getImageData(0, 0, SIZE, SIZE).data;
-                data.set(pixels, layer * SIZE * SIZE * 4);
-                idxMap[layer] = layer;
-            }
-            // If img is null (missing texture), layer stays as -1, gray fallback via vertex color
-        }
-
-        const atlas = new THREE.DataArrayTexture(data, SIZE, SIZE, blockIds.length);
-        atlas.format = THREE.RGBAFormat;
-        atlas.type = THREE.UnsignedByteType;
-        atlas.magFilter = THREE.NearestFilter;
-        atlas.minFilter = THREE.NearestFilter;
-        atlas.generateMipmaps = false;
-        atlas.colorSpace = THREE.SRGBColorSpace;
-        atlas.needsUpdate = true;
-
-        onReady(atlas, idxMap);
-    };
-
-    pending = blockIds.length;
-
-    for (const blockId of blockIds) {
-        if (imageCache.has(blockId)) {
-            pending--;
-            tryBuild();
-            continue;
-        }
-
-        const name = blockId.replace(/^minecraft:/, '');
-        const img = new Image();
-        img.onload = () => {
-            imageCache.set(blockId, img);
-            pending--;
-            tryBuild();
-        };
-        img.onerror = () => {
-            imageCache.set(blockId, null); // null = missing, gray fallback
-            pending--;
-            tryBuild();
-        };
-        img.src = `/textures/${name}.png`;
-    }
-}
-
 // ── MapartMesh ──────────────────────────────────────────────────────────────────
 
 const MapartMesh = ({
@@ -291,30 +221,39 @@ const MapartMesh = ({
 
     // Use a ref to track the in-flight request so stale results are discarded.
     const requestIdRef = useRef(0);
+    const [geometryQueue] = useState(() => new LatestWinsQueue());
 
     useEffect(() => {
         const reqId = ++requestIdRef.current;
+        let active = true;
 
-        build3DGeometryAsync({
-            imageData,
-            packedResults: packedResults ?? new Uint32Array(0),
-            blockSupport,
-            supportColor,
-            exportMode,
-            independentMaps,
-            previewSection,
-            candidateBlocks,
-            supportBlockId,
-            precomputedHeightPath: heightPath ?? null,
-        }).then(result => {
-            // Discard if a newer request has already been dispatched
-            if (reqId !== requestIdRef.current) return;
+        geometryQueue.enqueue(async () => {
+            if (!active || reqId !== requestIdRef.current) return;
+
+            const result = await build3DGeometryAsync({
+                imageData,
+                packedResults: packedResults ?? new Uint32Array(0),
+                blockSupport,
+                supportColor,
+                exportMode,
+                independentMaps,
+                previewSection,
+                candidateBlocks,
+                supportBlockId,
+                precomputedHeightPath: heightPath ?? null,
+            });
+
+            if (!active || reqId !== requestIdRef.current) return;
             if (result) setGeometry(result);
         });
+
+        return () => {
+            active = false;
+        };
     }, [
         imageData, packedResults, heightPath, blockSupport, supportColor,
         exportMode, independentMaps, previewSection,
-        candidateBlocks, supportBlockId, build3DGeometryAsync
+        candidateBlocks, supportBlockId, build3DGeometryAsync, geometryQueue
     ]);
 
     // Create stable material with atlas shader set up ONCE.
@@ -388,9 +327,8 @@ if (vTexLayer >= 0.0) {
 
         // Determine if capacity is sufficient
         let needsNewAttributes = false;
-        if (count > capacityRef.current) {
-            // Allocate with 10% headroom to avoid frequent re-allocation if count fluctuates slightly
-            const newCapacity = Math.ceil(count * 1.1);
+        const newCapacity = getNextInstanceCapacity(capacityRef.current, count);
+        if (newCapacity !== null) {
             capacityRef.current = newCapacity;
 
             matricesRef.current = new Float32Array(newCapacity * 16);
@@ -481,9 +419,13 @@ if (vTexLayer >= 0.0) {
     useEffect(() => {
         if (!geometry || geometry.uniqueTextureIds.length === 0) return;
         const { uniqueTextureIds } = geometry;
+        let active = true;
 
-        loadTextureAtlas(uniqueTextureIds, (atlas) => {
-            if (!meshRef.current) return;
+        const cancelAtlasLoad = loadTextureAtlas(uniqueTextureIds, (atlas) => {
+            if (!active || !meshRef.current) {
+                atlas.dispose();
+                return;
+            }
 
             // Dispose old atlas
             if (atlasRef.current) atlasRef.current.dispose();
@@ -500,6 +442,11 @@ if (vTexLayer >= 0.0) {
             }
             // If shader not compiled yet: onBeforeCompile will read from pendingAtlasRef.
         });
+
+        return () => {
+            active = false;
+            cancelAtlasLoad();
+        };
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [geometry?.uniqueTextureIds.join(',')]);

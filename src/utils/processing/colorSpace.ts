@@ -23,6 +23,7 @@ export interface LAB {
 
 // LAB cache: RGB binary -> LAB values
 const labCache = new Map<number, LAB>();
+export const LAB_CACHE_MAX_ENTRIES = 65_536;
 
 // Color cache: RGB binary -> best candidate index (cleared per processMapart call)
 const colorCache = new Map<number, number>();
@@ -41,6 +42,14 @@ export function rgbToBinary(rOrRgb: number | RGB, g?: number, b?: number): numbe
  */
 export function clearColorCache(): void {
     colorCache.clear();
+}
+
+export function clearLabCache(): void {
+    labCache.clear();
+}
+
+export function getLabCacheSize(): number {
+    return labCache.size;
 }
 
 /**
@@ -147,6 +156,9 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
         b: M2_B0 * l_ + M2_B1 * m_ + M2_B2 * s_,
     };
 
+    if (labCache.size >= LAB_CACHE_MAX_ENTRIES) {
+        labCache.clear();
+    }
     labCache.set(key, lab);
     return lab;
 }

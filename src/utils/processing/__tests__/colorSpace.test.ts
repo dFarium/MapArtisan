@@ -5,13 +5,17 @@ import {
     unpackCandidateIdx, 
     unpackTone, 
     unpackNeedsSupport,
-    clearColorCache 
+    clearColorCache,
+    clearLabCache,
+    getLabCacheSize,
+    LAB_CACHE_MAX_ENTRIES,
 } from '../colorSpace';
 import { MAPART } from '../colorConstants';
 
 describe('Color Space - Regression Tests', () => {
     beforeEach(() => {
         clearColorCache();
+        clearLabCache();
     });
 
     it('rgbToLab converts known colors correctly', () => {
@@ -47,5 +51,17 @@ describe('Color Space - Regression Tests', () => {
         expect(MAPART.OKLAB_M1_L).toHaveLength(3);
         expect(MAPART.OKLAB_M2_L).toHaveLength(3);
         expect(MAPART.RGB_TO_LINEAR_THRESHOLD).toBeCloseTo(0.04045, 5);
+    });
+
+    it('bounds the OKLab cache without changing conversion results', () => {
+        const reference = rgbToLab(12, 34, 56);
+        clearLabCache();
+
+        for (let i = 0; i <= LAB_CACHE_MAX_ENTRIES; i++) {
+            rgbToLab(i & 0xFF, (i >> 8) & 0xFF, (i >> 16) & 0xFF);
+        }
+
+        expect(getLabCacheSize()).toBeLessThanOrEqual(LAB_CACHE_MAX_ENTRIES);
+        expect(rgbToLab(12, 34, 56)).toEqual(reference);
     });
 });
