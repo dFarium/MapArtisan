@@ -1,7 +1,12 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { StrictMode, type PropsWithChildren } from 'react';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
+
+const StrictModeWrapper = ({ children }: PropsWithChildren) => (
+    <StrictMode>{children}</StrictMode>
+);
 
 describe('useCanvasInteraction', () => {
     const mockFile = new File([''], 'test.png', { type: 'image/png' });
@@ -108,7 +113,8 @@ describe('useCanvasInteraction', () => {
     it('should reset when image changes', () => {
         const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
         const { result, rerender } = renderHook(({ img }: { img: File | null }) => useCanvasInteraction(img, false, mockRef as unknown as React.RefObject<HTMLElement>, { width: 100, height: 100 }), {
-            initialProps: { img: mockFile }
+            initialProps: { img: mockFile },
+            wrapper: StrictModeWrapper,
         });
 
         // Initial check

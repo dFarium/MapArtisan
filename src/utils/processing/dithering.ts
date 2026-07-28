@@ -7,17 +7,24 @@
 // Types
 // ============================================================================
 
-export type DitheringMode =
-    | 'none'
-    | 'floyd-steinberg'
-    | 'atkinson'
-    | 'stucki'
-    | 'burkes'
-    | 'sierra-lite'
-    | 'ordered'
-    | 'ordered-8x8'
-    | 'adaptive'
-    | 'hybrid';
+export const DITHERING_MODES = [
+    'none',
+    'floyd-steinberg',
+    'atkinson',
+    'stucki',
+    'burkes',
+    'sierra-lite',
+    'ordered',
+    'ordered-8x8',
+    'adaptive',
+    'hybrid',
+] as const;
+
+export type DitheringMode = (typeof DITHERING_MODES)[number];
+
+export function isDitheringMode(value: string): value is DitheringMode {
+    return DITHERING_MODES.some(mode => mode === value);
+}
 
 export interface DitherMatrix {
     divisor: number;

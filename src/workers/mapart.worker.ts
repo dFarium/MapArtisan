@@ -3,6 +3,7 @@ import { processMapart, applyManualEdits, unpackCandidateIdx, clearColorCache, c
 import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
+import { debug } from '../utils/diagnostic';
 
 /**
  * Creates a deterministic cache key for worker processing results.
@@ -130,7 +131,7 @@ const api = {
         if (imageDataBuffer) {
             // New image data provided, update cache
             sourceImage = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-            console.log(`[Worker] Source Image Updated. Version: ${version}`);
+            debug(`Source Image Updated. Version: ${version}`);
         } else {
             // No buffer provided, check cache
             if (
@@ -140,11 +141,11 @@ const api = {
                 lastBaseResult.width !== width ||
                 lastBaseResult.height !== height
             ) {
-                console.warn(`[Worker] Cache miss: No cached source available for version ${version}`);
+                debug.warn(`Cache miss: No cached source available for version ${version}`);
                 return { error: 'CACHE_MISS', version };
             }
             sourceImage = lastBaseResult.sourceImage;
-            console.log(`[Worker] Using cached Source Image for version ${version}`);
+            debug(`Using cached Source Image for version ${version}`);
         }
 
         const result = processMapart(
@@ -268,7 +269,7 @@ const api = {
 
             if (lastBaseResult?.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
-                console.log(`[Worker] Export: Using cached packedResults with new image buffer (v${version})`);
+                debug(`Export: Using cached packedResults with new image buffer (v${version})`);
             } else {
                 const result = processMapart(
                     imageData, buildMode, selectedPaletteItems,
@@ -292,13 +293,13 @@ const api = {
                     configKey,
                 };
                 precomputedPackedResults = result.packedResults;
-                console.log(`[Worker] Export: Processed and cached (v${version})`);
+                debug(`Export: Processed and cached (v${version})`);
             }
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
             if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
-                console.log(`[Worker] Export: Using cached precomputed packedResults (v${version})`);
+                debug(`Export: Using cached precomputed packedResults (v${version})`);
             } else {
                 const result = processMapart(
                     imageData, buildMode, selectedPaletteItems,
@@ -318,7 +319,7 @@ const api = {
                     configKey,
                 };
                 precomputedPackedResults = result.packedResults;
-                console.log(`[Worker] Export: Config changed, re-processed and cached (v${version})`);
+                debug(`Export: Config changed, re-processed and cached (v${version})`);
             }
         } else {
             throw new Error("Export failed: No image data provided and no cache available.");
@@ -378,7 +379,7 @@ const api = {
 
             if (lastBaseResult?.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
-                console.log(`[Worker] Materials: Using cached packedResults with new image buffer (v${version})`);
+                debug(`Materials: Using cached packedResults with new image buffer (v${version})`);
             } else {
                 const result = processMapart(
                     imageData, buildMode, selectedPaletteItems,
@@ -402,13 +403,13 @@ const api = {
                     configKey,
                 };
                 precomputedPackedResults = result.packedResults;
-                console.log(`[Worker] Materials: Processed and cached (v${version})`);
+                debug(`Materials: Processed and cached (v${version})`);
             }
         } else if (lastBaseResult) {
             imageData = lastBaseResult.sourceImage;
             if (lastBaseResult.configKey === configKey) {
                 precomputedPackedResults = lastBaseResult.packedResults;
-                console.log(`[Worker] Materials: Using cached precomputed packedResults (v${version})`);
+                debug(`Materials: Using cached precomputed packedResults (v${version})`);
             } else {
                 const result = processMapart(
                     imageData, buildMode, selectedPaletteItems,
@@ -428,7 +429,7 @@ const api = {
                     configKey,
                 };
                 precomputedPackedResults = result.packedResults;
-                console.log(`[Worker] Materials: Config changed, re-processed and cached (v${version})`);
+                debug(`Materials: Config changed, re-processed and cached (v${version})`);
             }
         } else {
             throw new Error(`Material calculation failed: No image data provided and no cache available (v${version}).`);
@@ -456,7 +457,7 @@ const api = {
      */
     getBlockAt: (x: number, y: number, manualEdits: Record<number, ManualEdit>) => {
         if (!lastBaseResult) {
-            console.warn("[Worker] getBlockAt: lastBaseResult is null");
+            debug.warn("getBlockAt: lastBaseResult is null");
             return null;
         }
 

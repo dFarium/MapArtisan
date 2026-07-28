@@ -15,6 +15,37 @@ interface SectionProps {
     onToggle?: () => void;
 }
 
+interface SupportBlockIdEditorProps {
+    supportBlockId: string;
+    onApply: (supportBlockId: string) => void;
+}
+
+const SupportBlockIdEditor = ({ supportBlockId, onApply }: SupportBlockIdEditorProps) => {
+    const [localSupportId, setLocalSupportId] = useState(supportBlockId);
+
+    return (
+        <div className="flex gap-2">
+            <Input
+                value={localSupportId}
+                onChange={(e) => setLocalSupportId(e.target.value)}
+                className="h-8 text-xs font-mono"
+                placeholder="minecraft:cobblestone"
+            />
+            <Button
+                size="sm"
+                onClick={() => onApply(localSupportId)}
+                disabled={localSupportId === supportBlockId}
+                className={cn(
+                    "h-8 px-3 text-xs",
+                    localSupportId !== supportBlockId ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-zinc-800 text-zinc-500"
+                )}
+            >
+                Apply
+            </Button>
+        </div>
+    );
+};
+
 export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
         buildMode, setBuildMode,
@@ -26,18 +57,6 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         previewSection, setPreviewSection,
         gridDimensions
     } = useMapart();
-
-    const [localSupportId, setLocalSupportId] = useState(supportBlockId);
-    const [prevSupportBlockId, setPrevSupportBlockId] = useState(supportBlockId);
-
-    if (supportBlockId !== prevSupportBlockId) {
-        setPrevSupportBlockId(supportBlockId);
-        setLocalSupportId(supportBlockId);
-    }
-
-    const handleApplySupportId = () => {
-        setSupportBlockId(localSupportId);
-    };
 
     // Enforce selection constraints based on export mode
     useEffect(() => {
@@ -122,25 +141,11 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
             {blockSupport !== 'needed' && (
                 <div className="space-y-2 pt-1 border-t border-zinc-800/50">
                     <Label className="text-xs">Support Block ID</Label>
-                    <div className="flex gap-2">
-                        <Input
-                            value={localSupportId}
-                            onChange={(e) => setLocalSupportId(e.target.value)}
-                            className="h-8 text-xs font-mono"
-                            placeholder="minecraft:cobblestone"
-                        />
-                        <Button
-                            size="sm"
-                            onClick={handleApplySupportId}
-                            disabled={localSupportId === supportBlockId}
-                            className={cn(
-                                "h-8 px-3 text-xs",
-                                localSupportId !== supportBlockId ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-zinc-800 text-zinc-500"
-                            )}
-                        >
-                            Apply
-                        </Button>
-                    </div>
+                    <SupportBlockIdEditor
+                        key={supportBlockId}
+                        supportBlockId={supportBlockId}
+                        onApply={setSupportBlockId}
+                    />
                 </div>
             )}
 

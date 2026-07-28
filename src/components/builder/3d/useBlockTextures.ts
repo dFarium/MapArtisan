@@ -13,6 +13,32 @@ import * as THREE from 'three';
 // Shared loader and cache so we don't reload the same texture twice across renders
 const loader = new THREE.TextureLoader();
 const globalCache = new Map<string, THREE.Texture | null>();
+const pendingLoads = new Map<string, Promise<THREE.Texture | null>>();
+
+function loadTexture(blockId: string): Promise<THREE.Texture | null> {
+    const pending = pendingLoads.get(blockId);
+    if (pending) return pending;
+
+    const request = loader.loadAsync(blockIdToTexturePath(blockId))
+        .then(texture => {
+            texture.magFilter = THREE.NearestFilter;
+            texture.minFilter = THREE.NearestFilter;
+            texture.generateMipmaps = false;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            globalCache.set(blockId, texture);
+            return texture;
+        })
+        .catch(() => {
+            globalCache.set(blockId, null);
+            return null;
+        })
+        .finally(() => {
+            pendingLoads.delete(blockId);
+        });
+
+    pendingLoads.set(blockId, request);
+    return request;
+}
 
 /** Convert a full block ID like 'minecraft:grass_block' to its PNG path */
 export function blockIdToTexturePath(blockId: string): string {
@@ -29,66 +55,29 @@ export function blockIdToTexturePath(blockId: string): string {
  * a re-render only when new textures finish loading.
  */
 export function useBlockTextures(blockIds: string[]): Record<string, THREE.Texture | null> {
-    const [prevIds, setPrevIds] = useState<string[]>(blockIds);
-    const [textures, setTextures] = useState<Record<string, THREE.Texture | null>>(() => {
-        const initial: Record<string, THREE.Texture | null> = {};
-        for (const id of blockIds) {
-            if (globalCache.has(id)) {
-                initial[id] = globalCache.get(id)!;
-            }
-        }
-        return initial;
-    });
+    const [, setRevision] = useState(0);
 
     const joinedIds = blockIds.join(',');
-    const prevJoinedIds = prevIds.join(',');
-
-    if (joinedIds !== prevJoinedIds) {
-        setPrevIds(blockIds);
-        const next: Record<string, THREE.Texture | null> = {};
-        for (const id of blockIds) {
-            if (globalCache.has(id)) {
-                next[id] = globalCache.get(id)!;
-            } else if (textures[id] !== undefined) {
-                next[id] = textures[id];
-            }
-        }
-        setTextures(next);
-    }
 
     useEffect(() => {
-        if (blockIds.length === 0) return;
+        const requestedIds = joinedIds ? joinedIds.split(',') : [];
+        if (requestedIds.length === 0) return;
 
         let cancelled = false;
 
-        const loadOne = async (blockId: string) => {
-            const path = blockIdToTexturePath(blockId);
-            try {
-                const tex = await loader.loadAsync(path);
-                tex.magFilter = THREE.NearestFilter;
-                tex.minFilter = THREE.NearestFilter;
-                tex.generateMipmaps = false;
-                tex.colorSpace = THREE.SRGBColorSpace;
-                globalCache.set(blockId, tex);
-                if (!cancelled) {
-                    setTextures(prev => ({ ...prev, [blockId]: tex }));
-                }
-            } catch {
-                globalCache.set(blockId, null);
-                if (!cancelled) {
-                    setTextures(prev => ({ ...prev, [blockId]: null }));
-                }
-            }
-        };
-
-        const toLoad = blockIds.filter(id => !globalCache.has(id));
+        const toLoad = requestedIds.filter(id => !globalCache.has(id));
         for (const id of toLoad) {
-            loadOne(id);
+            void loadTexture(id).then(() => {
+                if (!cancelled) setRevision(revision => revision + 1);
+            });
         }
 
         return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [joinedIds]);
 
+    const textures: Record<string, THREE.Texture | null> = {};
+    for (const id of blockIds) {
+        if (globalCache.has(id)) textures[id] = globalCache.get(id)!;
+    }
     return textures;
 }

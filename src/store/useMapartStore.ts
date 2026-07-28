@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
+import type { DitheringMode } from '../utils/processing';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
@@ -104,7 +105,7 @@ export interface MapartState {
     /** Specific section focused for preview and isolated exports */
     previewSection: PreviewSection | null;
     /** Pixel color dithering algorithm */
-    dithering: string;
+    dithering: DitheringMode;
     /** Raw user uploaded image file */
     uploadedImage: File | null;
     /** ObjectURL representing the preview source */
@@ -148,7 +149,7 @@ export interface MapartState {
     setExportMode: (mode: ExportMode) => void;
     setExportFormat: (format: ExportFormat) => void;
     setPreviewSection: (section: PreviewSection | null) => void;
-    setDithering: (dithering: string) => void;
+    setDithering: (dithering: DitheringMode) => void;
     setUploadedImage: (file: File | null) => void;
     setImageFitMode: (mode: ImageFitMode) => void;
     setCropSettings: (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => void;

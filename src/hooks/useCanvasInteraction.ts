@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type RefObject } from 'react';
+import { useState, useEffect, useCallback, useRef, type RefObject } from 'react';
 
 /**
  * Hook to manage interactive canvas operations including zooming, panning, dragging, and automatic centering.
@@ -75,12 +75,14 @@ export const useCanvasInteraction = (
 
     // Reset or Center when image changes
     const [hasInteracted, setHasInteracted] = useState(false);
-    const [currentImage, setCurrentImage] = useState<File | null>(uploadedImage);
+    const previousImageRef = useRef<File | null>(uploadedImage);
 
-    if (uploadedImage !== currentImage) {
-        setCurrentImage(uploadedImage);
-        setHasInteracted(false);
-    }
+    useEffect(() => {
+        if (uploadedImage !== previousImageRef.current) {
+            previousImageRef.current = uploadedImage;
+            setHasInteracted(false);
+        }
+    }, [uploadedImage]);
 
     const handleWheelWithInteraction = useCallback((e: React.WheelEvent) => {
         setHasInteracted(true);

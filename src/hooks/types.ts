@@ -1,7 +1,8 @@
 import type { Remote } from 'comlink';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
-import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
+import type { MapartStats, ManualEdit, BuildMode, ExportFormat } from '../types/mapart';
 import type { MaterialCounts } from '../utils/export/materials';
+import type { DitheringMode } from '../utils/processing';
 
 export interface WorkerRefs {
     workerApiRef: React.RefObject<Remote<MapartWorkerApi> | null>;
@@ -16,22 +17,19 @@ export interface ProcessingResult {
     heightPath: Int32Array | null;
 }
 
-export interface ProcessingParams {
+/** Parameters that determine the quantized map-art result and worker cache key. */
+export interface ProcessingConfig {
     buildMode: BuildMode;
     selectedPaletteItems: Record<number, string | null>;
     threeDPrecision: number;
-    dithering: string;
+    dithering: DitheringMode;
     usePerceptual: boolean;
     hybridStrength: number;
     independentMaps: boolean;
-    manualEdits: Record<number, ManualEdit>;
 }
 
-export interface ManualEdit {
-    blockId: string;
-    brightness: BrightnessLevel;
-    rgb: RGB;
-    needsSupport?: boolean;
+export interface ProcessingParams extends ProcessingConfig {
+    manualEdits: Record<number, ManualEdit>;
 }
 
 export interface ExportParams extends ProcessingParams {
@@ -43,3 +41,4 @@ export interface ExportParams extends ProcessingParams {
 }
 
 export type { MaterialCounts };
+export type { ManualEdit };

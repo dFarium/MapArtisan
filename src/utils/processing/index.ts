@@ -26,6 +26,8 @@ export {
     type DitheringMode,
     type DitherMatrix,
     type FlatDitherKernel,
+    DITHERING_MODES,
+    isDitheringMode,
     buildFlatDitherKernel,
     DITHER_MATRICES,
     BAYER_4X4,

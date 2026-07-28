@@ -7,7 +7,7 @@ import { Checkbox } from '../../ui/Checkbox';
 import { Label } from '../../ui/Label';
 import { Select } from '../../ui/Select';
 import { Button } from '../../ui/Button';
-import { suggestDitheringMode } from '../../../utils/processing';
+import { isDitheringMode, suggestDitheringMode } from '../../../utils/processing';
 import { SUPPORTED_VERSIONS } from '../../../data/supportedVersions';
 
 interface SectionProps {
@@ -78,7 +78,11 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                 </div>
                 <Select
                     value={dithering}
-                    onChange={(e) => setDithering(e.target.value)}
+                    onChange={(e) => {
+                        if (isDitheringMode(e.target.value)) {
+                            setDithering(e.target.value);
+                        }
+                    }}
                     className="h-8 text-xs"
                 >
                     <option value="hybrid">Smart (Hybrid F-S)</option>

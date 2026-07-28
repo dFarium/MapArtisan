@@ -1,7 +1,6 @@
 import { transfer as comlinkTransfer } from 'comlink';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { WorkerRefs, ExportParams, MaterialCounts } from './types';
-import type { DitheringMode } from '../utils/processing';
 
 export interface UseExportPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
@@ -69,7 +68,7 @@ export function useExportPipeline({
                 selectedPaletteItems,
                 buildMode,
                 threeDPrecision,
-                dithering as DitheringMode,
+                dithering,
                 usePerceptual,
                 hybridStrength,
                 independentMaps,
@@ -123,7 +122,7 @@ export function useExportPipeline({
                     filename,
                     metadata,
                     threeDPrecision,
-                    dithering as DitheringMode,
+                    dithering,
                     usePerceptual,
                     hybridStrength,
                     independentMaps,

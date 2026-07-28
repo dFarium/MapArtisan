@@ -1,7 +1,6 @@
 import { transfer as comlinkTransfer } from 'comlink';
 import { useState, useEffect, useRef } from 'react';
 import type { WorkerRefs, ProcessingResult, ProcessingParams } from './types';
-import type { DitheringMode } from '../utils/processing';
 import type { MapartStats } from '../types/mapart';
 import { LatestWinsQueue } from './latestWinsQueue';
 
@@ -116,7 +115,7 @@ export function useProcessingPipeline({
                         buildMode,
                         selectedPaletteItems,
                         threeDPrecision,
-                        dithering as DitheringMode,
+                        dithering,
                         usePerceptual,
                         hybridStrength,
                         independentMaps

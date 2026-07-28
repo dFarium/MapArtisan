@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MapartState, CropSettings, GridDimensions, ImageSettings } from '../store/useMapartStore';
-import type { MapartStats, BrightnessLevel, RGB, BuildMode, ExportFormat } from '../types/mapart';
+import type { MapartStats, ExportFormat } from '../types/mapart';
 import { usePreviewState } from './usePreviewState';
 import { useWorkerManager } from './useWorkerManager';
 import { useImagePreprocessing } from './useImagePreprocessing';
@@ -8,27 +8,19 @@ import { useProcessingPipeline } from './useProcessingPipeline';
 import { useExportPipeline } from './useExportPipeline';
 import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
-import type { ProcessingResult, ManualEdit } from './types';
+import type { ProcessingParams, ProcessingResult } from './types';
 import { clearTextureCache } from '../components/builder/3d/textureAtlas';
 import { SOFT_LIMIT_MAPS } from '../utils/memory';
 import { useToast } from '../context/ToastContext';
 
-export interface UseMapartWorkerProps {
+export interface UseMapartWorkerProps extends ProcessingParams {
     uploadedImage: File | null;
     previewUrl: string | null;
     gridDimensions: GridDimensions;
     imageFitMode: MapartState['imageFitMode'];
     cropSettings: CropSettings;
-    buildMode: BuildMode;
-    selectedPaletteItems: Record<number, string | null>;
-    threeDPrecision: number;
-    dithering: string;
-    usePerceptual: boolean;
-    hybridStrength: number;
-    independentMaps: boolean;
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
-    manualEdits: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: RGB }>;
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId: string;
     exportMode: 'full' | 'sections';
@@ -109,7 +101,7 @@ export const useMapartWorker = ({
         usePerceptual,
         hybridStrength,
         independentMaps,
-        manualEdits: manualEdits as Record<number, ManualEdit>,
+        manualEdits,
     }), [buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits]);
 
     const handleProcessingResult = useCallback((result: ProcessingResult) => {
@@ -224,7 +216,7 @@ export const useMapartWorker = ({
         workerApiRef,
         isProcessingRef,
         workerImageVersionRef,
-        manualEdits: manualEdits as Record<number, ManualEdit>,
+        manualEdits,
     });
 
     const { build3DGeometryAsync } = use3DGeometryBuilder(workerApiRef);
