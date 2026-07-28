@@ -165,6 +165,6 @@ All perceptual color matching uses **OKLab** (Björn Ottosson, 2020), not CIELAB
 
 ### Cache
 
-- **OKLab cache:** `Map<number, LAB>` keyed by 24-bit RGB value, max 65,536 entries
+- **OKLab cache:** `Map<number, OKLab>` keyed by 24-bit RGB value, max 65,536 entries
 - **Color match cache:** `Map<number, number>` keyed by 24-bit RGB, cleared per `processMapart` call
 - **Gamma LUT:** 256-entry `Float64Array` built at module load

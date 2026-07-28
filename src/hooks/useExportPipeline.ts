@@ -1,6 +1,7 @@
 import { transfer as comlinkTransfer } from 'comlink';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { WorkerRefs, ExportParams, MaterialCounts } from './types';
+import { debug } from '../utils/diagnostic';
 
 export interface UseExportPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
@@ -79,7 +80,7 @@ export function useExportPipeline({
             );
             return counts;
         } catch (err) {
-            console.error('Material calculation failed:', err);
+            debug.error('Material calculation failed', err);
             return null;
         }
     }, [sourceImageVersion, sourceImageDataRef, workerApiRef, workerImageVersionRef]);
@@ -137,7 +138,7 @@ export function useExportPipeline({
                 const { triggerDownload } = await import('../utils/export');
                 triggerDownload(result.blob, result.filename);
             } catch (err) {
-                console.error('Export failed:', err);
+                debug.error('Export failed', err);
             } finally {
                 setIsExporting(false);
             }

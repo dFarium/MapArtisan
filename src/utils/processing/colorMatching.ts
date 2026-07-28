@@ -5,7 +5,7 @@
 
 import paletteData from '../../data/palette.json';
 import type { RGB, BrightnessLevel, BuildMode, PaletteColor } from '../../types/mapart';
-import { rgbToLab, getColorCache, type LAB } from './colorSpace';
+import { rgbToOklab, getColorCache, type OKLab } from './colorSpace';
 
 
 
@@ -19,20 +19,20 @@ export interface ColorCandidate {
     rgb: RGB;
     blockId: string;
     needsSupport: boolean;
-    lab?: LAB;
+    oklab?: OKLab;
 }
 
 // ============================================================================
-// Precomputed static Minecraft palette LAB values
+// Precomputed static Minecraft palette OKLab values
 // ============================================================================
-const paletteLabMap = new Map<string, LAB>();
+const paletteOklabMap = new Map<string, OKLab>();
 (() => {
     const palette = paletteData.colors as unknown as PaletteColor[];
     for (const color of palette) {
         for (const level of ['lowest', 'low', 'normal', 'high'] as BrightnessLevel[]) {
             const rgb = color.brightnessValues[level];
             if (rgb) {
-                paletteLabMap.set(`${color.colorID}_${level}`, rgbToLab(rgb.r, rgb.g, rgb.b));
+                paletteOklabMap.set(`${color.colorID}_${level}`, rgbToOklab(rgb.r, rgb.g, rgb.b));
             }
         }
     }
@@ -53,9 +53,9 @@ export interface CandidatesSoA {
     r: Uint8Array;
     g: Uint8Array;
     b: Uint8Array;
-    labL: Float64Array;
-    labA: Float64Array;
-    labB: Float64Array;
+    oklabL: Float64Array;
+    oklabA: Float64Array;
+    oklabB: Float64Array;
     notNormal: Uint8Array; // 1 if brightness level is 'high' or 'low', 0 if 'normal'
     sortedToOriginal: Int32Array; // Maps sorted position to original candidate index
 }
@@ -67,26 +67,26 @@ export interface CandidatesSoA {
 export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA {
     const count = candidates.length;
 
-    // 1. Ensure all candidates have their LAB values pre-computed
+    // 1. Ensure all candidates have their OKLab values pre-computed
     for (let i = 0; i < count; i++) {
         const c = candidates[i];
-        if (!c.lab) {
-            c.lab = rgbToLab(c.rgb.r, c.rgb.g, c.rgb.b);
+        if (!c.oklab) {
+            c.oklab = rgbToOklab(c.rgb.r, c.rgb.g, c.rgb.b);
         }
     }
 
     // 2. Create index array and sort it by L (lightness) in ascending order
     const indices = Array.from({ length: count }, (_, i) => i);
-    indices.sort((a, b) => candidates[a].lab!.L - candidates[b].lab!.L);
+    indices.sort((a, b) => candidates[a].oklab!.L - candidates[b].oklab!.L);
     
     const sortedToOriginal = new Int32Array(indices);
 
     const r = new Uint8Array(count);
     const g = new Uint8Array(count);
     const b = new Uint8Array(count);
-    const labL = new Float64Array(count);
-    const labA = new Float64Array(count);
-    const labB = new Float64Array(count);
+    const oklabL = new Float64Array(count);
+    const oklabA = new Float64Array(count);
+    const oklabB = new Float64Array(count);
     const notNormal = new Uint8Array(count);
 
     for (let i = 0; i < count; i++) {
@@ -95,14 +95,14 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
         r[i] = c.rgb.r;
         g[i] = c.rgb.g;
         b[i] = c.rgb.b;
-        const lab = c.lab!;
-        labL[i] = lab.L;
-        labA[i] = lab.a;
-        labB[i] = lab.b;
+        const oklab = c.oklab!;
+        oklabL[i] = oklab.L;
+        oklabA[i] = oklab.a;
+        oklabB[i] = oklab.b;
         notNormal[i] = c.brightness !== 'normal' ? 1 : 0;
     }
 
-    return { count, r, g, b, labL, labA, labB, notNormal, sortedToOriginal };
+    return { count, r, g, b, oklabL, oklabA, oklabB, notNormal, sortedToOriginal };
 }
 
 // ============================================================================
@@ -122,7 +122,7 @@ function findClosestLIndex(candidatesSoA: CandidatesSoA, tL: number): number {
 
     while (low <= high) {
         const mid = (low + high) >>> 1;
-        const midL = candidatesSoA.labL[mid];
+        const midL = candidatesSoA.oklabL[mid];
         if (midL < tL) {
             low = mid + 1;
         } else if (midL > tL) {
@@ -136,7 +136,7 @@ function findClosestLIndex(candidatesSoA: CandidatesSoA, tL: number): number {
         if (high < 0) startIdx = 0;
         else if (low >= n) startIdx = n - 1;
         else {
-            startIdx = (tL - candidatesSoA.labL[high] < candidatesSoA.labL[low] - tL) ? high : low;
+            startIdx = (tL - candidatesSoA.oklabL[high] < candidatesSoA.oklabL[low] - tL) ? high : low;
         }
     }
     return startIdx;
@@ -186,7 +186,7 @@ export function getValidColors(
                 rgb: color.brightnessValues[level],
                 blockId,
                 needsSupport,
-                lab: paletteLabMap.get(key)
+                oklab: paletteOklabMap.get(key)
             });
         }
     }
@@ -237,20 +237,20 @@ export function findClosestColorIndex(
     const n = candidatesSoA.count;
 
     if (usePerceptual) {
-        // --- LAB path: binary search + 2-pointer scan on L-sorted array ---
-        const targetLab = rgbToLab(tr, tg, tb);
-        const tL = targetLab.L;
-        const ta = targetLab.a;
-        const tbVal = targetLab.b;
+        // --- OKLab path: binary search + 2-pointer scan on L-sorted array ---
+        const targetOklab = rgbToOklab(tr, tg, tb);
+        const tL = targetOklab.L;
+        const ta = targetOklab.a;
+        const tbVal = targetOklab.b;
 
         // 1. Binary search for closest L (shared helper)
         const startIdx = findClosestLIndex(candidatesSoA, tL);
 
         // 2. Initialize best with startIdx
         bestIndex = startIdx;
-        const dL_start = tL - candidatesSoA.labL[startIdx];
-        const da_start = ta - candidatesSoA.labA[startIdx];
-        const db_start = tbVal - candidatesSoA.labB[startIdx];
+        const dL_start = tL - candidatesSoA.oklabL[startIdx];
+        const da_start = ta - candidatesSoA.oklabA[startIdx];
+        const db_start = tbVal - candidatesSoA.oklabB[startIdx];
         bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
         if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
             bestDist += heightPenalty;
@@ -263,13 +263,13 @@ export function findClosestColorIndex(
         if (heightPenalty > 0) {
             while (left >= 0 || right < n) {
                 if (left >= 0) {
-                    const dL = tL - candidatesSoA.labL[left];
+                    const dL = tL - candidatesSoA.oklabL[left];
                     const dL2 = dL * dL;
                     if (dL2 >= bestDist) {
                         left = -1; // stop searching left
                     } else {
-                        const da = ta - candidatesSoA.labA[left];
-                        const db = tbVal - candidatesSoA.labB[left];
+                        const da = ta - candidatesSoA.oklabA[left];
+                        const db = tbVal - candidatesSoA.oklabB[left];
                         let dist = dL2 + da * da + db * db;
                         if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
                         if (dist < bestDist) { bestDist = dist; bestIndex = left; }
@@ -277,13 +277,13 @@ export function findClosestColorIndex(
                     }
                 }
                 if (right < n) {
-                    const dL = tL - candidatesSoA.labL[right];
+                    const dL = tL - candidatesSoA.oklabL[right];
                     const dL2 = dL * dL;
                     if (dL2 >= bestDist) {
                         right = n; // stop searching right
                     } else {
-                        const da = ta - candidatesSoA.labA[right];
-                        const db = tbVal - candidatesSoA.labB[right];
+                        const da = ta - candidatesSoA.oklabA[right];
+                        const db = tbVal - candidatesSoA.oklabB[right];
                         let dist = dL2 + da * da + db * db;
                         if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
                         if (dist < bestDist) { bestDist = dist; bestIndex = right; }
@@ -294,26 +294,26 @@ export function findClosestColorIndex(
         } else {
             while (left >= 0 || right < n) {
                 if (left >= 0) {
-                    const dL = tL - candidatesSoA.labL[left];
+                    const dL = tL - candidatesSoA.oklabL[left];
                     const dL2 = dL * dL;
                     if (dL2 >= bestDist) {
                         left = -1; // stop searching left
                     } else {
-                        const da = ta - candidatesSoA.labA[left];
-                        const db = tbVal - candidatesSoA.labB[left];
+                        const da = ta - candidatesSoA.oklabA[left];
+                        const db = tbVal - candidatesSoA.oklabB[left];
                         const dist = dL2 + da * da + db * db;
                         if (dist < bestDist) { bestDist = dist; bestIndex = left; }
                         left--;
                     }
                 }
                 if (right < n) {
-                    const dL = tL - candidatesSoA.labL[right];
+                    const dL = tL - candidatesSoA.oklabL[right];
                     const dL2 = dL * dL;
                     if (dL2 >= bestDist) {
                         right = n; // stop searching right
                     } else {
-                        const da = ta - candidatesSoA.labA[right];
-                        const db = tbVal - candidatesSoA.labB[right];
+                        const da = ta - candidatesSoA.oklabA[right];
+                        const db = tbVal - candidatesSoA.oklabB[right];
                         const dist = dL2 + da * da + db * db;
                         if (dist < bestDist) { bestDist = dist; bestIndex = right; }
                         right++;
@@ -322,7 +322,7 @@ export function findClosestColorIndex(
             }
         }
     } else {
-        // --- RGB path: branch resolved once, no LAB objects created ---
+        // --- RGB path: branch resolved once, no OKLab objects created ---
         if (heightPenalty > 0) {
             for (let i = 0; i < n; i++) {
                 const dr = tr - candidatesSoA.r[i];
@@ -357,7 +357,7 @@ export function findClosestColorIndex(
  * Accepts inline RGB components to prevent garbage collection pressure.
  *
  * For performance:
- * 1. The CIELAB color space conditional checks are hoisted outside the main loops.
+ * 1. The OKLab color-space conditional checks are hoisted outside the main loops.
  * 2. Parallel sequential memory layout (SoA) is traversed for better cache locality.
  */
 export function findTwoClosestColors(
@@ -375,20 +375,20 @@ export function findTwoClosestColors(
     const n = candidatesSoA.count;
 
     if (usePerceptual) {
-        // --- LAB path: binary search + 2-pointer scan on L-sorted array ---
-        const targetLab = rgbToLab(tr, tg, tb);
-        const tL = targetLab.L;
-        const ta = targetLab.a;
-        const tbVal = targetLab.b;
+        // --- OKLab path: binary search + 2-pointer scan on L-sorted array ---
+        const targetOklab = rgbToOklab(tr, tg, tb);
+        const tL = targetOklab.L;
+        const ta = targetOklab.a;
+        const tbVal = targetOklab.b;
 
         // 1. Binary search for closest L (shared helper)
         const startIdx = findClosestLIndex(candidatesSoA, tL);
 
         // 2. Initialize best with startIdx
         bestIndex = startIdx;
-        const dL_start = tL - candidatesSoA.labL[startIdx];
-        const da_start = ta - candidatesSoA.labA[startIdx];
-        const db_start = tbVal - candidatesSoA.labB[startIdx];
+        const dL_start = tL - candidatesSoA.oklabL[startIdx];
+        const da_start = ta - candidatesSoA.oklabA[startIdx];
+        const db_start = tbVal - candidatesSoA.oklabB[startIdx];
         bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
         if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
             bestDist += heightPenalty;
@@ -401,13 +401,13 @@ export function findTwoClosestColors(
         if (heightPenalty > 0) {
             while (left >= 0 || right < n) {
                 if (left >= 0) {
-                    const dL = tL - candidatesSoA.labL[left];
+                    const dL = tL - candidatesSoA.oklabL[left];
                     const dL2 = dL * dL;
                     if (dL2 >= secondDist) {
                         left = -1; // stop searching left
                     } else {
-                        const da = ta - candidatesSoA.labA[left];
-                        const db = tbVal - candidatesSoA.labB[left];
+                        const da = ta - candidatesSoA.oklabA[left];
+                        const db = tbVal - candidatesSoA.oklabB[left];
                         let dist = dL2 + da * da + db * db;
                         if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
                         if (dist < bestDist) {
@@ -420,13 +420,13 @@ export function findTwoClosestColors(
                     }
                 }
                 if (right < n) {
-                    const dL = tL - candidatesSoA.labL[right];
+                    const dL = tL - candidatesSoA.oklabL[right];
                     const dL2 = dL * dL;
                     if (dL2 >= secondDist) {
                         right = n; // stop searching right
                     } else {
-                        const da = ta - candidatesSoA.labA[right];
-                        const db = tbVal - candidatesSoA.labB[right];
+                        const da = ta - candidatesSoA.oklabA[right];
+                        const db = tbVal - candidatesSoA.oklabB[right];
                         let dist = dL2 + da * da + db * db;
                         if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
                         if (dist < bestDist) {
@@ -442,13 +442,13 @@ export function findTwoClosestColors(
         } else {
             while (left >= 0 || right < n) {
                 if (left >= 0) {
-                    const dL = tL - candidatesSoA.labL[left];
+                    const dL = tL - candidatesSoA.oklabL[left];
                     const dL2 = dL * dL;
                     if (dL2 >= secondDist) {
                         left = -1; // stop searching left
                     } else {
-                        const da = ta - candidatesSoA.labA[left];
-                        const db = tbVal - candidatesSoA.labB[left];
+                        const da = ta - candidatesSoA.oklabA[left];
+                        const db = tbVal - candidatesSoA.oklabB[left];
                         const dist = dL2 + da * da + db * db;
                         if (dist < bestDist) {
                             secondDist = bestDist; secondIndex = bestIndex;
@@ -460,13 +460,13 @@ export function findTwoClosestColors(
                     }
                 }
                 if (right < n) {
-                    const dL = tL - candidatesSoA.labL[right];
+                    const dL = tL - candidatesSoA.oklabL[right];
                     const dL2 = dL * dL;
                     if (dL2 >= secondDist) {
                         right = n; // stop searching right
                     } else {
-                        const da = ta - candidatesSoA.labA[right];
-                        const db = tbVal - candidatesSoA.labB[right];
+                        const da = ta - candidatesSoA.oklabA[right];
+                        const db = tbVal - candidatesSoA.oklabB[right];
                         const dist = dL2 + da * da + db * db;
                         if (dist < bestDist) {
                             secondDist = bestDist; secondIndex = bestIndex;

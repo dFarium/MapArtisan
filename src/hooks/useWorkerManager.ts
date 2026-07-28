@@ -1,6 +1,7 @@
 import { releaseProxy, wrap, type Remote } from 'comlink';
 import { useRef, useEffect, useCallback } from 'react';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
+import { isDebugActive } from '../utils/diagnostic';
 
 /**
  * Hook para manejar el lifecycle del Web Worker de mapart.
@@ -41,6 +42,7 @@ export function useWorkerManager(): UseWorkerManagerReturn {
     );
     
     workerApiRef.current = wrap<MapartWorkerApi>(workerRef.current);
+    void workerApiRef.current.setDiagnosticsEnabled(isDebugActive());
     isProcessingRef.current = false;
     workerImageVersionRef.current = -1;
   }, []);

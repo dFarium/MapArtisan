@@ -1,7 +1,7 @@
 /**
  * Diagnostic logger for MapArtisan.
  *
- * Replaces console.log/console.warn in production with a toggleable mechanism.
+ * Centralizes production diagnostics behind an explicit opt-in.
  * Logs are suppressed by default and can be enabled via:
  * - URL parameter: `?debug=1` or `?debug=all`
  * - localStorage: `localStorage.setItem('mapartisan:debug', '1')`
@@ -9,17 +9,16 @@
  * Usage:
  * ```ts
  * import { debug } from './diagnostic';
- * debug('Worker] Cache miss: No cached source available');
+ * debug('Worker cache miss: no cached source available');
  * debug.warn('Export failed: No image data provided');
  * ```
  */
 
 let debugEnabled = false;
 
-function isDebugEnabled(): boolean {
+function readBrowserPreference(): boolean {
     if (typeof window !== 'undefined') {
-        const url = new URL(window.location.href);
-        if (url.searchParams.has('debug')) return true;
+        if (new URL(window.location.href).searchParams.has('debug')) return true;
         try {
             if (localStorage.getItem('mapartisan:debug') === '1') return true;
         } catch { /* localStorage may be unavailable */ }
@@ -33,7 +32,7 @@ function isDebugEnabled(): boolean {
  */
 export function debug(message: string, ...args: unknown[]): void {
     if (!debugEnabled) {
-        debugEnabled = isDebugEnabled();
+        debugEnabled = readBrowserPreference();
     }
     if (debugEnabled) {
         console.log(`[MapArtisan] ${message}`, ...args);
@@ -46,7 +45,7 @@ export function debug(message: string, ...args: unknown[]): void {
  */
 debug.warn = function (message: string, ...args: unknown[]): void {
     if (!debugEnabled) {
-        debugEnabled = isDebugEnabled();
+        debugEnabled = readBrowserPreference();
     }
     if (debugEnabled) {
         console.warn(`[MapArtisan] ${message}`, ...args);
@@ -71,5 +70,5 @@ export function setDebugEnabled(enabled: boolean): void {
  * Returns whether debug logging is currently enabled.
  */
 export function isDebugActive(): boolean {
-    return debugEnabled || isDebugEnabled();
+    return debugEnabled || readBrowserPreference();
 }

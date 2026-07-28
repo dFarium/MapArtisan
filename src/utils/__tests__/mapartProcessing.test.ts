@@ -1,22 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import {
-    rgbToLab,
-    deltaE,
+    rgbToOklab,
+    oklabDistance,
     optimizeColumnHeights,
     getValidColors,
     processMapart,
     applyManualEdits,
     packPixel,
     unpackTone,
-    type LAB
+    type OKLab
 } from '../processing';
 import type { BrightnessLevel, RGB } from '../../types/mapart';
 
 describe('mapartProcessing', () => {
-    describe('rgbToLab', () => {
+    describe('rgbToOklab', () => {
         it('converts pure white correctly', () => {
             const white: RGB = { r: 255, g: 255, b: 255 };
-            const lab = rgbToLab(white);
+            const lab = rgbToOklab(white);
 
             // White should have L ≈ 1.0 in OKLab
             expect(lab.L).toBeCloseTo(1.0, 3);
@@ -27,7 +27,7 @@ describe('mapartProcessing', () => {
 
         it('converts pure black correctly', () => {
             const black: RGB = { r: 0, g: 0, b: 0 };
-            const lab = rgbToLab(black);
+            const lab = rgbToOklab(black);
 
             // Black should have L ≈ 0.0 in OKLab
             expect(lab.L).toBeCloseTo(0.0, 3);
@@ -35,8 +35,8 @@ describe('mapartProcessing', () => {
 
         it('is deterministic and uses cache', () => {
             const color: RGB = { r: 128, g: 64, b: 192 };
-            const lab1 = rgbToLab(color);
-            const lab2 = rgbToLab(color);
+            const lab1 = rgbToOklab(color);
+            const lab2 = rgbToOklab(color);
 
             // Should return same reference (cache)
             expect(lab1).toBe(lab2);
@@ -44,34 +44,34 @@ describe('mapartProcessing', () => {
 
         it('converts pure red correctly', () => {
             const red: RGB = { r: 255, g: 0, b: 0 };
-            const lab = rgbToLab(red);
+            const lab = rgbToOklab(red);
 
             // Red should have positive a value (OKLab: a ≈ 0.225)
             expect(lab.a).toBeGreaterThan(0.1);
         });
     });
 
-    describe('deltaE', () => {
+    describe('oklabDistance', () => {
         it('returns 0 for identical colors', () => {
-            const lab1: LAB = { L: 128, a: 10, b: -5 };
-            const lab2: LAB = { L: 128, a: 10, b: -5 };
+            const lab1: OKLab = { L: 0.5, a: 0.1, b: -0.05 };
+            const lab2: OKLab = { L: 0.5, a: 0.1, b: -0.05 };
 
-            expect(deltaE(lab1, lab2)).toBe(0);
+            expect(oklabDistance(lab1, lab2)).toBe(0);
         });
 
         it('returns positive distance for different colors', () => {
-            const lab1: LAB = { L: 100, a: 0, b: 0 };
-            const lab2: LAB = { L: 200, a: 50, b: -50 };
+            const lab1: OKLab = { L: 0.4, a: 0, b: 0 };
+            const lab2: OKLab = { L: 0.8, a: 0.2, b: -0.2 };
 
-            const distance = deltaE(lab1, lab2);
+            const distance = oklabDistance(lab1, lab2);
             expect(distance).toBeGreaterThan(0);
         });
 
         it('is symmetric', () => {
-            const lab1: LAB = { L: 100, a: 20, b: -10 };
-            const lab2: LAB = { L: 150, a: -30, b: 40 };
+            const lab1: OKLab = { L: 0.4, a: 0.2, b: -0.1 };
+            const lab2: OKLab = { L: 0.7, a: -0.3, b: 0.4 };
 
-            expect(deltaE(lab1, lab2)).toBeCloseTo(deltaE(lab2, lab1), 5);
+            expect(oklabDistance(lab1, lab2)).toBeCloseTo(oklabDistance(lab2, lab1), 5);
         });
     });
 

@@ -1,3 +1,5 @@
+import { debug } from '../utils/diagnostic';
+
 export type AsyncTask = () => Promise<void>;
 
 /**
@@ -34,7 +36,7 @@ export class LatestWinsQueue {
                     await task();
                 } catch (error) {
                     // A failed task must not prevent the latest pending task from running.
-                    console.error('[LatestWinsQueue] Task failed', error);
+                    debug.error('Latest-wins queue task failed', error);
                 }
                 task = this.pending;
                 this.pending = null;

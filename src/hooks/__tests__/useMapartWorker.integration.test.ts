@@ -29,6 +29,7 @@ vi.mock('comlink', () => {
   releaseProxy,
   wrap: vi.fn(() => ({
     [releaseProxy]: vi.fn(),
+    setDiagnosticsEnabled: vi.fn(),
     clearCache: vi.fn(),
     processMapart: vi.fn().mockResolvedValue({
       version: 1,

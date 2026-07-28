@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import paletteData from '../data/palette.json';
 import { BASIC_COLORS, EASY_KEYWORDS } from '../data/presetConstants';
 import type { PaletteColor } from '../types/palette';
+import { debug } from './diagnostic';
 import {
     filterPaletteByVersion,
     checkPresetCompatibility,
@@ -29,7 +30,7 @@ export const usePalettePresets = (
             try {
                 return JSON.parse(saved);
             } catch (e) {
-                console.error('Failed to parse presets', e);
+                debug.error('Failed to parse saved presets', e);
             }
         }
         return [];

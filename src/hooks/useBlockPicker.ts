@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect } from 'react';
 import type { WorkerRefs, ManualEdit } from './types';
+import { debug } from '../utils/diagnostic';
 
 export interface UseBlockPickerProps extends WorkerRefs {
     manualEdits: Record<number, ManualEdit>;
@@ -30,7 +31,7 @@ export function useBlockPicker({
             try {
                 return await workerApiRef.current.getBlockAt(x, y, manualEditsRef.current);
             } catch (e) {
-                console.error(e);
+                debug.error('Block picker failed', e);
                 return null;
             }
         },

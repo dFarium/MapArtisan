@@ -29,6 +29,7 @@ vi.mock('comlink', () => {
   releaseProxy,
   wrap: vi.fn(() => ({
     [releaseProxy]: vi.fn(),
+    setDiagnosticsEnabled: vi.fn(),
     processMapart: vi.fn(),
     applyEdits: vi.fn(),
     generateMapartExport: vi.fn(),
@@ -51,6 +52,7 @@ describe('useWorkerManager', () => {
       const { result } = renderHook(() => useWorkerManager());
       expect(result.current.workerApiRef).toBeDefined();
       expect(result.current.workerApiRef.current).not.toBeNull();
+      expect(result.current.workerApiRef.current?.setDiagnosticsEnabled).toHaveBeenCalledWith(expect.any(Boolean));
     });
 
     it('inicializa isProcessingRef en false', () => {

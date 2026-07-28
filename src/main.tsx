@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { debug } from './utils/diagnostic'
 
 // React's development build emits User Timing measures for component tracks.
 // Rapid slider commits can create tens of thousands of entries whose Blink-side
@@ -33,9 +34,9 @@ createRoot(document.getElementById('root')!).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(registration => {
-      console.log('SW registered: ', registration);
+      debug('Service worker registered', registration);
     }).catch(registrationError => {
-      console.log('SW registration failed: ', registrationError);
+      debug.warn('Service worker registration failed', registrationError);
     });
   });
 }

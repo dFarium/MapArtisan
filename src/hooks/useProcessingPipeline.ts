@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { WorkerRefs, ProcessingResult, ProcessingParams } from './types';
 import type { MapartStats } from '../types/mapart';
 import { LatestWinsQueue } from './latestWinsQueue';
+import { debug } from '../utils/diagnostic';
 
 export interface UseProcessingPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
@@ -124,7 +125,7 @@ export function useProcessingPipeline({
                     if (!active || processingRequestIdRef.current !== requestId) return;
 
                     if (result.error === 'CACHE_MISS') {
-                        console.warn('[useProcessingPipeline] Worker cache miss, retrying with buffer...');
+                        debug.warn('Worker cache miss; retrying with the source buffer');
                         return process(true);
                     }
 
@@ -154,9 +155,9 @@ export function useProcessingPipeline({
                     setHeightPath(finalHeightPath);
 
                     const endTime = performance.now();
-                    console.log(`[useProcessingPipeline] E2E Mapart generation (v${currentVersion}) complete in ${(endTime - startTime).toFixed(1)}ms`);
+                    debug(`Map-art generation v${currentVersion} completed in ${(endTime - startTime).toFixed(1)}ms`);
                 } catch (err) {
-                    if (active && processingRequestIdRef.current === requestId) console.error('Heavy processing failed', err);
+                    if (active && processingRequestIdRef.current === requestId) debug.error('Heavy processing failed', err);
                 } finally {
                     if (active && processingRequestIdRef.current === requestId) {
                         setIsProcessing(false);
@@ -236,7 +237,7 @@ export function useProcessingPipeline({
                 setPackedResults(finalPackedResults);
                 setHeightPath(finalHeightPath);
             } catch (e) {
-                console.error('Light processing failed', e);
+                debug.error('Incremental edit processing failed', e);
             }
         };
 

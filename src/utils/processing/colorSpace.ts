@@ -11,7 +11,7 @@ import type { RGB } from '../../types/mapart';
 // Types
 // ============================================================================
 
-export interface LAB {
+export interface OKLab {
     L: number;
     a: number;
     b: number;
@@ -21,9 +21,9 @@ export interface LAB {
 // Caching System
 // ============================================================================
 
-// LAB cache: RGB binary -> LAB values
-const labCache = new Map<number, LAB>();
-export const LAB_CACHE_MAX_ENTRIES = 65_536;
+// OKLab cache: RGB binary -> OKLab values
+const oklabCache = new Map<number, OKLab>();
+export const OKLAB_CACHE_MAX_ENTRIES = 65_536;
 
 // Color cache: RGB binary -> best candidate index (cleared per processMapart call)
 const colorCache = new Map<number, number>();
@@ -44,12 +44,12 @@ export function clearColorCache(): void {
     colorCache.clear();
 }
 
-export function clearLabCache(): void {
-    labCache.clear();
+export function clearOklabCache(): void {
+    oklabCache.clear();
 }
 
-export function getLabCacheSize(): number {
-    return labCache.size;
+export function getOklabCacheSize(): number {
+    return oklabCache.size;
 }
 
 /**
@@ -82,7 +82,7 @@ const GAMMA_LUT: Float64Array = (() => {
 
 // ============================================================================
 // OKLab matrix coefficients — hoisted as module-level constants for zero
-// property-lookup overhead inside rgbToLab (called once per unique RGB color).
+// property-lookup overhead inside rgbToOklab (called once per unique RGB color).
 // ============================================================================
 
 // M1: linear sRGB → LMS
@@ -116,9 +116,9 @@ const M2_B0 = MAPART.OKLAB_M2_B[0], M2_B1 = MAPART.OKLAB_M2_B[1], M2_B2 = MAPART
  * 3. Uses Math.cbrt (native op) for LMS^(1/3).
  * 4. Results are cached by 24-bit RGB key — computed at most once per unique color.
  */
-export function rgbToLab(rgb: RGB): LAB;
-export function rgbToLab(r: number, g: number, b: number): LAB;
-export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
+export function rgbToOklab(rgb: RGB): OKLab;
+export function rgbToOklab(r: number, g: number, b: number): OKLab;
+export function rgbToOklab(rOrRgb: number | RGB, g?: number, b?: number): OKLab {
     let r: number, gVal: number, bVal: number;
     if (typeof rOrRgb === 'object' && rOrRgb !== null) {
         r = rOrRgb.r;
@@ -130,11 +130,11 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
         bVal = b!;
     }
     const key = (((r + 0.5) | 0) << 16) | (((gVal + 0.5) | 0) << 8) | ((bVal + 0.5) | 0);
-    if (labCache.has(key)) {
-        return labCache.get(key)!;
+    if (oklabCache.has(key)) {
+        return oklabCache.get(key)!;
     }
 
-    // Step 1: sRGB → linear RGB via gamma LUT (identical to previous CIELab path)
+    // Step 1: sRGB → linear RGB via the shared gamma LUT
     const r1 = GAMMA_LUT[((r + 0.5) | 0) & 0xFF];
     const g1 = GAMMA_LUT[((gVal + 0.5) | 0) & 0xFF];
     const b1 = GAMMA_LUT[((bVal + 0.5) | 0) & 0xFF];
@@ -150,17 +150,17 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
     const s_ = Math.cbrt(lms_s);
 
     // Step 4: LMS^(1/3) → OKLab (M2)
-    const lab: LAB = {
+    const oklab: OKLab = {
         L: M2_L0 * l_ + M2_L1 * m_ + M2_L2 * s_,
         a: M2_A0 * l_ + M2_A1 * m_ + M2_A2 * s_,
         b: M2_B0 * l_ + M2_B1 * m_ + M2_B2 * s_,
     };
 
-    if (labCache.size >= LAB_CACHE_MAX_ENTRIES) {
-        labCache.clear();
+    if (oklabCache.size >= OKLAB_CACHE_MAX_ENTRIES) {
+        oklabCache.clear();
     }
-    labCache.set(key, lab);
-    return lab;
+    oklabCache.set(key, oklab);
+    return oklab;
 }
 
 
@@ -171,10 +171,10 @@ export function rgbToLab(rOrRgb: number | RGB, g?: number, b?: number): LAB {
 /**
  * Calculates the standard Delta E distance between two OKLab colors.
  */
-export function deltaE(lab1: LAB, lab2: LAB): number {
-    const dL = lab1.L - lab2.L;
-    const da = lab1.a - lab2.a;
-    const db = lab1.b - lab2.b;
+export function oklabDistance(color1: OKLab, color2: OKLab): number {
+    const dL = color1.L - color2.L;
+    const da = color1.a - color2.a;
+    const db = color1.b - color2.b;
     return Math.sqrt(dL * dL + da * da + db * db);
 }
 
@@ -182,10 +182,10 @@ export function deltaE(lab1: LAB, lab2: LAB): number {
  * Calculates the squared Delta E distance between two OKLab colors.
  * Eliminating the Math.sqrt operation makes this significantly faster for comparative searches.
  */
-export function labDistanceSq(lab1: LAB, lab2: LAB): number {
-    const dL = lab1.L - lab2.L;
-    const da = lab1.a - lab2.a;
-    const db = lab1.b - lab2.b;
+export function oklabDistanceSq(color1: OKLab, color2: OKLab): number {
+    const dL = color1.L - color2.L;
+    const da = color1.a - color2.a;
+    const db = color1.b - color2.b;
     return dL * dL + da * da + db * db;
 }
 

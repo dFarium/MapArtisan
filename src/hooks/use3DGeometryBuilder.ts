@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { WorkerRefs } from './types';
 import type { Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
+import { debug } from '../utils/diagnostic';
 
 export interface InstanceGeometry {
     positions: Float32Array;
@@ -29,7 +30,7 @@ export function use3DGeometryBuilder(
             try {
                 return await api.build3DGeometryInWorker(props);
             } catch (e) {
-                console.error('[use3DGeometryBuilder] build3DGeometryAsync failed', e);
+                debug.error('3D geometry build failed', e);
                 return null;
             }
         },

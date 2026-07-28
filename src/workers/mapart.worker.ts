@@ -1,9 +1,9 @@
 import { expose, transfer } from 'comlink';
-import { processMapart, applyManualEdits, unpackCandidateIdx, clearColorCache, clearLabCache, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
+import { processMapart, applyManualEdits, unpackCandidateIdx, clearColorCache, clearOklabCache, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
-import { debug } from '../utils/diagnostic';
+import { debug, setDebugEnabled } from '../utils/diagnostic';
 
 /**
  * Creates a deterministic cache key for worker processing results.
@@ -86,10 +86,15 @@ let lastBaseResult: {
 } | null = null;
 
 const api = {
+    /** Receives the browser preference because Web Workers cannot access localStorage. */
+    setDiagnosticsEnabled: (enabled: boolean): void => {
+        setDebugEnabled(enabled);
+    },
+
     clearCache: (): void => {
         lastBaseResult = null;
         clearColorCache();
-        clearLabCache();
+        clearOklabCache();
     },
 
     /**

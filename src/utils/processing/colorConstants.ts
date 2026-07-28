@@ -2,7 +2,7 @@ export const MAPART = {
     // 3D Mode Penalty
     MAX_HEIGHT_PENALTY: 255 * 255 * 3 + 1,
 
-    // sRGB → Linear RGB gamma correction (shared by OKLab and legacy CIELab)
+    // sRGB → Linear RGB gamma correction used by OKLab
     RGB_TO_LINEAR_THRESHOLD: 0.04045,
     RGB_TO_LINEAR_DIVISOR: 12.0,
     RGB_TO_LINEAR_OFFSET: 0.055,

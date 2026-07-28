@@ -107,7 +107,19 @@ npm run build
 
 # Run tests
 npm run test
+
+# Run performance benchmarks
+npm run bench
 ```
+
+### Diagnostics
+
+Informational diagnostics are disabled by default. Enable them for both the page and processing worker with `?debug=1`, or run `localStorage.setItem('mapartisan:debug', '1')` and reload the application. Errors remain visible regardless of this setting.
+
+### Internal references
+
+- [Processing data structures and cache invariants](docs/DATA_STRUCTURES.md)
+- [TypeScript performance baselines](docs/PERFORMANCE_BASELINES.md)
 
 ---
 
