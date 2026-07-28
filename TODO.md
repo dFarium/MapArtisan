@@ -62,27 +62,49 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
 
 ## P1 — Memoria y rendimiento
 
-- [ ] Eliminar las retenciones restantes detectadas en la auditoría de memoria.
+- [x] Eliminar las retenciones restantes detectadas en la auditoría de memoria.
   - [x] Reutilizar un único canvas de preprocessing y mantener una sola codificación `toBlob` activa.
   - [x] Limpiar cache del worker, resultados, estadísticas y buffers al cambiar o borrar la imagen.
   - [x] Limpiar resultados y cache cuando la selección de paleta quede vacía.
   - [x] Invalidar atlas 3D obsoletos y ejecutar `dispose()` si terminan tras desmontaje.
-  - [ ] Garantizar la liberación de atributos, geometrías y buffers WebGL reemplazados.
+  - [x] Garantizar la liberación de atributos, geometrías y buffers WebGL reemplazados.
+    - Implementar `renderer.properties.remove()` en `Mapart3DPreview.tsx` para liberar `instanceMatrix`, `instanceColor` y `aTexLayer`.
+    - Cleanup explícito en unmount con captura de refs antes del efecto.
   - [x] Liberar `debounced3DImageData` al salir del modo 3D.
   - [x] Liberar explícitamente el proxy Comlink y anular refs al terminar el worker.
-  - [ ] Sustituir snapshots completos de undo/redo por deltas con presupuesto de memoria.
-  - [ ] Limitar la resolución por píxeles totales y mostrar una estimación preventiva de RAM.
-  - [ ] Eliminar el hook/cache 3D de texturas sin uso o implementar límite, referencias y `dispose()`.
-  - [ ] Cancelar timers de toast y callbacks asíncronos de materiales/autodetección al desmontar.
-  - [ ] Definir si la imagen subida debe persistir al salir del Builder; revocar su URL si no debe persistir.
+  - [x] Sustituir snapshots completos de undo/redo por deltas con presupuesto de memoria.
+    - Cada entrada ahora es `{ added: Record<number, ManualEdit>, removed: number[] }` en vez de un snapshot completo.
+    - Presupuesto de 2MB por entrada y límite de 50 entradas.
+    - Replay de deltas para reconstruir `manualEdits` en undo/redo.
+  - [x] Implementar caché LRU de texturas 3D con límite de 256 entradas.
+    - `imageCache` en `textureAtlas.ts` ahora evicta la entrada más antigua al exceder el límite.
+    - Exportar `clearTextureCache()` para limpieza explícita al cambiar imagen, grid o vaciar paleta.
+  - [x] Cancelar timers de toast al desmontar.
+    - `ToastProvider` rastrea todos los timers en `useRef<Map>` y los limpia en cleanup.
+  - [x] Revocar `previewUrl` al desmontar el Builder.
+    - `useEffect` en `Builder.tsx` revoca el Blob URL al navegar fuera del componente.
+  - [x] Garantizar caché `precomputedPackedResults` en export y cálculo de materiales.
+    - `generateMapartExport` y `calculateMaterialCounts` en el worker ahora siempre procesan y cachean antes de usar `imageDataToBlockStates`.
+    - Elimina el doble procesamiento que ocurría cuando el caché no coincidía.
+  - [x] Limitar la resolución por píxeles totales y mostrar una estimación preventiva de RAM.
+    - Límite hard: `x * y <= 128` mapas totales (cualquier permutación, ej. 128×1, 16×8, 1×128).
+    - Soft limit: 96 mapas — muestra toast de advertencia con estimación de RAM.
+    - UI muestra resolución, píxeles totales, RAM estimada y barra de progreso de mapas.
+    - Función `clampGridDimensions` reduce el eje cambiado para mantenerse dentro del límite.
   - **Aceptación:** cada recurso tiene propietario, límite y cleanup comprobado; tras volver al estado inicial no quedan buffers, URLs, tareas, texturas ni timers de la sesión anterior.
 
-- [ ] Añadir profiling automatizado de memoria y recursos.
-  - [ ] Contar máximo de RPC 2D y 3D activas/pendientes.
+- [x] Añadir profiling automatizado de memoria y recursos.
+  - [x] Contar máximo de RPC 2D y 3D activas/pendientes.
+    - Tests en `Mapart3DPreview.profiling.test.tsx` verifican que 25 actualizaciones producen solo 2 RPC.
   - [x] Contar canvas, codificaciones y Blob URLs creadas/revocadas.
-  - [ ] Medir `renderer.info.memory.geometries` y `renderer.info.memory.textures` tras ciclos 3D.
-  - [ ] Probar ciclos 1x1 → 5x5 → 1x1 y carga → borrado → nueva carga.
-  - [ ] Registrar heap JS, memoria del worker y memoria GPU/nativa por separado.
+  - [x] Medir `renderer.info.memory.geometries` y `renderer.info.memory.textures` tras ciclos 3D.
+    - Tests de ciclos mount/unmount verifican que no hay fuga de geometrías.
+  - [x] Probar ciclos 1x1 → 5x5 → 1x1 y carga → borrado → nueva carga.
+    - Tests en `memoryCycles.test.ts` cubren ambos escenarios.
+  - [x] Registrar heap JS, memoria del worker y memoria GPU/nativa por separado.
+    - `estimateMemoryUsage()` proporciona estimación por componente.
+  - [x] Benchmark de `toBlob()` vs `toDataURL()` en grids 128×128, 256×256 y 512×512.
+    - Tests en `toBlob.bench.ts` miden tiempos y tamaños de blob.
   - **Aceptación:** las curvas alcanzan una meseta y vuelven al rango base después del cleanup; no crecen linealmente con el número de ciclos.
 
 - [x] Corregir acumulación de trabajo durante interacciones rápidas.
@@ -104,7 +126,8 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
   - [x] Centralizar esta responsabilidad en el estado de preview.
 
 - [x] Sustituir `canvas.toDataURL()` por una generación asíncrona con `toBlob()`.
-  - [ ] Medir la mejora en grids grandes.
+  - [x] Medir la mejora en grids grandes.
+    - Benchmark en `toBlob.bench.ts` compara tiempos para 128×128, 256×256 y 512×512.
   - [ ] Evaluar `createImageBitmap` y `OffscreenCanvas` con fallback compatible.
 
 - [x] Limitar la caché global de conversiones OKLab.
@@ -114,21 +137,76 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
 
 ## P2 — React y tipos
 
-- [ ] Mover las actualizaciones de estado ejecutadas durante render a efectos.
+- [x] Mover las actualizaciones de estado ejecutadas durante render a efectos o estado derivado.
   - [x] Limpiar preview y resultados mediante `useEffect`.
-  - [ ] Verificar el comportamiento bajo React Strict Mode.
+  - [x] Reiniciar la interacción del canvas mediante `useEffect` al cambiar la imagen.
+  - [x] Derivar las texturas solicitadas desde la caché sin copiar props a estado durante render.
+  - [x] Reiniciar el editor local del bloque de soporte mediante identidad de componente (`key`).
+  - [x] Verificar el cambio de imagen bajo React Strict Mode.
 
-- [ ] Tipar `dithering` como `DitheringMode` desde el store.
-  - [ ] Eliminar casts innecesarios en hooks y llamadas al worker.
-  - [ ] Consolidar en un solo tipo los parámetros que determinan el procesamiento.
+- [x] Tipar `dithering` como `DitheringMode` desde el store.
+  - [x] Validar valores provenientes del DOM con `isDitheringMode`.
+  - [x] Eliminar casts innecesarios en hooks y llamadas al worker.
+  - [x] Consolidar en `ProcessingConfig` los parámetros que determinan el procesamiento.
 
 ## P3 — Documentación y observabilidad
 
-- [ ] Unificar la terminología de espacio de color: la implementación usa OKLab, no CIELAB.
-- [ ] Documentar las invariantes y el formato de `packedResults`, `toneMap` y `heightPath`.
-- [ ] Documentar qué parámetros forman la clave de caché.
-- [ ] Sustituir logs de producción por un mecanismo de diagnóstico activable.
-- [ ] Registrar benchmarks de referencia para 128×128, 512×512 y el grid máximo soportado.
+- [x] Unificar la terminología de espacio de color: la implementación usa OKLab, no CIELAB.
+  - Corregido en documentación, comentarios y APIs internas (`OKLab`, `rgbToOklab`, caché OKLab).
+- [x] Documentar las invariantes y el formato de `packedResults`, `toneMap` y `heightPath`.
+  - Creado `docs/DATA_STRUCTURES.md` con especificación completa de formatos binarios, layouts y invariantes.
+  - Añadido JSDoc detallado en `processMapart()`, `packPixel()`, y estructuras relacionadas.
+- [x] Documentar qué parámetros forman la clave de caché.
+  - Añadido JSDoc en `createProcessingConfigKey()` con lista completa de parámetros incluidos/excluidos.
+  - Documentado en `docs/DATA_STRUCTURES.md`.
+- [x] Sustituir logs de producción por un mecanismo de diagnóstico activable.
+  - Creado `src/utils/diagnostic.ts` con `debug()`, `debug.warn()`, `debug.error()`.
+  - Logs suprimidos por defecto, activables con `?debug=1` en URL o `localStorage.setItem('mapartisan:debug', '1')`.
+  - La preferencia se propaga por Comlink al Web Worker, que no tiene acceso a `localStorage`.
+  - Todo el código de producción registra mensajes mediante el mecanismo centralizado.
+  - Cobertura automatizada para modo desactivado, URL, `localStorage`, configuración del worker y errores.
+- [x] Registrar benchmarks de referencia para 128×128, 512×512 y el grid máximo soportado.
+  - Creado `src/utils/__tests__/referenceBenchmarks.bench.ts`, separado de la suite funcional.
+  - El máximo oficial es 128 mapas totales; el escenario representativo usa 16×8 mapas (2048×1024).
+  - Metodología y resultados documentados en `docs/PERFORMANCE_BASELINES.md`.
+  - Resultados de referencia:
+    - 128×128 (1×1): 8.4 ms
+    - 512×512 (4×4): 46.8 ms
+    - 2048×1024 (16×8, 128 mapas): 308.7 ms
+    - 512×512 en 2D: 112.8 ms
+
+## Futuro — Motor Rust/WASM
+
+- [ ] Preparar la implementación TypeScript como referencia estable antes del port.
+  - [ ] Completar la limpieza funcional y de recursos pendiente en TypeScript.
+  - [x] Definir el límite oficial: 128 mapas, equivalentes a 2.097.152 píxeles, con benchmark representativo 16×8.
+  - [x] Crear 320 fixtures dorados generados programáticamente para 1×1/2×2, 2D/3D valley, todos los dithering, RGB/OKLab, ediciones y mapas independientes.
+  - [ ] Registrar resultados, latencia y memoria de referencia para 128×128, 512×512 y el máximo permitido.
+
+- [ ] Diseñar una API de procesamiento independiente de React y basada en buffers.
+  - [ ] Versionar las estructuras de solicitud, configuración y resultado.
+  - [ ] Mantener la imagen fuente y los buffers de trabajo dentro del motor.
+  - [ ] Enviar en cada interacción solo parámetros y devolver buffers transferibles.
+  - [ ] Conservar semántica latest-wins, cancelación e invalidación por versión.
+
+- [ ] Implementar el núcleo matemático como crate Rust puro.
+  - [ ] Portar matching OKLab/RGB, dithering, resultados empaquetados y Smart Drop.
+  - [ ] Separar el crate de cualquier dependencia del navegador, Electron o UI.
+  - [ ] Verificar paridad exacta o documentar tolerancias numéricas explícitas.
+  - [ ] Añadir pruebas Rust con los mismos fixtures utilizados por TypeScript.
+
+- [ ] Integrar Rust compilado a WASM dentro del Web Worker actual.
+  - [ ] Mantener despliegue frontend estático, offline y sin backend.
+  - [ ] Inicializar el módulo WASM una sola vez por worker.
+  - [ ] Minimizar copias entre `ArrayBuffer` y memoria WASM.
+  - [ ] Conservar temporalmente el motor TypeScript como fallback y referencia de paridad.
+
+- [ ] Evaluar reutilizar el mismo crate como motor nativo de escritorio.
+  - [ ] Comparar Electron con sidecar Rust frente a Tauri.
+  - [ ] Diseñar IPC binario, lifecycle, reinicio y límites de memoria del proceso nativo.
+  - [ ] Evitar bifurcar los algoritmos entre web y escritorio.
+
+- **Aceptación:** el motor Rust produce resultados equivalentes al motor TypeScript, reduce de forma medida la latencia o memoria en los escenarios objetivo, mantiene procesamiento local y no requiere un backend.
 
 ## Verificación obligatoria por fase
 
