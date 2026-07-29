@@ -160,7 +160,7 @@ function fixtureCoordinates(width: number, height: number): Array<[number, numbe
     return [...unique.values()];
 }
 
-function makeManualEdits(width: number, height: number, candidates: ColorCandidate[]): Record<number, ManualEdit> {
+export function makeGoldenManualEdits(width: number, height: number, candidates: ColorCandidate[]): Record<number, ManualEdit> {
     const edits: Record<number, ManualEdit> = {};
     const points = fixtureCoordinates(width, height);
     for (let i = 0; i < points.length; i++) {
@@ -186,7 +186,7 @@ function fnv1a64(bytes: Uint8Array): string {
     return hash.toString(16).padStart(16, '0');
 }
 
-function hashView(view: ArrayBufferView | null): string | null {
+export function hashGoldenView(view: ArrayBufferView | null): string | null {
     if (!view) return null;
     return fnv1a64(new Uint8Array(view.buffer, view.byteOffset, view.byteLength));
 }
@@ -237,7 +237,7 @@ export function generateGoldenCase(config: GoldenCaseConfig): GoldenCase {
         config.independentMaps,
     );
 
-    const edits = config.withEdits ? makeManualEdits(width, height, base.candidates) : {};
+    const edits = config.withEdits ? makeGoldenManualEdits(width, height, base.candidates) : {};
     const output: FixtureOutput = config.withEdits
         ? applyManualEdits(
             base.imageData,
@@ -254,13 +254,13 @@ export function generateGoldenCase(config: GoldenCaseConfig): GoldenCase {
         id: goldenCaseId(config),
         config,
         expected: {
-            sourceRgba: hashView(source.data)!,
-            processedRgba: hashView(output.imageData.data)!,
-            packedResults: hashView(output.packedResults)!,
+            sourceRgba: hashGoldenView(source.data)!,
+            processedRgba: hashGoldenView(output.imageData.data)!,
+            packedResults: hashGoldenView(output.packedResults)!,
             candidates: hashCandidates(base.candidates),
-            toneMap: hashView(output.toneMap),
-            heightPath: hashView(output.heightPath),
-            heightMap: hashView(output.stats.heightMap)!,
+            toneMap: hashGoldenView(output.toneMap),
+            heightPath: hashGoldenView(output.heightPath),
+            heightMap: hashGoldenView(output.stats.heightMap)!,
             minHeight: output.stats.minHeight,
             maxHeight: output.stats.maxHeight,
             manualEditCount: Object.keys(edits).length,

@@ -215,3 +215,4 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
 - [x] ESLint termina sin errores.
 - [x] Los benchmarks críticos no muestran una regresión relevante.
 - [x] Se realiza una prueba manual de preview 2D, preview 3D, materiales y exportación.
+- [x] Contrato independiente v1 implementado en `src/engine`; ver `docs/PROCESSING_CONTRACT.md`.
