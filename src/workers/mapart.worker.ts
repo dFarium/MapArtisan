@@ -4,6 +4,7 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { debug, setDebugEnabled } from '../utils/diagnostic';
+import { TypeScriptEngine, type ApplyEditsRequestV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Creates a deterministic cache key for worker processing results.
@@ -85,6 +86,21 @@ let lastBaseResult: {
     configKey: string;
 } | null = null;
 
+// Versioned facade used by the migration path toward a Rust/WASM engine.
+// The legacy RPC methods below remain available until the React hooks migrate.
+const processingEngine = new TypeScriptEngine();
+
+function transferProcessingResponse(response: ProcessingResponseV1): ProcessingResponseV1 {
+    const buffers = [
+        response.buffers.rgba,
+        response.buffers.packedResults,
+        response.stats.heightMap,
+    ];
+    if (response.buffers.toneMap) buffers.push(response.buffers.toneMap);
+    if (response.buffers.heightPath) buffers.push(response.buffers.heightPath);
+    return transfer(response, buffers) as ProcessingResponseV1;
+}
+
 const api = {
     /** Receives the browser preference because Web Workers cannot access localStorage. */
     setDiagnosticsEnabled: (enabled: boolean): void => {
@@ -93,8 +109,19 @@ const api = {
 
     clearCache: (): void => {
         lastBaseResult = null;
+        processingEngine.clear();
         clearColorCache();
         clearOklabCache();
+    },
+
+    /** Versioned processing contract used by the worker migration path. */
+    processV1: (request: ProcessingRequestV1): ProcessingResponseV1 => {
+        return transferProcessingResponse(processingEngine.process(request));
+    },
+
+    /** Applies edits against the cached v1 base result without re-quantizing. */
+    applyEditsV1: (request: ApplyEditsRequestV1): ProcessingResponseV1 => {
+        return transferProcessingResponse(processingEngine.applyEdits(request));
     },
 
     /**

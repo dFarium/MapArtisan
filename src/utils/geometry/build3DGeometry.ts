@@ -157,7 +157,13 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
         const sectionBaselines: Record<number, number> = {};
         const useIndependentSD = independentMaps && exportMode === 'sections';
 
-        if (precomputedHeightPath) {
+        // A single-file export is one continuous structure. The processing
+        // pipeline may provide a path generated before the export mode changed
+        // (the path is not keyed by exportMode), so reusing it can place the
+        // full-file noobline at the wrong baseline. Always rebuild the global
+        // path for `full` so preview and export share the same grounding.
+        const canUsePrecomputedPath = precomputedHeightPath && exportMode !== 'full';
+        if (canUsePrecomputedPath) {
             // Zero-cost read from the precomputed buffer (column-major: x * height + y)
             const colBase = x * height;
             if (useIndependentSD) {
@@ -228,7 +234,12 @@ export function build3DGeometry(params: Build3DGeometryProps): InstanceGeometry 
             // ── Block height (Y world coordinate) ─────────────────────────
             let blockY: number;
             if (isNoobline) {
-                if (independentMaps) {
+                if (exportMode === 'full') {
+                    // Match the section baseline used by multiple files:
+                    // start-block height minus its tone contribution.
+                    const firstTone = unpackTone(packedResults[x]);
+                    blockY = path[0] - firstTone;
+                } else if (independentMaps) {
                     const m = previewSection
                         ? previewSection.y
                         : (y === -1 ? 0 : Math.floor(y / 128));

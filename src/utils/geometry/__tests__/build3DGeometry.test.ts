@@ -273,6 +273,41 @@ describe('build3DGeometry', () => {
             // Therefore, noobline height should be 4
             expect(nooblineYFast).toBe(4);
         });
+
+        it('rebuilds a global path for single-file previews when the cached path is section-based', () => {
+            const width = 1;
+            const height = 256;
+            const packedResults = makePackedResults(width, height, new Int8Array(width * height));
+            const sectionBasedPath = new Int32Array(width * height).fill(10);
+
+            const geometry = build3DGeometry({
+                imageData: makeImageData(width, height),
+                packedResults,
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+                exportMode: 'full',
+                independentMaps: true,
+                precomputedHeightPath: sectionBasedPath,
+            });
+
+            // All tones are neutral, so the continuous full-file baseline is 0.
+            // A section-grounded cached path must not move the noobline to 10.
+            expect(getPos(geometry.positions, 0).y).toBeCloseTo(0);
+        });
+
+        it('places the single-file noobline at the northern/start block height', () => {
+            const geometry = build3DGeometry({
+                imageData: makeImageData(1, 4),
+                packedResults: makePackedResults(1, 4, new Int8Array([1, 0, 0, 0])),
+                candidateBlocks: ['minecraft:stone'],
+                blockSupport: 'needed',
+                supportColor: GRAY_SUPPORT,
+                exportMode: 'full',
+            });
+
+            expect(getPos(geometry.positions, 0).y).toBe(0);
+        });
     });
 
     // ── Support blocks ─────────────────────────────────────────────────────
