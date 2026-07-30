@@ -101,8 +101,13 @@ export const useMapartWorker = ({
         usePerceptual,
         hybridStrength,
         independentMaps,
+        blockSupport,
+        supportBlockId,
+        exportMode,
+        exportFormat,
+        paletteVersion,
         manualEdits,
-    }), [buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits]);
+    }), [buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, blockSupport, supportBlockId, exportMode, exportFormat, paletteVersion, manualEdits]);
 
     const handleProcessingResult = useCallback((result: ProcessingResult) => {
         setPreviewImageData(result.imageData);

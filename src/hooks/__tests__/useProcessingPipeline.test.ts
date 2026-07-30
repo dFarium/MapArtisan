@@ -4,6 +4,7 @@ import { useProcessingPipeline } from '../useProcessingPipeline';
 import type { WorkerRefs, ProcessingParams } from '../types';
 import type { MapartWorkerApi } from '../../workers/mapart.worker';
 import type { Remote } from 'comlink';
+import { PROCESSING_PROTOCOL_VERSION } from '../../engine';
 
 const createMockWorkerRefs = (): WorkerRefs => ({
     workerApiRef: {
@@ -155,6 +156,89 @@ describe('useProcessingPipeline', () => {
     });
 
     describe('heavy processing', () => {
+        it('usa el contrato v1 y convierte sus buffers a resultados de React', async () => {
+            const processV1 = vi.fn().mockResolvedValue({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: 1,
+                sourceVersion: 1,
+                status: 'completed',
+                width: 128,
+                height: 128,
+                buffers: {
+                    rgba: new Uint8Array(128 * 128 * 4).buffer,
+                    packedResults: new Uint32Array(128 * 128).fill(9).buffer,
+                    toneMap: null,
+                    heightPath: new Int32Array(128 * 128).fill(3).buffer,
+                },
+                stats: {
+                    minHeight: 1,
+                    maxHeight: 4,
+                    heightMap: new Int32Array(128).fill(2).buffer,
+                },
+            });
+            const applyEditsV1 = vi.fn().mockResolvedValue({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: 2,
+                sourceVersion: 1,
+                status: 'completed',
+                width: 128,
+                height: 128,
+                buffers: {
+                    rgba: new Uint8Array(128 * 128 * 4).buffer,
+                    packedResults: new Uint32Array(128 * 128).fill(9).buffer,
+                    toneMap: null,
+                    heightPath: new Int32Array(128 * 128).fill(3).buffer,
+                },
+                stats: { minHeight: 1, maxHeight: 4, heightMap: new Int32Array(128).fill(2).buffer },
+            });
+            const refs = createMockWorkerRefs();
+            refs.workerImageVersionRef.current = -1;
+            refs.workerApiRef.current = { processV1, applyEditsV1 } as unknown as Remote<MapartWorkerApi>;
+            const sourceImageDataRef = {
+                current: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
+            };
+            const onResult = vi.fn();
+
+            const initialParams = createMockParams();
+            const { rerender } = renderHook(
+                ({ params }) => useProcessingPipeline({
+                    ...refs,
+                    sourceImageDataRef,
+                    sourceImageVersion: 1,
+                    mapartResolution: { width: 128, height: 128 },
+                    params,
+                    onResult,
+                    onStatsUpdate: vi.fn(),
+                }),
+                { initialProps: { params: initialParams } },
+            );
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(100);
+                await Promise.resolve();
+            });
+
+            expect(processV1).toHaveBeenCalledWith(expect.objectContaining({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                sourceVersion: 1,
+                config: expect.objectContaining({ width: 128, height: 128 }),
+            }));
+            expect(onResult).toHaveBeenCalled();
+            expect(applyEditsV1).toHaveBeenCalled();
+            const latestResult = onResult.mock.calls.at(-1)![0];
+            expect(latestResult.packedResults[0]).toBe(9);
+            expect(latestResult.heightPath[0]).toBe(3);
+
+            rerender({ params: { ...initialParams, threeDPrecision: 51 } });
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(100);
+                await Promise.resolve();
+            });
+            expect(processV1).toHaveBeenCalledTimes(2);
+            expect(processV1.mock.calls[1][0].config.threeDPrecision).toBe(51);
+            expect(processV1.mock.calls[1][0].source).not.toBeNull();
+        });
+
         it('no procesa si sourceImageDataRef es null', async () => {
             const refs = createMockWorkerRefs();
             const sourceImageDataRef = { current: null };

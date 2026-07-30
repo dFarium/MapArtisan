@@ -26,6 +26,11 @@ export interface ProcessingConfig {
     usePerceptual: boolean;
     hybridStrength: number;
     independentMaps: boolean;
+    blockSupport?: 'all' | 'needed' | 'gravity';
+    supportBlockId?: string;
+    exportMode?: 'full' | 'sections';
+    exportFormat?: ExportFormat;
+    paletteVersion?: string;
 }
 
 export interface ProcessingParams extends ProcessingConfig {

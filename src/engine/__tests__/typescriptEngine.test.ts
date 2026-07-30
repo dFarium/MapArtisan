@@ -15,6 +15,7 @@ import {
     PROCESSING_PROTOCOL_VERSION,
     ProcessingEngineError,
     TypeScriptEngine,
+    createProcessingConfigKey,
     type ProcessingConfigV1,
 } from '../index';
 
@@ -31,10 +32,32 @@ function configFor(config: ReturnType<typeof createGoldenConfigs>[number], width
         usePerceptual: config.usePerceptual,
         hybridStrength: GOLDEN_HYBRID_STRENGTH,
         independentMaps: config.independentMaps,
+        blockSupport: 'all',
+        supportBlockId: 'minecraft:cobblestone',
+        exportMode: 'sections',
+        exportFormat: 'litematic',
+        paletteVersion: 'golden-v1',
     };
 }
 
 describe('TypeScriptEngine protocol facade', () => {
+    it('invalidates the cache key for every operational export parameter', () => {
+        const base = configFor(createGoldenConfigs()[0], 128, 128);
+        const fields = [
+            ['blockSupport', { blockSupport: 'needed' as const }],
+            ['supportBlockId', { supportBlockId: 'minecraft:glass' }],
+            ['exportMode', { exportMode: 'full' as const }],
+            ['exportFormat', { exportFormat: 'nbt' as const }],
+            ['paletteVersion', { paletteVersion: 'golden-v2' }],
+        ] as const;
+
+        for (const [field, change] of fields) {
+            expect(createProcessingConfigKey(1, base), field).not.toBe(
+                createProcessingConfigKey(1, { ...base, ...change }),
+            );
+        }
+    });
+
     it('matches every programmatically generated golden case', () => {
         const engine = new TypeScriptEngine();
 
@@ -95,7 +118,7 @@ describe('TypeScriptEngine protocol facade', () => {
 
     it('rejects invalid protocol, missing source and cache misses', () => {
         const engine = new TypeScriptEngine();
-        const config: ProcessingConfigV1 = { width: 1, height: 1, buildMode: '2d', selectedPaletteItems: GOLDEN_PALETTE, threeDPrecision: 1, dithering: 'none', usePerceptual: false, hybridStrength: 0, independentMaps: false };
+        const config: ProcessingConfigV1 = { width: 1, height: 1, buildMode: '2d', selectedPaletteItems: GOLDEN_PALETTE, threeDPrecision: 1, dithering: 'none', usePerceptual: false, hybridStrength: 0, independentMaps: false, blockSupport: 'all', supportBlockId: 'minecraft:cobblestone', exportMode: 'sections', exportFormat: 'litematic', paletteVersion: 'golden-v1' };
         expect(() => engine.process({ protocolVersion: 99 as 1, requestId: 1, sourceVersion: 1, config, source: null, manualEdits: {} })).toThrowError(ProcessingEngineError);
         expect(() => engine.process({ protocolVersion: 1, requestId: 1, sourceVersion: 1, config, source: null, manualEdits: {} })).toThrowError(/source image/i);
         expect(() => engine.applyEdits({ protocolVersion: 1, requestId: 1, sourceVersion: 1, config, manualEdits: {} })).toThrowError(/matching base/i);

@@ -1,4 +1,4 @@
-import type { ManualEdit, MapartStats, BuildMode } from '../types/mapart';
+import type { ManualEdit, MapartStats, BuildMode, ExportFormat } from '../types/mapart';
 import type { DitheringMode } from '../utils/processing';
 
 export const PROCESSING_PROTOCOL_VERSION = 1 as const;
@@ -14,6 +14,11 @@ export interface ProcessingConfigV1 {
     usePerceptual: boolean;
     hybridStrength: number;
     independentMaps: boolean;
+    blockSupport: 'all' | 'needed' | 'gravity';
+    supportBlockId: string;
+    exportMode: 'full' | 'sections';
+    exportFormat: ExportFormat;
+    paletteVersion: string;
 }
 
 /** An RGBA buffer whose ownership may be transferred by the transport layer. */
@@ -104,6 +109,11 @@ export function createProcessingConfigKey(sourceVersion: number, config: Process
         config.usePerceptual,
         config.hybridStrength,
         config.independentMaps,
+        config.blockSupport,
+        config.supportBlockId,
+        config.exportMode,
+        config.exportFormat,
+        config.paletteVersion,
     ]);
 }
 

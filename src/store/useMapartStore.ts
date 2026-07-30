@@ -3,6 +3,9 @@ import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, Prev
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
 import type { DitheringMode } from '../utils/processing';
+import paletteData from '../data/palette.json';
+import { applyReplacements, checkPresetCompatibility, isBlockAvailable } from '../utils/filterPaletteByVersion';
+import type { PaletteColor } from '../types/palette';
 
 export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
@@ -206,7 +209,30 @@ export const useMapartStore = create<MapartState>((set) => ({
     historyIndex: 0,
 
     // Actions
-    setPaletteVersion: (version) => set({ paletteVersion: version }),
+    setPaletteVersion: (version) => set((state) => {
+        const colors = paletteData.colors as unknown as PaletteColor[];
+        const replacements = checkPresetCompatibility(state.selectedPaletteItems, colors, version);
+        const selectedPaletteItems = applyReplacements(state.selectedPaletteItems, replacements);
+        const brushBlock = state.brushBlock && colors.some(color =>
+            color.blocks.some(block => block.id === state.brushBlock?.blockId && isBlockAvailable(block.introducedIn, version))
+        ) ? state.brushBlock : null;
+        const supportBlock = colors
+            .flatMap(color => color.blocks)
+            .find(block => block.id === state.supportBlockId);
+        const supportBlockId = !supportBlock || isBlockAvailable(supportBlock.introducedIn, version)
+            ? state.supportBlockId
+            : 'minecraft:cobblestone';
+
+        return {
+            paletteVersion: version,
+            selectedPaletteItems,
+            brushBlock,
+            supportBlockId,
+            manualEdits: {},
+            history: [],
+            historyIndex: 0,
+        };
+    }),
     setImageSettings: (settings) => set((state) => ({
         imageSettings: typeof settings === 'function' ? settings(state.imageSettings) : { ...state.imageSettings, ...settings }
     })),

@@ -22,6 +22,11 @@ describe('mapart.worker processing contract', () => {
             usePerceptual: false,
             hybridStrength: 50,
             independentMaps: false,
+            blockSupport: 'all' as const,
+            supportBlockId: 'minecraft:cobblestone',
+            exportMode: 'sections' as const,
+            exportFormat: 'litematic' as const,
+            paletteVersion: 'test-v1',
         };
 
         const response = mapartWorkerApi.processV1({
@@ -56,6 +61,11 @@ describe('mapart.worker processing contract', () => {
                 usePerceptual: false,
                 hybridStrength: 50,
                 independentMaps: false,
+                blockSupport: 'all' as const,
+                supportBlockId: 'minecraft:cobblestone',
+                exportMode: 'sections' as const,
+                exportFormat: 'litematic' as const,
+                paletteVersion: 'test-v1',
             },
             manualEdits: {},
         });

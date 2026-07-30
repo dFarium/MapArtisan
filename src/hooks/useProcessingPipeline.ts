@@ -4,6 +4,39 @@ import type { WorkerRefs, ProcessingResult, ProcessingParams } from './types';
 import type { MapartStats } from '../types/mapart';
 import { LatestWinsQueue } from './latestWinsQueue';
 import { debug } from '../utils/diagnostic';
+import { PROCESSING_PROTOCOL_VERSION, type ApplyEditsRequestV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+
+function toProcessingConfig(params: ProcessingParams, width: number, height: number): ProcessingConfigV1 {
+    return {
+        width,
+        height,
+        buildMode: params.buildMode,
+        selectedPaletteItems: params.selectedPaletteItems,
+        threeDPrecision: params.threeDPrecision,
+        dithering: params.dithering,
+        usePerceptual: params.usePerceptual,
+        hybridStrength: params.hybridStrength,
+        independentMaps: params.independentMaps,
+        blockSupport: params.blockSupport ?? 'all',
+        supportBlockId: params.supportBlockId ?? 'minecraft:cobblestone',
+        exportMode: params.exportMode ?? 'sections',
+        exportFormat: params.exportFormat ?? 'litematic',
+        paletteVersion: params.paletteVersion ?? '',
+    };
+}
+
+function responseToProcessingResult(response: ProcessingResponseV1): ProcessingResult {
+    return {
+        imageData: new ImageData(new Uint8ClampedArray(response.buffers.rgba), response.width, response.height),
+        stats: {
+            minHeight: response.stats.minHeight,
+            maxHeight: response.stats.maxHeight,
+            heightMap: new Int32Array(response.stats.heightMap),
+        },
+        packedResults: new Uint32Array(response.buffers.packedResults),
+        heightPath: response.buffers.heightPath ? new Int32Array(response.buffers.heightPath) : null,
+    };
+}
 
 export interface UseProcessingPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
@@ -108,6 +141,41 @@ export function useProcessingPipeline({
 
                     const { buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits } = paramsRef.current;
 
+                    const versionedApi = api as typeof api & {
+                        processV1?: (request: ProcessingRequestV1) => Promise<ProcessingResponseV1>;
+                        applyEditsV1?: (request: ApplyEditsRequestV1) => Promise<ProcessingResponseV1>;
+                    };
+
+                    if (versionedApi.processV1) {
+                        // v1 keys the base cache by sourceVersion + every
+                        // processing parameter. A slider change therefore
+                        // requires the source even when sourceVersion stayed
+                        // the same; otherwise the engine cannot build a new
+                        // base result for the new configuration.
+                        const versionedSourceBuffer = sourceImageDataRef.current!.data.buffer.slice(0);
+                        const source = {
+                            width: sourceImageDataRef.current!.width,
+                            height: sourceImageDataRef.current!.height,
+                            rgba: comlinkTransfer(versionedSourceBuffer, [versionedSourceBuffer]),
+                        };
+                        const response = await versionedApi.processV1({
+                            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                            requestId,
+                            sourceVersion: currentVersion,
+                            config: toProcessingConfig(paramsRef.current, sourceImageDataRef.current!.width, sourceImageDataRef.current!.height),
+                            source,
+                            manualEdits,
+                        });
+                        if (!active || processingRequestIdRef.current !== requestId || response.sourceVersion !== currentVersion) return;
+                        workerImageVersionRef.current = currentVersion;
+                        const processed = responseToProcessingResult(response);
+                        onResultRef.current(processed);
+                        onStatsUpdateRef.current(processed.stats);
+                        setPackedResults(processed.packedResults);
+                        setHeightPath(processed.heightPath);
+                        return;
+                    }
+
                     const result = await api.processMapart(
                         bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
                         sourceImageDataRef.current!.width,
@@ -210,6 +278,25 @@ export function useProcessingPipeline({
                 if (workerImageVersionRef.current !== currentVersion) return;
 
                 const api = workerApiRef.current!;
+                const versionedApi = api as typeof api & {
+                    applyEditsV1?: (request: ApplyEditsRequestV1) => Promise<ProcessingResponseV1>;
+                };
+                if (versionedApi.applyEditsV1) {
+                    const response = await versionedApi.applyEditsV1({
+                        protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                        requestId,
+                        sourceVersion: currentVersion,
+                        config: toProcessingConfig(paramsRef.current, mapartResolution.width, mapartResolution.height),
+                        manualEdits: paramsRef.current.manualEdits,
+                    });
+                    if (!active || requestId !== editsRequestIdRef.current || processingRequestId !== processingRequestIdRef.current || response.sourceVersion !== currentVersion) return;
+                    const processed = responseToProcessingResult(response);
+                    onResultRef.current(processed);
+                    onStatsUpdateRef.current(processed.stats);
+                    setPackedResults(processed.packedResults);
+                    setHeightPath(processed.heightPath);
+                    return;
+                }
                 const result = await api.applyEdits(paramsRef.current.manualEdits);
 
                 if (

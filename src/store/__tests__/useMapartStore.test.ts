@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useMapartStore, type MapartState } from '../useMapartStore';
 import { MAX_MAPS_TOTAL, estimateMemoryUsage, clampGridDimensions } from '../../utils/memory';
+import paletteData from '../../data/palette.json';
 
 describe('useMapartStore - Regression Tests', () => {
     beforeEach(() => {
@@ -61,6 +62,30 @@ describe('useMapartStore - Regression Tests', () => {
         expect(useMapartStore.getState().gridDimensions).toEqual({ x: 2, y: 2 });
         
         useMapartStore.setState(initialState);
+    });
+
+    it('reconciles selected blocks and brush with the selected game version', () => {
+        const copperColor = paletteData.colors.find(color => color.blocks.some(block => block.id === 'minecraft:copper_block'))!;
+        useMapartStore.setState({
+            paletteVersion: '1.21.5',
+            selectedPaletteItems: { [copperColor.colorID]: 'minecraft:copper_block' },
+            supportBlockId: 'minecraft:copper_block',
+            brushBlock: {
+                blockId: 'minecraft:copper_block',
+                brightness: 'normal',
+                rgb: { r: 100, g: 180, b: 80 },
+            },
+        });
+
+        useMapartStore.getState().setPaletteVersion('1.8.0');
+
+        const state = useMapartStore.getState();
+        expect(state.paletteVersion).toBe('1.8.0');
+        expect(state.selectedPaletteItems[copperColor.colorID]).not.toBe('minecraft:copper_block');
+        expect(state.brushBlock).toBeNull();
+        expect(state.supportBlockId).toBe('minecraft:cobblestone');
+        expect(state.manualEdits).toEqual({});
+        expect(state.history).toEqual([]);
     });
 
     it('exports expected types', () => {
