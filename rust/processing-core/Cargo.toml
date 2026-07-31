@@ -1,0 +1,11 @@
+[package]
+name = "processing-core"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "Pure Rust processing contract for MapArtisan"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]

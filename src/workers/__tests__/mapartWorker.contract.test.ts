@@ -44,6 +44,17 @@ describe('mapart.worker processing contract', () => {
         expect(response.buffers.rgba.byteLength).toBe(4);
         expect(response.buffers.packedResults.byteLength).toBe(4);
         expect(response.stats.heightMap.byteLength).toBe(4);
+
+        const materials = mapartWorkerApi.calculateMaterialCountsV1({
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: 12,
+            sourceVersion: 4,
+            config,
+            source: null,
+            manualEdits: {},
+        });
+        expect(materials.status).toBe('completed');
+        expect(materials.counts.total).toBeDefined();
     });
 
     it('uses the cached v1 base for manual edits', () => {
@@ -72,5 +83,47 @@ describe('mapart.worker processing contract', () => {
 
         expect(response.status).toBe('completed');
         expect(response.requestId).toBe(11);
+    });
+
+    it('generates an export through the versioned worker contract', async () => {
+        mapartWorkerApi.clearCache();
+        const config = {
+            width: 1,
+            height: 1,
+            buildMode: '2d' as const,
+            selectedPaletteItems: { 1: 'minecraft:stone' },
+            threeDPrecision: 50,
+            dithering: 'none' as const,
+            usePerceptual: false,
+            hybridStrength: 50,
+            independentMaps: false,
+            blockSupport: 'all' as const,
+            supportBlockId: 'minecraft:cobblestone',
+            exportMode: 'sections' as const,
+            exportFormat: 'litematic' as const,
+            paletteVersion: '1.21.5',
+        };
+        await mapartWorkerApi.processV1({
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: 20,
+            sourceVersion: 1,
+            config,
+            source: { width: 1, height: 1, rgba: new Uint8Array([50, 50, 50, 255]).buffer },
+            manualEdits: {},
+        });
+
+        const result = await mapartWorkerApi.generateMapartExportV1({
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: 21,
+            sourceVersion: 1,
+            config,
+            source: null,
+            manualEdits: {},
+            filename: 'contract-test',
+            metadata: {},
+        });
+        expect(result.status).toBe('completed');
+        expect(result.blob).toBeInstanceOf(Blob);
+        expect(result.filename).toContain('contract-test');
     });
 });

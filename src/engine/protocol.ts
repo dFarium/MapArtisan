@@ -1,4 +1,5 @@
 import type { ManualEdit, MapartStats, BuildMode, ExportFormat } from '../types/mapart';
+import type { MaterialCounts } from '../utils/export/materials';
 import type { DitheringMode } from '../utils/processing';
 
 export const PROCESSING_PROTOCOL_VERSION = 1 as const;
@@ -43,6 +44,43 @@ export interface ApplyEditsRequestV1 {
     sourceVersion: number;
     config: ProcessingConfigV1;
     manualEdits: Record<number, ManualEdit>;
+}
+
+export interface CalculateMaterialsRequestV1 {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+    config: ProcessingConfigV1;
+    source: ImageBufferV1 | null;
+    manualEdits: Record<number, ManualEdit>;
+}
+
+export interface CalculateMaterialsResponseV1 {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+    status: 'completed';
+    counts: MaterialCounts;
+}
+
+export interface GenerateExportRequestV1 {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+    config: ProcessingConfigV1;
+    source: ImageBufferV1 | null;
+    manualEdits: Record<number, ManualEdit>;
+    filename: string;
+    metadata: Record<string, unknown>;
+}
+
+export interface GenerateExportResponseV1 {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+    status: 'completed';
+    filename: string;
+    blob: Blob;
 }
 
 export interface ProcessingBuffersV1 {

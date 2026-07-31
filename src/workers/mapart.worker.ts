@@ -4,7 +4,7 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { debug, setDebugEnabled } from '../utils/diagnostic';
-import { TypeScriptEngine, type ApplyEditsRequestV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Creates a deterministic cache key for worker processing results.
@@ -122,6 +122,73 @@ const api = {
     /** Applies edits against the cached v1 base result without re-quantizing. */
     applyEditsV1: (request: ApplyEditsRequestV1): ProcessingResponseV1 => {
         return transferProcessingResponse(processingEngine.applyEdits(request));
+    },
+
+    calculateMaterialCountsV1: (request: CalculateMaterialsRequestV1): CalculateMaterialsResponseV1 => {
+        const processed = processingEngine.process({ ...request, manualEdits: request.manualEdits });
+        const imageData = new ImageData(
+            new Uint8ClampedArray(processed.buffers.rgba),
+            processed.width,
+            processed.height,
+        );
+        const counts = calculateMaterialCounts(
+            imageData,
+            request.config.selectedPaletteItems,
+            request.config.buildMode,
+            request.config.threeDPrecision,
+            request.config.dithering,
+            request.config.usePerceptual,
+            request.config.hybridStrength,
+            request.config.independentMaps,
+            {},
+            request.config.blockSupport,
+            request.config.supportBlockId,
+            request.config.exportMode,
+            new Uint32Array(processed.buffers.packedResults),
+        );
+        return {
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: request.requestId,
+            sourceVersion: request.sourceVersion,
+            status: 'completed',
+            counts,
+        };
+    },
+
+    generateMapartExportV1: async (request: GenerateExportRequestV1): Promise<GenerateExportResponseV1> => {
+        const processed = processingEngine.process({ ...request, manualEdits: request.manualEdits });
+        const imageData = new ImageData(
+            new Uint8ClampedArray(processed.buffers.rgba),
+            processed.width,
+            processed.height,
+        );
+        const result = await generateMapartExport(
+            imageData,
+            request.config.selectedPaletteItems,
+            request.config.buildMode,
+            request.filename,
+            request.metadata,
+            request.config.threeDPrecision,
+            request.config.dithering,
+            request.config.usePerceptual,
+            request.config.hybridStrength,
+            request.config.independentMaps,
+            {},
+            request.config.blockSupport,
+            request.config.supportBlockId,
+            request.config.exportMode,
+            request.config.paletteVersion,
+            new Uint32Array(processed.buffers.packedResults),
+            request.config.exportFormat,
+        );
+        return {
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: request.requestId,
+            sourceVersion: request.sourceVersion,
+            status: 'completed',
+            filename: result.filename,
+            blob: result.blob,
+        };
     },
 
     /**

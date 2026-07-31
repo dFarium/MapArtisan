@@ -217,3 +217,7 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
 - [x] Se realiza una prueba manual de preview 2D, preview 3D, materiales y exportación.
 - [x] Contrato independiente v1 implementado en `src/engine`; ver `docs/PROCESSING_CONTRACT.md`.
 - [x] Adaptador inicial del Web Worker para `processV1`/`applyEditsV1`, manteniendo compatibilidad con la API legacy.
+- [x] Migrar `useProcessingPipeline` al contrato v1 para procesamiento y ediciones manuales; conservar fallback legacy temporal.
+- [x] Migrar cálculo de materiales a `calculateMaterialCountsV1`; la generación de archivos queda pendiente.
+- [x] Migrar generación de Litematica/NBT a `generateMapartExportV1`; mantener fallback legacy temporal.
+- [x] Crear el esqueleto puro `rust/processing-core` con contrato, errores y validación inicial de buffers.
