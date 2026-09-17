@@ -12,7 +12,9 @@
     "test": "vitest",
     "bench": "vitest run --config vitest.bench.config.ts",
     "goldens:update": "node scripts/update-goldens.mjs",
-    "goldens:verify": "vitest run src/utils/__tests__/goldenFixtures.test.ts"
+    "goldens:verify": "vitest run src/utils/__tests__/goldenFixtures.test.ts",
+    "wasm:build": "powershell -ExecutionPolicy Bypass -File scripts/build-wasm.ps1",
+    "wasm:build:threaded": "powershell -ExecutionPolicy Bypass -File scripts/build-wasm-threaded.ps1"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

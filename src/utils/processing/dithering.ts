@@ -18,6 +18,7 @@ export const DITHERING_MODES = [
     'ordered-8x8',
     'adaptive',
     'hybrid',
+    'hybrid-v2',
 ] as const;
 
 export type DitheringMode = (typeof DITHERING_MODES)[number];
@@ -154,6 +155,92 @@ export function calculateLocalVariance(
     }
 
     return count > 0 ? variance / count : 0;
+}
+
+const HYBRID_V2_DETAIL_LOW = 500;
+const HYBRID_V2_DETAIL_HIGH = 3_000;
+const HYBRID_V2_ERROR_LOW = 1_000;
+const HYBRID_V2_ERROR_HIGH = 5_000;
+const HYBRID_V2_ERROR_ASSIST = 0.65;
+const HYBRID_V2_ACTIVITY_MAX = 0xffff;
+
+function smoothstep(low: number, high: number, value: number): number {
+    const raw = (value - low) / (high - low);
+    const t = raw < 0 ? 0 : raw > 1 ? 1 : raw;
+    return t * t * (3 - 2 * t);
+}
+
+/**
+ * Computes Hybrid V2's immutable local-detail map from the original source.
+ * Map boundaries are strict in both axes when independent maps are enabled.
+ */
+export function buildHybridV2ActivityMap(
+    source: Uint8ClampedArray,
+    width: number,
+    height: number,
+    independentMaps: boolean
+): Uint16Array {
+    const activity = new Uint16Array(width * height);
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
+            const center = index * 4;
+            let sum = 0;
+            let count = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                    if (
+                        independentMaps
+                        && (Math.floor(x / 128) !== Math.floor(nx / 128)
+                            || Math.floor(y / 128) !== Math.floor(ny / 128))
+                    ) {
+                        continue;
+                    }
+                    const neighbour = (ny * width + nx) * 4;
+                    const dr = source[neighbour] - source[center];
+                    const dg = source[neighbour + 1] - source[center + 1];
+                    const db = source[neighbour + 2] - source[center + 2];
+                    sum += dr * dr + dg * dg + db * db;
+                    count++;
+                }
+            }
+            const raw = count === 0 ? 0 : sum / count;
+            activity[index] = Math.round(
+                smoothstep(HYBRID_V2_DETAIL_LOW, HYBRID_V2_DETAIL_HIGH, raw)
+                * HYBRID_V2_ACTIVITY_MAX
+            );
+        }
+    }
+    return activity;
+}
+
+/** Continuous Hybrid V2 diffusion weight. Strength is the minimum diffusion. */
+export function hybridV2ErrorScale(
+    activity: number,
+    sourceR: number,
+    sourceG: number,
+    sourceB: number,
+    selectedR: number,
+    selectedG: number,
+    selectedB: number,
+    strength: number
+): number {
+    const detailNeed = activity / HYBRID_V2_ACTIVITY_MAX;
+    const dr = sourceR - selectedR;
+    const dg = sourceG - selectedG;
+    const db = sourceB - selectedB;
+    const quantizationError = dr * dr + dg * dg + db * db;
+    const errorNeed = smoothstep(HYBRID_V2_ERROR_LOW, HYBRID_V2_ERROR_HIGH, quantizationError);
+    const need = detailNeed
+        + (1 - detailNeed) * errorNeed * HYBRID_V2_ERROR_ASSIST;
+    const unclampedMinimum = strength / 100;
+    const minimum = unclampedMinimum < 0 ? 0 : unclampedMinimum > 1 ? 1 : unclampedMinimum;
+    const weight = minimum + (1 - minimum) * need;
+    return weight < 0 ? 0 : weight > 1 ? 1 : weight;
 }
 
 // ============================================================================

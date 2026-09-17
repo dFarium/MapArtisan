@@ -12,7 +12,7 @@ const manifest = manifestJson as unknown as GoldenManifest;
 describe('processing golden fixtures', () => {
     it('contains the complete, unique programmatic cross-product', () => {
         const configs = createGoldenConfigs();
-        expect(configs).toHaveLength(320);
+        expect(configs).toHaveLength(352);
         expect(manifest.schemaVersion).toBe(1);
         expect(manifest.cases).toHaveLength(configs.length);
         expect(manifest.cases.map(item => item.id)).toEqual(configs.map(goldenCaseId));

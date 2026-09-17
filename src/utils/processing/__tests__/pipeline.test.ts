@@ -147,7 +147,7 @@ describe('Processing Pipeline - Regression Tests', () => {
         const img = makeTestImage(64, 64);
         const suggestion = suggestDitheringMode(img);
         
-        expect(['none', 'ordered', 'floyd-steinberg', 'hybrid']).toContain(suggestion.mode);
+        expect(['none', 'ordered', 'floyd-steinberg', 'hybrid-v2']).toContain(suggestion.mode);
         expect(suggestion.strength).toBeGreaterThanOrEqual(0);
         expect(suggestion.strength).toBeLessThanOrEqual(100);
     });

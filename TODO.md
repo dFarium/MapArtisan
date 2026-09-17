@@ -221,3 +221,16 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
 - [x] Migrar cálculo de materiales a `calculateMaterialCountsV1`; la generación de archivos queda pendiente.
 - [x] Migrar generación de Litematica/NBT a `generateMapartExportV1`; mantener fallback legacy temporal.
 - [x] Crear el esqueleto puro `rust/processing-core` con contrato, errores y validación inicial de buffers.
+- [x] Portar la primera primitiva RGB (`rgb_distance_sq`, selección de candidato y cuantización RGBA→ID) con pruebas Rust.
+- [x] Integrar cuantización RGB/OKLab básica y empaquetado de candidato en `processing-core`.
+- [x] Portar ordered dithering 4×4/8×8, Smart Drop y actualización coherente de ediciones manuales al núcleo Rust.
+- [x] Alcanzar paridad algorítmica Rust/TypeScript en 352 fixtures dorados, comparando buffers y estadísticas byte por byte.
+- [x] Medir rendimiento Rust/TypeScript con warm-up, dos rondas y 16–30 muestras por escenario; mejora media geométrica observada: 2.87×.
+- [x] Integrar el adaptador WASM al Web Worker con fallback y enrutamiento medido: WASM para RGB y OKLab sin difusión; TypeScript para difusión perceptual.
+- [x] Optimizar OKLab WASM con LUT gamma, caché acotada, buffer RGB compacto y reducción de copias del puente.
+- [x] Implementar paralelismo seguro con Rayon mediante wavefront por tiles, conservando resultados deterministas frente a la ejecución serial.
+- [x] Implementar Hybrid V2 con actividad local inmutable, difusión adaptativa continua y aislamiento estricto entre mapas independientes.
+  - [x] Mantener Hybrid V1 como opción legacy y exponer V2 explícitamente en la interfaz.
+  - [x] Verificar fuerza 100% byte por byte contra Floyd–Steinberg.
+  - [x] Verificar paridad TypeScript/Rust/WASM en RGB, OKLab y mapas independientes.
+  - [x] Medir Hybrid V2 nativo en release: Rayon con 4 hilos logra 2.05× en 512² y 2.37× en 1024×512 frente al núcleo serial.

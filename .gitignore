@@ -29,6 +29,6 @@ public/sw.js
 *.sln
 *.sw?
 
-mapartcraft
-cartographer
-examples
+/mapartcraft
+/cartographer
+/examples

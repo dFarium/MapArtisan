@@ -46,7 +46,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             const imageData = ctx.getImageData(0, 0, width, height);
             const result = suggestDitheringMode(imageData);
             setDithering(result.mode);
-            if (result.mode === 'hybrid') {
+            if (result.mode === 'hybrid' || result.mode === 'hybrid-v2') {
                 setHybridStrength(result.strength);
             }
         };
@@ -85,7 +85,8 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                     }}
                     className="h-8 text-xs"
                 >
-                    <option value="hybrid">Smart (Hybrid F-S)</option>
+                    <option value="hybrid-v2">Smart V2 (Parallel Hybrid)</option>
+                    <option value="hybrid">Smart V1 (Legacy Hybrid)</option>
                     <option value="floyd-steinberg">Standard (Floyd-Steinberg)</option>
                     <option value="ordered">Retro 4x4 (Bayer)</option>
                     <option value="ordered-8x8">Retro 8x8 (Bayer)</option>
@@ -99,10 +100,10 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             </div>
 
             {/* Hybrid Strength Slider */}
-            {dithering === 'hybrid' && (
+            {(dithering === 'hybrid' || dithering === 'hybrid-v2') && (
                 <div className="p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
                     <PrecisionSlider
-                        label="Hybrid Strength"
+                        label={dithering === 'hybrid-v2' ? "Minimum Diffusion" : "Hybrid Strength"}
                         value={hybridStrength}
                         min={0}
                         max={100}
@@ -112,7 +113,9 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                         accentColor="accent-cyan-500"
                     />
                     <p className="text-xs text-zinc-500 mt-1">
-                        0% = Aggressive noise reduction, 100% = More detail
+                        {dithering === 'hybrid-v2'
+                            ? "0% = Fully adaptive, 100% = Floyd-Steinberg"
+                            : "0% = Aggressive noise reduction, 100% = More detail"}
                     </p>
                 </div>
             )}

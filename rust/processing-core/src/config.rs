@@ -8,8 +8,15 @@ pub enum BuildMode {
 pub enum DitheringMode {
     None,
     FloydSteinberg,
+    Atkinson,
+    Stucki,
+    Burkes,
+    SierraLite,
     Ordered,
+    Ordered8x8,
+    Adaptive,
     Hybrid,
+    HybridV2,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +42,9 @@ pub enum ExportFormat {
 pub struct PaletteItem {
     pub color_id: u16,
     pub block_id: String,
+    pub rgb: [u8; 3],
+    pub brightness: i8,
+    pub needs_support: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

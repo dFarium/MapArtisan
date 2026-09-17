@@ -1,0 +1,16 @@
+{
+  "name": "processing-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "files": [
+    "processing_wasm_bg.wasm",
+    "processing_wasm.js",
+    "processing_wasm.d.ts"
+  ],
+  "main": "processing_wasm.js",
+  "types": "processing_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

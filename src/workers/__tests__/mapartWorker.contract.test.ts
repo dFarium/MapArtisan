@@ -9,7 +9,7 @@ import { PROCESSING_PROTOCOL_VERSION } from '../../engine';
 import { mapartWorkerApi } from '../mapart.worker';
 
 describe('mapart.worker processing contract', () => {
-    it('processes and transfers a versioned request through the worker API', () => {
+    it('processes and transfers a versioned request through the worker API', async () => {
         mapartWorkerApi.clearCache();
         const rgba = new Uint8ClampedArray([32, 64, 96, 255]);
         const config = {
@@ -29,7 +29,7 @@ describe('mapart.worker processing contract', () => {
             paletteVersion: 'test-v1',
         };
 
-        const response = mapartWorkerApi.processV1({
+        const response = await mapartWorkerApi.processV1({
             protocolVersion: PROCESSING_PROTOCOL_VERSION,
             requestId: 10,
             sourceVersion: 4,
@@ -57,8 +57,8 @@ describe('mapart.worker processing contract', () => {
         expect(materials.counts.total).toBeDefined();
     });
 
-    it('uses the cached v1 base for manual edits', () => {
-        const response = mapartWorkerApi.applyEditsV1({
+    it('uses the cached v1 base for manual edits', async () => {
+        const response = await mapartWorkerApi.applyEditsV1({
             protocolVersion: PROCESSING_PROTOCOL_VERSION,
             requestId: 11,
             sourceVersion: 4,

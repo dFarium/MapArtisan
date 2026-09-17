@@ -4,7 +4,7 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { debug, setDebugEnabled } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Creates a deterministic cache key for worker processing results.
@@ -89,6 +89,7 @@ let lastBaseResult: {
 // Versioned facade used by the migration path toward a Rust/WASM engine.
 // The legacy RPC methods below remain available until the React hooks migrate.
 const processingEngine = new TypeScriptEngine();
+const wasmEngine = new WasmEngine(processingEngine);
 
 function transferProcessingResponse(response: ProcessingResponseV1): ProcessingResponseV1 {
     const buffers = [
@@ -110,18 +111,19 @@ const api = {
     clearCache: (): void => {
         lastBaseResult = null;
         processingEngine.clear();
+        wasmEngine.clear();
         clearColorCache();
         clearOklabCache();
     },
 
     /** Versioned processing contract used by the worker migration path. */
-    processV1: (request: ProcessingRequestV1): ProcessingResponseV1 => {
-        return transferProcessingResponse(processingEngine.process(request));
+    processV1: async (request: ProcessingRequestV1): Promise<ProcessingResponseV1> => {
+        return transferProcessingResponse(await wasmEngine.process(request));
     },
 
     /** Applies edits against the cached v1 base result without re-quantizing. */
-    applyEditsV1: (request: ApplyEditsRequestV1): ProcessingResponseV1 => {
-        return transferProcessingResponse(processingEngine.applyEdits(request));
+    applyEditsV1: async (request: ApplyEditsRequestV1): Promise<ProcessingResponseV1> => {
+        return transferProcessingResponse(await wasmEngine.applyEdits(request));
     },
 
     calculateMaterialCountsV1: (request: CalculateMaterialsRequestV1): CalculateMaterialsResponseV1 => {

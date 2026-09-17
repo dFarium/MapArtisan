@@ -14,7 +14,9 @@ import {
     DITHER_MATRICES,
     BAYER_4X4,
     BAYER_8X8,
-    calculateLocalVariance
+    calculateLocalVariance,
+    buildHybridV2ActivityMap,
+    hybridV2ErrorScale
 } from './dithering';
 import {
     optimizeColumnHeights,
@@ -200,12 +202,17 @@ export function processMapart(
     const colHeights = new Int32Array(width).fill(0);
 
     // Get dither matrix if using error diffusion
-    const effectiveDithering = (dithering === 'adaptive' || dithering === 'hybrid') ? 'floyd-steinberg' : dithering;
+    const isHybridV1 = dithering === 'hybrid';
+    const isHybridV2 = dithering === 'hybrid-v2';
+    const isHybrid = isHybridV1 || isHybridV2;
+    const effectiveDithering = (dithering === 'adaptive' || isHybrid) ? 'floyd-steinberg' : dithering;
     const ditherMatrix = DITHER_MATRICES[effectiveDithering];
-    const isErrorDiffusion = ditherMatrix !== undefined || dithering === 'hybrid';
+    const isErrorDiffusion = ditherMatrix !== undefined || isHybrid;
     const baseErrorScale = dithering === 'adaptive' ? 0.85 : 1.0;
-    const isHybrid = dithering === 'hybrid';
     const fsMatrix = DITHER_MATRICES['floyd-steinberg'];
+    const hybridV2Activity = isHybridV2
+        ? buildHybridV2ActivityMap(data, width, height, independentMaps)
+        : null;
 
     // Pre-compute flat dither kernel using paddedWidth
     let activeKernel: FlatDitherKernel | null = null;
@@ -299,7 +306,7 @@ export function processMapart(
                 if (isErrorDiffusion) {
                     let errorScale = baseErrorScale;
 
-                    if (isHybrid) {
+                    if (isHybridV1) {
                         const variance = calculateLocalVariance(floatBuffer, x, y, width, height, paddedWidth);
                         const quantErrorSq = (r - bestRGB.r) ** 2 + (g - bestRGB.g) ** 2 + (b - bestRGB.b) ** 2;
                         const minScale = (hybridStrength / 100) * 1.0;
@@ -320,6 +327,17 @@ export function processMapart(
                             const t = (variance - varianceLow) / (varianceHigh - varianceLow);
                             errorScale = minScale + t * (1.0 - minScale);
                         }
+                    } else if (isHybridV2) {
+                        errorScale = hybridV2ErrorScale(
+                            hybridV2Activity![linearIdx],
+                            r,
+                            g,
+                            b,
+                            bestRGB.r,
+                            bestRGB.g,
+                            bestRGB.b,
+                            hybridStrength
+                        );
                     }
 
                     const errR = (r - bestRGB.r) * errorScale;
@@ -329,8 +347,11 @@ export function processMapart(
 
                     for (let i = 0; i < kernel.count; i++) {
                         if (independentMaps) {
+                            const nx = x + kernel.dx[i];
                             const ny = y + kernel.dy[i];
-                            if (Math.floor(y / 128) !== Math.floor(ny / 128)) continue;
+                            const crossesY = Math.floor(y / 128) !== Math.floor(ny / 128);
+                            const crossesX = Math.floor(x / 128) !== Math.floor(nx / 128);
+                            if (crossesY || (isHybridV2 && crossesX)) continue;
                         }
 
                         const nIdx = pixelIdx + kernel.offsets[i];
@@ -543,6 +564,6 @@ export function suggestDitheringMode(imageData: ImageData): { mode: DitheringMod
     } else if (stdDev < 50) {
         return { mode: 'floyd-steinberg', strength: 50 };
     } else {
-        return { mode: 'hybrid', strength: 75 };
+        return { mode: 'hybrid-v2', strength: 75 };
     }
 }
