@@ -86,6 +86,7 @@ describe('useMapartWorker E2E', () => {
     previewUrl: null,
     gridDimensions: { x: 1, y: 1 },
     imageFitMode: 'adjust',
+    resampling: 'smooth',
     cropSettings: { zoom: 1, offsetX: 0, offsetY: 0 },
     buildMode: '3d_valley',
     selectedPaletteItems: { 1: 'minecraft:stone' },

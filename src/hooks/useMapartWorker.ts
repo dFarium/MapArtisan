@@ -9,6 +9,7 @@ import { useExportPipeline } from './useExportPipeline';
 import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
 import type { ProcessingParams, ProcessingResult } from './types';
+import type { ResamplingMode } from '../utils/processing';
 import { clearTextureCache } from '../components/builder/3d/textureAtlas';
 import { SOFT_LIMIT_MAPS } from '../utils/memory';
 import { useToast } from '../context/ToastContext';
@@ -18,6 +19,7 @@ export interface UseMapartWorkerProps extends ProcessingParams {
     previewUrl: string | null;
     gridDimensions: GridDimensions;
     imageFitMode: MapartState['imageFitMode'];
+    resampling: ResamplingMode;
     cropSettings: CropSettings;
     setMapartStats: (stats: MapartStats | null) => void;
     imageSettings: ImageSettings;
@@ -48,6 +50,7 @@ export const useMapartWorker = ({
     previewUrl,
     gridDimensions,
     imageFitMode,
+    resampling,
     cropSettings,
     buildMode,
     selectedPaletteItems,
@@ -88,6 +91,7 @@ export const useMapartWorker = ({
         imageFitMode,
         cropSettings,
         imageSettings,
+        resampling,
         previewState: {
             setSourcePreviewImageData,
             incrementSourceImageVersion,

@@ -16,6 +16,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 | -------------------------- | ------------------------------------------------------------------------------------ |
 | **Multi-Map Grids**        | Configure grids of 15+ maps for large-scale builds                                   |
 | **Fitting Strategy**       | Choose between `Adjust` (fill canvas) or `Crop` (precision framing with zoom/offset) |
+| **Resampling**             | `Smooth` (default) averages every source pixel a block covers, in linear light, identically in every browser; `Sharp` takes the nearest pixel for pixel art off the map grid |
 | **Pre-Processing Filters** | Adjust saturation, brightness, and contrast before quantization                      |
 
 ### Color Processing

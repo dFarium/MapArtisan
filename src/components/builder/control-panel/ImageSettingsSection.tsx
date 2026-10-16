@@ -1,7 +1,7 @@
 import { useMapartStore as useMapart } from '../../../store/useMapartStore';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
-import { Crop, ImageIcon, Maximize, RefreshCw } from 'lucide-react';
+import { Crop, Grid3x3, ImageIcon, Maximize, RefreshCw, Sparkles } from 'lucide-react';
 import { Label } from '../../ui/Label';
 import { Input } from '../../ui/Input';
 import { Button } from '../../ui/Button';
@@ -17,6 +17,7 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
         gridDimensions, setGridDimensions, memoryEstimate,
         imageFitMode, setImageFitMode,
+        resampling, setResampling,
         cropSettings, setCropSettings, resetCropSettings,
         imageSettings, setImageSettings
     } = useMapart();
@@ -118,6 +119,32 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
                         <Crop size={12} /> CROP
                     </Button>
                 </div>
+
+                <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
+                    <Button
+                        variant={resampling === 'smooth' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setResampling('smooth')}
+                        className={cn("flex-1 text-xs h-7 font-bold gap-2", resampling !== 'smooth' && "text-zinc-500 hover:text-zinc-300")}
+                        title="Average every source pixel a block covers. Best for photos and art."
+                    >
+                        <Sparkles size={12} /> SMOOTH
+                    </Button>
+                    <Button
+                        variant={resampling === 'sharp' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setResampling('sharp')}
+                        className={cn("flex-1 text-xs h-7 font-bold gap-2", resampling !== 'sharp' && "text-zinc-500 hover:text-zinc-300")}
+                        title="Take the nearest source pixel. Keeps hard edges in pixel art."
+                    >
+                        <Grid3x3 size={12} /> SHARP
+                    </Button>
+                </div>
+                <p className="text-[10px] text-zinc-500 px-1">
+                    {resampling === 'smooth'
+                        ? 'Smooth: averages each block\'s area. Best for photos and art.'
+                        : 'Sharp: nearest pixel. For pixel art that does not line up with the map grid.'}
+                </p>
 
                 {imageFitMode === 'crop' && (
                     <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">

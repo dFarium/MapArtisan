@@ -30,6 +30,7 @@ describe('useMapartStore - Regression Tests', () => {
         expect(state.exportMode).toBe('sections');
         expect(state.exportFormat).toBe('litematic');
         expect(state.dithering).toBe('hybrid-v2');
+        expect(state.resampling).toBe('smooth');
         expect(state.uploadedImage).toBeNull();
         expect(state.previewUrl).toBeNull();
         expect(state.imageFitMode).toBe('adjust');

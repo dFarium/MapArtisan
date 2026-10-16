@@ -38,6 +38,14 @@ export {
 // Height Optimization
 export { optimizeColumnHeights, createHeightWorkspace, type SmartDropWorkspace } from './heightOptimization';
 
+// Resampling
+export {
+    type ResamplingMode,
+    type SourceRect,
+    RESAMPLING_MODES,
+    resampleArea
+} from './resample';
+
 // Height Limit
 export {
     type HeightLimit,

@@ -11,6 +11,7 @@ This update builds every 3D column as low as its shading allows, replaces the 3D
 
 ### Added
 - **Height Limit**: Cap the 3D build height in blocks. When a column would grow taller, the quantizer picks the closest color with the opposite shade and dithering absorbs the difference. Three styles control how those resets look on flat areas: `Lines`, `Balanced` and `Noise`. Manually painted pixels always take priority over the limit.
+- **Smooth Resampling**: The image now shrinks to the map resolution with an exact area average in linear light instead of picking the nearest pixel, removing aliasing and moiré from photos and fine detail. Results are identical in every browser, and uniform blocks at integer ratios are unchanged. `Sharp` keeps the previous nearest-pixel behaviour for pixel art.
 - **Smart V2 Dithering**: Diffuses error fully on detailed areas and gently on flat ones, guided by a local activity map that respects independent map boundaries.
 - **Build Height in the Status Bar**: Shows the real height of the tallest column, and turns red above the world limit or when manual edits exceed the height limit.
 - **Map Count Limits**: Grids are capped at 128 maps, with a warning and a RAM estimate from 96 maps.
@@ -22,6 +23,7 @@ This update builds every 3D column as low as its shading allows, replaces the 3D
 - **Lowest Possible Staircase**: The 3D layout now reaches the theoretical minimum height for every column: its longest run of highlights or shadows, plus one block.
 - **Smart V2 is the Default**: Smart V1 remains available as `Smart V1`.
 - **Versioned Processing Contract**: The worker processes, edits, counts materials and exports through one versioned engine API, and materials and exports reuse the cached result instead of reprocessing.
+- **Faster Color Filters**: Brightness, contrast and saturation reuse the resampled image instead of scaling the source again.
 - **Texture Cache Versioning**: The service worker cache name now follows the texture contents, so updated textures replace the old cache.
 
 ### Removed

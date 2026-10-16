@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
-import type { DitheringMode, HeightLimitStyle } from '../utils/processing';
+import type { DitheringMode, HeightLimitStyle, ResamplingMode } from '../utils/processing';
 import paletteData from '../data/palette.json';
 import { applyReplacements, checkPresetCompatibility, isBlockAvailable } from '../utils/filterPaletteByVersion';
 import type { PaletteColor } from '../types/palette';
@@ -115,6 +115,8 @@ export interface MapartState {
     previewUrl: string | null;
     /** Fit adjustment style */
     imageFitMode: ImageFitMode;
+    /** How the image shrinks to the map resolution: area average or nearest pixel */
+    resampling: ResamplingMode;
     /** Viewport cropping parameters */
     cropSettings: CropSettings;
     /** Map color index mapping to minecraft block IDs */
@@ -157,6 +159,7 @@ export interface MapartState {
     setDithering: (dithering: DitheringMode) => void;
     setUploadedImage: (file: File | null) => void;
     setImageFitMode: (mode: ImageFitMode) => void;
+    setResampling: (mode: ResamplingMode) => void;
     setCropSettings: (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => void;
     resetCropSettings: () => void;
     setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
@@ -195,6 +198,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     uploadedImage: null,
     previewUrl: null,
     imageFitMode: 'adjust',
+    resampling: 'smooth',
     cropSettings: defaultCropSettings,
     selectedPaletteItems: {},
     heightLimit: 0,
@@ -268,6 +272,7 @@ export const useMapartStore = create<MapartState>((set) => ({
         return { uploadedImage: file, previewUrl: url, manualEdits: {}, history: [], historyIndex: 0 };
     }),
     setImageFitMode: (mode) => set({ imageFitMode: mode, manualEdits: {}, history: [], historyIndex: 0 }),
+    setResampling: (mode) => set({ resampling: mode }),
     setCropSettings: (settings) => set((state) => ({
         cropSettings: typeof settings === 'function' ? settings(state.cropSettings) : { ...state.cropSettings, ...settings },
         manualEdits: {}, // Clear edits on crop change
