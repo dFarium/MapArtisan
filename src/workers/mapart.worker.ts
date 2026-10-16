@@ -1,95 +1,39 @@
 import { expose, transfer } from 'comlink';
-import { processMapart, applyManualEdits, unpackCandidateIdx, clearColorCache, clearOklabCache, type BuildMode, type DitheringMode, type ColorCandidate } from '../utils/processing';
+import { getValidColors, unpackCandidateIdx, clearColorCache, clearOklabCache, type ColorCandidate } from '../utils/processing';
 import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
-import type { ManualEdit, MapartStats, ExportFormat } from '../types/mapart';
+import type { ManualEdit } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
-import { debug, setDebugEnabled } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { setDebugEnabled } from '../utils/diagnostic';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
- * Creates a deterministic cache key for worker processing results.
+ * Snapshot of the latest processed result, kept for block picking.
  *
- * The key is a JSON-serialized array of all parameters that affect the
- * quantization output. If any of these parameters change, the cached
- * result is invalidated and the full pipeline runs again.
- *
- * Parameters included in the cache key:
- * - `version`: Source image version timestamp (changes when image or filters change)
- * - `width`: Image width in pixels
- * - `height`: Image height in pixels
- * - `buildMode`: '2d' | '3d_valley'
- * - `palette`: Sorted array of [colorIndex, blockId] pairs from selectedPaletteItems
- * - `threeDPrecision`: Height precision slider value (0-100)
- * - `dithering`: Dithering algorithm mode string
- * - `usePerceptual`: OKLab vs RGB distance flag
- * - `hybridStrength`: Hybrid dithering strength (0-100)
- * - `independentMaps`: Whether maps are processed independently
- *
- * Parameters NOT included (do not affect quantization):
- * - manualEdits (applied incrementally on top of cached results)
- * - blockSupport, supportBlockId (only affect export/geometry, not color matching)
- * - exportMode, exportFormat (only affect file output)
- *
- * @returns JSON string that uniquely identifies a processing configuration.
+ * Response buffers are transferred to the main thread and detach in the
+ * worker, so the picker keeps its own copy of `packedResults`. Candidate
+ * indices are only meaningful against the palette that produced them, so
+ * the config travels with the buffer and candidates are derived lazily.
  */
-export function createProcessingConfigKey(
-    width: number,
-    height: number,
-    version: number,
-    buildMode: BuildMode,
-    selectedPaletteItems: Record<number, string | null>,
-    threeDPrecision: number,
-    dithering: DitheringMode,
-    usePerceptual: boolean,
-    hybridStrength: number,
-    independentMaps: boolean
-): string {
-    const palette = Object.entries(selectedPaletteItems)
-        .map(([index, blockId]) => [Number(index), blockId] as const)
-        .sort(([a], [b]) => a - b);
-
-    return JSON.stringify([
-        version,
-        width,
-        height,
-        buildMode,
-        palette,
-        threeDPrecision,
-        dithering,
-        usePerceptual,
-        hybridStrength,
-        independentMaps,
-    ]);
-}
-
-/**
- * In-memory thread state caching the results of the last base color quantization.
- * 
- * By caching the base result:
- * 1. We avoid reprocessing the entire image when applying light manual pixel edits.
- * 2. We avoid recalculating material counts from scratch during export requests.
- */
-let lastBaseResult: {
-    sourceImage: ImageData;   // Original user uploaded image (preprocessed filters applied)
-    processedImage: ImageData;  // Quantized output image containing pixel color candidates
-    packedResults: Uint32Array; // Unified pixel result buffer (candidate index, tone, support flags)
-    candidates: ColorCandidate[]; // Valid color list generated from active palette
-    stats: MapartStats;        // Global layout dimension statistics
-    heightPath: Int32Array | null; // Precomputed Smart Drop height path (column-major, width × height)
-    toneMap: Int8Array | null; // Tone map for incremental applyManualEdits optimization
-    floatBuffer: Float32Array | null; // Padded working buffer for error diffusion (reused across calls)
+let pickerState: {
     width: number;
     height: number;
-    buildMode: BuildMode;
-    independentMaps: boolean;
-    sourceVersion: number;
-    configKey: string;
+    packedResults: Uint32Array;
+    config: ProcessingConfigV1;
+    candidates: ColorCandidate[] | null;
 } | null = null;
 
-// Versioned facade used by the migration path toward a Rust/WASM engine.
-// The legacy RPC methods below remain available until the React hooks migrate.
 const processingEngine = new TypeScriptEngine();
 const wasmEngine = new WasmEngine(processingEngine);
+
+function rememberForPicker(response: ProcessingResponseV1, config: ProcessingConfigV1): void {
+    pickerState = {
+        width: response.width,
+        height: response.height,
+        packedResults: new Uint32Array(response.buffers.packedResults.slice(0)),
+        config,
+        candidates: null,
+    };
+}
 
 function transferProcessingResponse(response: ProcessingResponseV1): ProcessingResponseV1 {
     const buffers = [
@@ -109,7 +53,7 @@ const api = {
     },
 
     clearCache: (): void => {
-        lastBaseResult = null;
+        pickerState = null;
         processingEngine.clear();
         wasmEngine.clear();
         clearColorCache();
@@ -118,16 +62,20 @@ const api = {
 
     /** Versioned processing contract used by the worker migration path. */
     processV1: async (request: ProcessingRequestV1): Promise<ProcessingResponseV1> => {
-        return transferProcessingResponse(await wasmEngine.process(request));
+        const response = await wasmEngine.process(request);
+        rememberForPicker(response, request.config);
+        return transferProcessingResponse(response);
     },
 
     /** Applies edits against the cached v1 base result without re-quantizing. */
     applyEditsV1: async (request: ApplyEditsRequestV1): Promise<ProcessingResponseV1> => {
-        return transferProcessingResponse(await wasmEngine.applyEdits(request));
+        const response = await wasmEngine.applyEdits(request);
+        rememberForPicker(response, request.config);
+        return transferProcessingResponse(response);
     },
 
     calculateMaterialCountsV1: (request: CalculateMaterialsRequestV1): CalculateMaterialsResponseV1 => {
-        const processed = processingEngine.process({ ...request, manualEdits: request.manualEdits });
+        const processed = processingEngine.process(request);
         const imageData = new ImageData(
             new Uint8ClampedArray(processed.buffers.rgba),
             processed.width,
@@ -158,7 +106,7 @@ const api = {
     },
 
     generateMapartExportV1: async (request: GenerateExportRequestV1): Promise<GenerateExportResponseV1> => {
-        const processed = processingEngine.process({ ...request, manualEdits: request.manualEdits });
+        const processed = processingEngine.process(request);
         const imageData = new ImageData(
             new Uint8ClampedArray(processed.buffers.rgba),
             processed.width,
@@ -194,394 +142,26 @@ const api = {
     },
 
     /**
-     * Performs color matching, error diffusion, and height profile calculations.
-     * Caches the results in thread memory to accelerate subsequent paint actions.
-     * 
-     * @param imageDataBuffer Transferable buffer of the preprocessed image data.
-     * @param width Width of the image.
-     * @param height Height of the image.
-     * @param version Unique version timestamp tracking image state.
-     * @param buildMode Target layout configuration (2D flat vs 3D valley).
-     * @param selectedPaletteItems Palette selection mapping IDs to minecraft blocks.
-     * @param threeDPrecision Height optimizations slider limits.
-     * @param dithering Pixel error diffusion/threshold matrix strategy.
-     * @param usePerceptual Flag to compare colors using OKLab perceptual distance instead of RGB.
-     * @param hybridStrength Weighting factor for hybrid/adaptive dithering.
-     * @param independentMaps Separate centering grids for multi-map setups.
+     * Retrieves the block at a pixel of the latest processed result.
+     * Manual edits take precedence over the quantized base.
      */
-    processMapart: (
-        imageDataBuffer: ArrayBuffer | null,
-        width: number,
-        height: number,
-        version: number,
-        buildMode: BuildMode,
-        selectedPaletteItems: Record<number, string | null>,
-        threeDPrecision: number,
-        dithering: DitheringMode = 'none',
-        usePerceptual: boolean = true,
-        hybridStrength: number = 50,
-        independentMaps: boolean = false
-    ): { error?: 'CACHE_MISS'; version: number; stats?: MapartStats; packedResults?: Uint32Array; heightPath?: Int32Array | null } => {
+    getBlockAt: (x: number, y: number, manualEdits: Record<number, ManualEdit>): ManualEdit | null => {
+        if (!pickerState) return null;
+        const { width, height, packedResults, config } = pickerState;
+        if (x < 0 || y < 0 || x >= width || y >= height) return null;
 
-        let sourceImage: ImageData;
-        const configKey = createProcessingConfigKey(
-            width, height, version, buildMode, selectedPaletteItems,
-            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
-        );
-
-        if (imageDataBuffer) {
-            // New image data provided, update cache
-            sourceImage = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-            debug(`Source Image Updated. Version: ${version}`);
-        } else {
-            // No buffer provided, check cache
-            if (
-                !lastBaseResult ||
-                !lastBaseResult.sourceImage ||
-                lastBaseResult.sourceVersion !== version ||
-                lastBaseResult.width !== width ||
-                lastBaseResult.height !== height
-            ) {
-                debug.warn(`Cache miss: No cached source available for version ${version}`);
-                return { error: 'CACHE_MISS', version };
-            }
-            sourceImage = lastBaseResult.sourceImage;
-            debug(`Using cached Source Image for version ${version}`);
-        }
-
-        const result = processMapart(
-            sourceImage,
-            buildMode,
-            selectedPaletteItems,
-            threeDPrecision,
-            dithering,
-            usePerceptual,
-            hybridStrength,
-            independentMaps,
-            lastBaseResult?.floatBuffer ?? null
-        );
-
-        lastBaseResult = {
-            sourceImage,
-            processedImage: result.imageData,
-            packedResults: result.packedResults,
-            candidates: result.candidates,
-            stats: result.stats,
-            heightPath: result.heightPath,
-            toneMap: result.toneMap,
-            floatBuffer: result.floatBuffer,
-            width: result.imageData.width,
-            height: result.imageData.height,
-            buildMode,
-            independentMaps,
-            sourceVersion: version,
-            configKey
-        };
-
-        // Transfer large arrays to avoid cloning, but we MUST return a CLONE 
-        // if we intend to keep it in our cache (lastBaseResult), otherwise it detaches here!
-        const packedResultsClone = result.packedResults.slice(0);
-        const heightPathClone = result.heightPath ? result.heightPath.slice(0) : null;
-
-        const transferList: ArrayBuffer[] = [packedResultsClone.buffer];
-        if (heightPathClone) transferList.push(heightPathClone.buffer);
-
-        return transfer(
-            {
-                version,
-                stats: result.stats,
-                packedResults: packedResultsClone,
-                heightPath: heightPathClone
-            },
-            transferList
-        );
-    },
-
-    /**
-     * Lightweight operation that overlays a map of manual pixel overrides
-     * directly onto the quantized base, re-calculating stats immediately.
-     * 
-     * @param manualEdits Map of indices to manual painted color overrides.
-     */
-    applyEdits: (manualEdits: Record<number, ManualEdit>): { version: number; imageData: ImageData; stats: MapartStats; packedResults: Uint32Array; heightPath: Int32Array | null } => {
-        if (!lastBaseResult) {
-            throw new Error("No base mapart processed yet. Call processMapart first.");
-        }
-
-        const result = applyManualEdits(
-            lastBaseResult.processedImage,
-            lastBaseResult.packedResults,
-            manualEdits,
-            lastBaseResult.buildMode,
-            lastBaseResult.candidates,
-            lastBaseResult.toneMap,
-            lastBaseResult.independentMaps
-        );
-
-        // Here we can transfer directly because applyManualEdits created fresh buffers for result.
-        const transferList: Transferable[] = [result.imageData.data.buffer, result.packedResults.buffer];
-        if (result.heightPath) transferList.push(result.heightPath.buffer);
-        return transfer(
-            {
-                version: lastBaseResult.sourceVersion,
-                imageData: result.imageData,
-                stats: result.stats,
-                packedResults: result.packedResults,
-                heightPath: result.heightPath
-            },
-            transferList
-        );
-    },
-
-    /**
-     * Generates a fully packaged Litematica structure.
-     * Uses precomputed packed results if cached version matches settings.
-     */
-    generateMapartExport: async (
-        imageDataBuffer: ArrayBuffer | null,
-        width: number,
-        height: number,
-        version: number,
-        selectedPaletteItems: Record<number, string | null>,
-        buildMode: BuildMode,
-        filename: string,
-        metadata: Record<string, unknown>,
-        threeDPrecision: number,
-        dithering: DitheringMode,
-        usePerceptual: boolean,
-        hybridStrength: number,
-        independentMaps: boolean,
-        manualEdits: Record<number, ManualEdit>,
-        blockSupport: 'all' | 'needed' | 'gravity' = 'all',
-        supportBlockId: string = 'minecraft:cobblestone',
-        exportMode: 'full' | 'sections' = 'sections',
-        targetVersion: string = '1.21.5',
-        exportFormat: ExportFormat = 'litematic'
-    ) => {
-        let imageData: ImageData;
-        let precomputedPackedResults: Uint32Array;
-        const configKey = createProcessingConfigKey(
-            width, height, version, buildMode, selectedPaletteItems,
-            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
-        );
-
-        if (imageDataBuffer) {
-            imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-
-            if (lastBaseResult?.configKey === configKey) {
-                precomputedPackedResults = lastBaseResult.packedResults;
-                debug(`Export: Using cached packedResults with new image buffer (v${version})`);
-            } else {
-                const result = processMapart(
-                    imageData, buildMode, selectedPaletteItems,
-                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
-                    lastBaseResult?.floatBuffer ?? null
-                );
-                lastBaseResult = {
-                    sourceImage: imageData,
-                    processedImage: result.imageData,
-                    packedResults: result.packedResults,
-                    candidates: result.candidates,
-                    stats: result.stats,
-                    heightPath: result.heightPath,
-                    toneMap: result.toneMap,
-                    floatBuffer: result.floatBuffer,
-                    width: result.imageData.width,
-                    height: result.imageData.height,
-                    buildMode,
-                    independentMaps,
-                    sourceVersion: version,
-                    configKey,
-                };
-                precomputedPackedResults = result.packedResults;
-                debug(`Export: Processed and cached (v${version})`);
-            }
-        } else if (lastBaseResult) {
-            imageData = lastBaseResult.sourceImage;
-            if (lastBaseResult.configKey === configKey) {
-                precomputedPackedResults = lastBaseResult.packedResults;
-                debug(`Export: Using cached precomputed packedResults (v${version})`);
-            } else {
-                const result = processMapart(
-                    imageData, buildMode, selectedPaletteItems,
-                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
-                    lastBaseResult.floatBuffer
-                );
-                lastBaseResult = {
-                    ...lastBaseResult,
-                    processedImage: result.imageData,
-                    packedResults: result.packedResults,
-                    candidates: result.candidates,
-                    stats: result.stats,
-                    heightPath: result.heightPath,
-                    toneMap: result.toneMap,
-                    floatBuffer: result.floatBuffer,
-                    sourceVersion: version,
-                    configKey,
-                };
-                precomputedPackedResults = result.packedResults;
-                debug(`Export: Config changed, re-processed and cached (v${version})`);
-            }
-        } else {
-            throw new Error("Export failed: No image data provided and no cache available.");
-        }
-
-        return generateMapartExport(
-            imageData,
-            selectedPaletteItems,
-            buildMode,
-            filename,
-            metadata,
-            threeDPrecision,
-            dithering,
-            usePerceptual,
-            hybridStrength,
-            independentMaps,
-            manualEdits,
-            blockSupport,
-            supportBlockId,
-            exportMode,
-            targetVersion,
-            precomputedPackedResults,
-            exportFormat
-        );
-    },
-
-    /**
-     * Calculates the exact block counts required to assemble this schematic.
-     * Returns total counts and reusable section counts.
-     */
-    calculateMaterialCounts: async (
-        imageDataBuffer: ArrayBuffer | null,
-        width: number,
-        height: number,
-        version: number,
-        selectedPaletteItems: Record<number, string | null>,
-        buildMode: BuildMode,
-        threeDPrecision: number,
-        dithering: DitheringMode,
-        usePerceptual: boolean,
-        hybridStrength: number,
-        independentMaps: boolean,
-        manualEdits: Record<number, ManualEdit>,
-        blockSupport: 'all' | 'needed' | 'gravity' = 'all',
-        supportBlockId: string = 'minecraft:cobblestone',
-        exportMode: 'full' | 'sections' = 'sections'
-    ) => {
-        let imageData: ImageData;
-        let precomputedPackedResults: Uint32Array;
-        const configKey = createProcessingConfigKey(
-            width, height, version, buildMode, selectedPaletteItems,
-            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps
-        );
-
-        if (imageDataBuffer) {
-            imageData = new ImageData(new Uint8ClampedArray(imageDataBuffer), width, height);
-
-            if (lastBaseResult?.configKey === configKey) {
-                precomputedPackedResults = lastBaseResult.packedResults;
-                debug(`Materials: Using cached packedResults with new image buffer (v${version})`);
-            } else {
-                const result = processMapart(
-                    imageData, buildMode, selectedPaletteItems,
-                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
-                    lastBaseResult?.floatBuffer ?? null
-                );
-                lastBaseResult = {
-                    sourceImage: imageData,
-                    processedImage: result.imageData,
-                    packedResults: result.packedResults,
-                    candidates: result.candidates,
-                    stats: result.stats,
-                    heightPath: result.heightPath,
-                    toneMap: result.toneMap,
-                    floatBuffer: result.floatBuffer,
-                    width: result.imageData.width,
-                    height: result.imageData.height,
-                    buildMode,
-                    independentMaps,
-                    sourceVersion: version,
-                    configKey,
-                };
-                precomputedPackedResults = result.packedResults;
-                debug(`Materials: Processed and cached (v${version})`);
-            }
-        } else if (lastBaseResult) {
-            imageData = lastBaseResult.sourceImage;
-            if (lastBaseResult.configKey === configKey) {
-                precomputedPackedResults = lastBaseResult.packedResults;
-                debug(`Materials: Using cached precomputed packedResults (v${version})`);
-            } else {
-                const result = processMapart(
-                    imageData, buildMode, selectedPaletteItems,
-                    threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps,
-                    lastBaseResult.floatBuffer
-                );
-                lastBaseResult = {
-                    ...lastBaseResult,
-                    processedImage: result.imageData,
-                    packedResults: result.packedResults,
-                    candidates: result.candidates,
-                    stats: result.stats,
-                    heightPath: result.heightPath,
-                    toneMap: result.toneMap,
-                    floatBuffer: result.floatBuffer,
-                    sourceVersion: version,
-                    configKey,
-                };
-                precomputedPackedResults = result.packedResults;
-                debug(`Materials: Config changed, re-processed and cached (v${version})`);
-            }
-        } else {
-            throw new Error(`Material calculation failed: No image data provided and no cache available (v${version}).`);
-        }
-
-        return calculateMaterialCounts(
-            imageData,
-            selectedPaletteItems,
-            buildMode,
-            threeDPrecision,
-            dithering,
-            usePerceptual,
-            hybridStrength,
-            independentMaps,
-            manualEdits,
-            blockSupport,
-            supportBlockId,
-            exportMode,
-            precomputedPackedResults
-        );
-    },
-
-    /**
-     * Retrieves the block representation at a selected pixel index.
-     */
-    getBlockAt: (x: number, y: number, manualEdits: Record<number, ManualEdit>) => {
-        if (!lastBaseResult) {
-            debug.warn("getBlockAt: lastBaseResult is null");
-            return null;
-        }
-
-        const { width, packedResults, candidates } = lastBaseResult;
         const index = y * width + x;
+        if (manualEdits[index]) return manualEdits[index];
 
-        // Check manual edits first
-        if (manualEdits[index]) {
-            return manualEdits[index];
-        }
-
-        // Fallback to base
+        pickerState.candidates ??= getValidColors(config.selectedPaletteItems, config.buildMode);
         const candidateIndex = unpackCandidateIdx(packedResults[index]);
-        if (candidateIndex >= 0 && candidateIndex < candidates.length) {
-            const c = candidates[candidateIndex];
-            return {
-                blockId: c.blockId,
-                brightness: c.brightness,
-                rgb: c.rgb
-            };
-        }
-
-        return null;
+        const candidate = pickerState.candidates[candidateIndex];
+        if (!candidate) return null;
+        return {
+            blockId: candidate.blockId,
+            brightness: candidate.brightness,
+            rgb: candidate.rgb,
+        };
     },
 
     /**

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { BuildMode, DitheringMode } from '../../utils/processing';
+import { PROCESSING_PROTOCOL_VERSION } from '../../engine';
 
 // Mock comlink
 vi.mock('comlink', () => ({
@@ -43,17 +44,29 @@ describe('mapart.worker performance', () => {
         for (let i = 0; i < iterations; i++) {
             const start = performance.now();
 
-            await mapartWorkerApi.processMapart(
-                inputBuffer.slice(0),
-                width,
-                height,
-                i, // Use iteration as version
-                buildMode,
-                palette,
-                threeDPrecision,
-                dithering,
-                usePerceptual
-            );
+            await mapartWorkerApi.processV1({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: i,
+                sourceVersion: i, // Use iteration as version
+                config: {
+                    width,
+                    height,
+                    buildMode,
+                    selectedPaletteItems: palette,
+                    threeDPrecision,
+                    dithering,
+                    usePerceptual,
+                    hybridStrength: 50,
+                    independentMaps: false,
+                    blockSupport: 'all',
+                    supportBlockId: 'minecraft:cobblestone',
+                    exportMode: 'sections',
+                    exportFormat: 'litematic',
+                    paletteVersion: '1.21.5',
+                },
+                source: { width, height, rgba: inputBuffer.slice(0) },
+                manualEdits: {},
+            });
 
             const end = performance.now();
             totalTime += (end - start);

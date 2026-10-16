@@ -4,19 +4,29 @@ import { useProcessingPipeline } from '../useProcessingPipeline';
 import type { WorkerRefs, ProcessingParams } from '../types';
 import type { MapartWorkerApi } from '../../workers/mapart.worker';
 import type { Remote } from 'comlink';
-import { PROCESSING_PROTOCOL_VERSION } from '../../engine';
+import { PROCESSING_PROTOCOL_VERSION, type ProcessingResponseV1 } from '../../engine';
+
+const makeResponse = (fill: number, requestId = 1): ProcessingResponseV1 => ({
+    protocolVersion: PROCESSING_PROTOCOL_VERSION,
+    requestId,
+    sourceVersion: 1,
+    status: 'completed',
+    width: 128,
+    height: 128,
+    buffers: {
+        rgba: new Uint8Array(128 * 128 * 4).buffer,
+        packedResults: new Uint32Array(128 * 128).fill(fill).buffer,
+        toneMap: null,
+        heightPath: new Int32Array(128 * 128).fill(fill).buffer,
+    },
+    stats: { minHeight: 0, maxHeight: fill, heightMap: new Int32Array(128).buffer },
+});
 
 const createMockWorkerRefs = (): WorkerRefs => ({
     workerApiRef: {
         current: {
-            processMapart: vi.fn(),
-            applyEdits: vi.fn().mockResolvedValue({
-                version: 1,
-                imageData: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
-                stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128) },
-                packedResults: new Uint32Array(128 * 128),
-                heightPath: new Int32Array(128 * 128),
-            }),
+            processV1: vi.fn(),
+            applyEditsV1: vi.fn().mockImplementation(() => Promise.resolve(makeResponse(5))),
         } as unknown as Remote<MapartWorkerApi>,
     },
     isProcessingRef: { current: false },
@@ -259,7 +269,7 @@ describe('useProcessingPipeline', () => {
                 await vi.advanceTimersByTimeAsync(100);
             });
 
-            expect(refs.workerApiRef.current!.processMapart).not.toHaveBeenCalled();
+            expect(refs.workerApiRef.current!.processV1).not.toHaveBeenCalled();
         });
 
         it('no procesa si no hay selección de paleta', async () => {
@@ -287,7 +297,7 @@ describe('useProcessingPipeline', () => {
                 await vi.advanceTimersByTimeAsync(100);
             });
 
-            expect(refs.workerApiRef.current!.processMapart).not.toHaveBeenCalled();
+            expect(refs.workerApiRef.current!.processV1).not.toHaveBeenCalled();
         });
     });
 
@@ -326,15 +336,10 @@ describe('useProcessingPipeline', () => {
                 current: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
             };
             const onResult = vi.fn();
-            const pending: Array<(value: {
-                version: number;
-                stats: { minHeight: number; maxHeight: number; heightMap: Int32Array };
-                packedResults: Uint32Array;
-                heightPath: Int32Array;
-            }) => void> = [];
+            const pending: Array<(value: ProcessingResponseV1) => void> = [];
 
-            vi.mocked(refs.workerApiRef.current!.processMapart).mockImplementation(() =>
-                new Promise(resolve => pending.push(resolve)) as ReturnType<Remote<MapartWorkerApi>['processMapart']>
+            vi.mocked(refs.workerApiRef.current!.processV1).mockImplementation(() =>
+                new Promise<ProcessingResponseV1>(resolve => pending.push(resolve))
             );
 
             const initialParams = createMockParams();
@@ -365,30 +370,21 @@ describe('useProcessingPipeline', () => {
             expect(pending).toHaveLength(1);
 
             await act(async () => {
-                pending[0]({
-                    version: 1,
-                    stats: { minHeight: 0, maxHeight: 1, heightMap: new Int32Array(128) },
-                    packedResults: new Uint32Array(128 * 128).fill(1),
-                    heightPath: new Int32Array(128 * 128).fill(1),
-                });
+                pending[0](makeResponse(1));
                 await Promise.resolve();
             });
             await vi.waitFor(() => expect(pending).toHaveLength(2));
-            expect(vi.mocked(refs.workerApiRef.current!.processMapart).mock.calls[1][6]).toBe(75);
+            expect(vi.mocked(refs.workerApiRef.current!.processV1).mock.calls[1][0].config.threeDPrecision).toBe(75);
             expect(onResult).not.toHaveBeenCalled();
 
             await act(async () => {
-                pending[1]({
-                    version: 1,
-                    stats: { minHeight: 0, maxHeight: 2, heightMap: new Int32Array(128) },
-                    packedResults: new Uint32Array(128 * 128).fill(2),
-                    heightPath: new Int32Array(128 * 128).fill(2),
-                });
+                pending[1](makeResponse(2));
                 await Promise.resolve();
                 await Promise.resolve();
             });
             expect(onResult).toHaveBeenCalledTimes(1);
-            expect(refs.workerApiRef.current!.processMapart).toHaveBeenCalledTimes(2);
+            expect(onResult.mock.calls[0][0].packedResults[0]).toBe(2);
+            expect(refs.workerApiRef.current!.processV1).toHaveBeenCalledTimes(2);
         });
 
         it('coalesces a burst of manual edits into one worker request', async () => {
@@ -431,7 +427,7 @@ describe('useProcessingPipeline', () => {
                 await vi.advanceTimersByTimeAsync(50);
             });
 
-            expect(refs.workerApiRef.current!.applyEdits).toHaveBeenCalledTimes(1);
+            expect(refs.workerApiRef.current!.applyEditsV1).toHaveBeenCalledTimes(1);
         });
     });
 });

@@ -3,6 +3,7 @@ import { getValidColors } from '../utils/processing';
 import type { ManualEdit } from '../types/mapart';
 import type { ApplyEditsRequestV1, ProcessingConfigV1, ProcessingRequestV1, ProcessingResponseV1 } from './protocol';
 import { TypeScriptEngine } from './typescriptEngine';
+import { debug } from '../utils/diagnostic';
 
 let initialization: Promise<unknown> | null = null;
 type ThreadedWasmModule = typeof import('../wasm/processing-threaded/processing_wasm');
@@ -34,7 +35,8 @@ function initializeThreaded(): Promise<ThreadedWasmModule | null> {
             await module.default();
             await module.initThreadPool(threadedWorkerCount());
             return module;
-        } catch {
+        } catch (error) {
+            debug.warn('Threaded WASM unavailable; using the serial engine', error);
             return null;
         }
     })();
@@ -166,7 +168,8 @@ export class WasmEngine {
                 paletteToDto(request.config),
                 editsToDto(request.manualEdits),
             ));
-        } catch {
+        } catch (error) {
+            debug.warn('WASM processing failed; falling back to TypeScript', error);
             return this.fallback.process(request);
         }
     }
@@ -187,7 +190,8 @@ export class WasmEngine {
                 paletteToDto(request.config),
                 editsToDto(request.manualEdits),
             ));
-        } catch {
+        } catch (error) {
+            debug.warn('WASM edit processing failed; falling back to TypeScript', error);
             return this.fallback.applyEdits(request);
         }
     }

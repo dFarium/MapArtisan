@@ -4,9 +4,9 @@ import type { WorkerRefs, ProcessingResult, ProcessingParams } from './types';
 import type { MapartStats } from '../types/mapart';
 import { LatestWinsQueue } from './latestWinsQueue';
 import { debug } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, type ApplyEditsRequestV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, type ProcessingConfigV1, type ProcessingResponseV1 } from '../engine';
 
-function toProcessingConfig(params: ProcessingParams, width: number, height: number): ProcessingConfigV1 {
+export function toProcessingConfig(params: ProcessingParams, width: number, height: number): ProcessingConfigV1 {
     return {
         width,
         height,
@@ -122,108 +122,42 @@ export function useProcessingPipeline({
                 return;
             }
 
-            const process = async (retryWithBuffer = false) => {
+            const process = async () => {
                 const startTime = performance.now();
                 isProcessingRef.current = true;
                 setIsProcessing(true);
 
                 try {
                     const api = workerApiRef.current;
-                    if (!api) return;
+                    const sourceImage = sourceImageDataRef.current;
+                    if (!api || !sourceImage) return;
 
                     const currentVersion = sourceImageVersion;
-                    const needsBuffer = retryWithBuffer || (workerImageVersionRef.current !== currentVersion);
-
-                    let bufferToSend: ArrayBuffer | null = null;
-                    if (needsBuffer && sourceImageDataRef.current) {
-                        bufferToSend = sourceImageDataRef.current.data.buffer.slice(0);
-                    }
-
-                    const { buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits } = paramsRef.current;
-
-                    const versionedApi = api as typeof api & {
-                        processV1?: (request: ProcessingRequestV1) => Promise<ProcessingResponseV1>;
-                        applyEditsV1?: (request: ApplyEditsRequestV1) => Promise<ProcessingResponseV1>;
-                    };
-
-                    if (versionedApi.processV1) {
-                        // v1 keys the base cache by sourceVersion + every
-                        // processing parameter. A slider change therefore
-                        // requires the source even when sourceVersion stayed
-                        // the same; otherwise the engine cannot build a new
-                        // base result for the new configuration.
-                        const versionedSourceBuffer = sourceImageDataRef.current!.data.buffer.slice(0);
-                        const source = {
-                            width: sourceImageDataRef.current!.width,
-                            height: sourceImageDataRef.current!.height,
-                            rgba: comlinkTransfer(versionedSourceBuffer, [versionedSourceBuffer]),
-                        };
-                        const response = await versionedApi.processV1({
-                            protocolVersion: PROCESSING_PROTOCOL_VERSION,
-                            requestId,
-                            sourceVersion: currentVersion,
-                            config: toProcessingConfig(paramsRef.current, sourceImageDataRef.current!.width, sourceImageDataRef.current!.height),
-                            source,
-                            manualEdits,
-                        });
-                        if (!active || processingRequestIdRef.current !== requestId || response.sourceVersion !== currentVersion) return;
-                        workerImageVersionRef.current = currentVersion;
-                        const processed = responseToProcessingResult(response);
-                        onResultRef.current(processed);
-                        onStatsUpdateRef.current(processed.stats);
-                        setPackedResults(processed.packedResults);
-                        setHeightPath(processed.heightPath);
-                        return;
-                    }
-
-                    const result = await api.processMapart(
-                        bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
-                        sourceImageDataRef.current!.width,
-                        sourceImageDataRef.current!.height,
-                        currentVersion,
-                        buildMode,
-                        selectedPaletteItems,
-                        threeDPrecision,
-                        dithering,
-                        usePerceptual,
-                        hybridStrength,
-                        independentMaps
-                    );
-
-                    if (!active || processingRequestIdRef.current !== requestId) return;
-
-                    if (result.error === 'CACHE_MISS') {
-                        debug.warn('Worker cache miss; retrying with the source buffer');
-                        return process(true);
-                    }
-
-                    if (result.version !== currentVersion) return;
+                    // The v1 base cache is keyed by sourceVersion + every
+                    // processing parameter, so a slider change needs the
+                    // source even when sourceVersion stayed the same.
+                    const sourceBuffer = sourceImage.data.buffer.slice(0);
+                    const response = await api.processV1({
+                        protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                        requestId,
+                        sourceVersion: currentVersion,
+                        config: toProcessingConfig(paramsRef.current, sourceImage.width, sourceImage.height),
+                        source: {
+                            width: sourceImage.width,
+                            height: sourceImage.height,
+                            rgba: comlinkTransfer(sourceBuffer, [sourceBuffer]),
+                        },
+                        manualEdits: paramsRef.current.manualEdits,
+                    });
+                    if (!active || processingRequestIdRef.current !== requestId || response.sourceVersion !== currentVersion) return;
 
                     workerImageVersionRef.current = currentVersion;
-
-                    const editsResult = await api.applyEdits(manualEdits);
-
-                    if (!active || processingRequestIdRef.current !== requestId) return;
-                    if (editsResult.version !== currentVersion) return;
-
-                    const processedData = editsResult.imageData;
-                    const finalStats = editsResult.stats;
-                    const finalPackedResults = editsResult.packedResults;
-                    const finalHeightPath = editsResult.heightPath ?? result.heightPath ?? null;
-
-                    onResultRef.current({
-                        imageData: processedData,
-                        stats: finalStats,
-                        packedResults: finalPackedResults,
-                        heightPath: finalHeightPath,
-                    });
-
-                    onStatsUpdateRef.current(finalStats);
-                    setPackedResults(finalPackedResults);
-                    setHeightPath(finalHeightPath);
-
-                    const endTime = performance.now();
-                    debug(`Map-art generation v${currentVersion} completed in ${(endTime - startTime).toFixed(1)}ms`);
+                    const processed = responseToProcessingResult(response);
+                    onResultRef.current(processed);
+                    onStatsUpdateRef.current(processed.stats);
+                    setPackedResults(processed.packedResults);
+                    setHeightPath(processed.heightPath);
+                    debug(`Map-art generation v${currentVersion} completed in ${(performance.now() - startTime).toFixed(1)}ms`);
                 } catch (err) {
                     if (active && processingRequestIdRef.current === requestId) debug.error('Heavy processing failed', err);
                 } finally {
@@ -278,51 +212,25 @@ export function useProcessingPipeline({
                 if (workerImageVersionRef.current !== currentVersion) return;
 
                 const api = workerApiRef.current!;
-                const versionedApi = api as typeof api & {
-                    applyEditsV1?: (request: ApplyEditsRequestV1) => Promise<ProcessingResponseV1>;
-                };
-                if (versionedApi.applyEditsV1) {
-                    const response = await versionedApi.applyEditsV1({
-                        protocolVersion: PROCESSING_PROTOCOL_VERSION,
-                        requestId,
-                        sourceVersion: currentVersion,
-                        config: toProcessingConfig(paramsRef.current, mapartResolution.width, mapartResolution.height),
-                        manualEdits: paramsRef.current.manualEdits,
-                    });
-                    if (!active || requestId !== editsRequestIdRef.current || processingRequestId !== processingRequestIdRef.current || response.sourceVersion !== currentVersion) return;
-                    const processed = responseToProcessingResult(response);
-                    onResultRef.current(processed);
-                    onStatsUpdateRef.current(processed.stats);
-                    setPackedResults(processed.packedResults);
-                    setHeightPath(processed.heightPath);
-                    return;
-                }
-                const result = await api.applyEdits(paramsRef.current.manualEdits);
-
+                const response = await api.applyEditsV1({
+                    protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                    requestId,
+                    sourceVersion: currentVersion,
+                    config: toProcessingConfig(paramsRef.current, mapartResolution.width, mapartResolution.height),
+                    manualEdits: paramsRef.current.manualEdits,
+                });
                 if (
                     !active ||
                     requestId !== editsRequestIdRef.current ||
-                    processingRequestId !== processingRequestIdRef.current
+                    processingRequestId !== processingRequestIdRef.current ||
+                    response.sourceVersion !== currentVersion
                 ) return;
-                if (result.version !== currentVersion) return;
 
-                const {
-                    imageData: processedData,
-                    stats: finalStats,
-                    packedResults: finalPackedResults,
-                    heightPath: finalHeightPath,
-                } = result;
-
-                onResultRef.current({
-                    imageData: processedData,
-                    stats: finalStats,
-                    packedResults: finalPackedResults,
-                    heightPath: finalHeightPath,
-                });
-
-                onStatsUpdateRef.current(finalStats);
-                setPackedResults(finalPackedResults);
-                setHeightPath(finalHeightPath);
+                const processed = responseToProcessingResult(response);
+                onResultRef.current(processed);
+                onStatsUpdateRef.current(processed.stats);
+                setPackedResults(processed.packedResults);
+                setHeightPath(processed.heightPath);
             } catch (e) {
                 debug.error('Incremental edit processing failed', e);
             }

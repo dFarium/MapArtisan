@@ -2,12 +2,23 @@ import { transfer as comlinkTransfer } from 'comlink';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { WorkerRefs, ExportParams, MaterialCounts } from './types';
 import { debug } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, type ImageBufferV1 } from '../engine';
+import { toProcessingConfig } from './useProcessingPipeline';
 
 export interface UseExportPipelineProps extends WorkerRefs {
     sourceImageDataRef: React.RefObject<ImageData | null>;
     sourceImageVersion: number;
     params: ExportParams;
+}
+
+/** Copies the source image into a transferable buffer owned by the worker. */
+function transferableSource(sourceImage: ImageData): ImageBufferV1 {
+    const rgba = sourceImage.data.buffer.slice(0);
+    return {
+        width: sourceImage.width,
+        height: sourceImage.height,
+        rgba: comlinkTransfer(rgba, [rgba]),
+    };
 }
 
 /**
@@ -21,7 +32,6 @@ export interface UseExportPipelineProps extends WorkerRefs {
  */
 export function useExportPipeline({
     workerApiRef,
-    workerImageVersionRef,
     sourceImageDataRef,
     sourceImageVersion,
     params,
@@ -39,179 +49,44 @@ export function useExportPipeline({
     }, [params]);
 
     const calculateMaterials = useCallback(async (): Promise<MaterialCounts | null> => {
-        if (!sourceImageDataRef.current || !workerApiRef.current) return null;
+        const api = workerApiRef.current;
+        const sourceImage = sourceImageDataRef.current;
+        if (!sourceImage || !api) return null;
 
         try {
-            const api = workerApiRef.current;
-            const currentVersion = sourceImageVersion;
-            const needsBuffer = workerImageVersionRef.current !== currentVersion;
-
-            const bufferToSend = needsBuffer ? sourceImageDataRef.current.data.buffer.slice(0) : null;
-
-            const {
-                selectedPaletteItems,
-                buildMode,
-                threeDPrecision,
-                dithering,
-                usePerceptual,
-                hybridStrength,
-                independentMaps,
-                manualEdits,
-                blockSupport,
-                supportBlockId,
-                exportMode,
-                exportFormat,
-                paletteVersion,
-            } = paramsRef.current;
-
-            const versionedApi = api as typeof api & {
-                calculateMaterialCountsV1?: (request: CalculateMaterialsRequestV1) => Promise<CalculateMaterialsResponseV1>;
-            };
-            if (versionedApi.calculateMaterialCountsV1) {
-                const sourceBuffer = sourceImageDataRef.current.data.buffer.slice(0);
-                const response = await versionedApi.calculateMaterialCountsV1({
-                    protocolVersion: PROCESSING_PROTOCOL_VERSION,
-                    requestId: Date.now(),
-                    sourceVersion: currentVersion,
-                    config: {
-                        width: sourceImageDataRef.current.width,
-                        height: sourceImageDataRef.current.height,
-                        buildMode,
-                        selectedPaletteItems,
-                        threeDPrecision,
-                        dithering,
-                        usePerceptual,
-                        hybridStrength,
-                        independentMaps,
-                        blockSupport,
-                        supportBlockId,
-                        exportMode,
-                        exportFormat,
-                        paletteVersion,
-                    },
-                    source: {
-                        width: sourceImageDataRef.current.width,
-                        height: sourceImageDataRef.current.height,
-                        rgba: comlinkTransfer(sourceBuffer, [sourceBuffer]),
-                    },
-                    manualEdits,
-                });
-                return response.counts;
-            }
-
-            const counts = await api.calculateMaterialCounts(
-                bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
-                sourceImageDataRef.current.width,
-                sourceImageDataRef.current.height,
-                currentVersion,
-                selectedPaletteItems,
-                buildMode,
-                threeDPrecision,
-                dithering,
-                usePerceptual,
-                hybridStrength,
-                independentMaps,
-                manualEdits,
-                blockSupport,
-                supportBlockId,
-                exportMode
-            );
-            return counts;
+            const response = await api.calculateMaterialCountsV1({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: Date.now(),
+                sourceVersion: sourceImageVersion,
+                config: toProcessingConfig(paramsRef.current, sourceImage.width, sourceImage.height),
+                source: transferableSource(sourceImage),
+                manualEdits: paramsRef.current.manualEdits,
+            });
+            return response.counts;
         } catch (err) {
             debug.error('Material calculation failed', err);
             return null;
         }
-    }, [sourceImageVersion, sourceImageDataRef, workerApiRef, workerImageVersionRef]);
+    }, [sourceImageVersion, sourceImageDataRef, workerApiRef]);
 
     const exportMapart = useCallback(
         async (filename: string, metadata: Record<string, unknown>): Promise<void> => {
-            if (!sourceImageDataRef.current || !workerApiRef.current || isExporting) return;
+            const api = workerApiRef.current;
+            const sourceImage = sourceImageDataRef.current;
+            if (!sourceImage || !api || isExporting) return;
 
             setIsExporting(true);
             try {
-                const api = workerApiRef.current;
-                const currentVersion = sourceImageVersion;
-                const needsBuffer = workerImageVersionRef.current !== currentVersion;
-
-                const bufferToSend = needsBuffer ? sourceImageDataRef.current.data.buffer.slice(0) : null;
-
-                const {
-                    selectedPaletteItems,
-                    buildMode,
-                    threeDPrecision,
-                    dithering,
-                    usePerceptual,
-                    hybridStrength,
-                    independentMaps,
-                    manualEdits,
-                    blockSupport,
-                    supportBlockId,
-                    exportMode,
-                    paletteVersion,
-                exportFormat,
-            } = paramsRef.current;
-
-                const versionedApi = api as typeof api & {
-                    generateMapartExportV1?: (request: GenerateExportRequestV1) => Promise<GenerateExportResponseV1>;
-                };
-                if (versionedApi.generateMapartExportV1) {
-                    const sourceBuffer = sourceImageDataRef.current.data.buffer.slice(0);
-                    const result = await versionedApi.generateMapartExportV1({
-                        protocolVersion: PROCESSING_PROTOCOL_VERSION,
-                        requestId: Date.now(),
-                        sourceVersion: currentVersion,
-                        config: {
-                            width: sourceImageDataRef.current.width,
-                            height: sourceImageDataRef.current.height,
-                            buildMode,
-                            selectedPaletteItems,
-                            threeDPrecision,
-                            dithering,
-                            usePerceptual,
-                            hybridStrength,
-                            independentMaps,
-                            blockSupport,
-                            supportBlockId,
-                            exportMode,
-                            exportFormat,
-                            paletteVersion,
-                        },
-                        source: {
-                            width: sourceImageDataRef.current.width,
-                            height: sourceImageDataRef.current.height,
-                            rgba: comlinkTransfer(sourceBuffer, [sourceBuffer]),
-                        },
-                        manualEdits,
-                        filename,
-                        metadata,
-                    });
-                    const { triggerDownload } = await import('../utils/export');
-                    triggerDownload(result.blob, result.filename);
-                    return;
-                }
-
-                const result = await api.generateMapartExport(
-                    bufferToSend ? comlinkTransfer(bufferToSend, [bufferToSend]) : null,
-                    sourceImageDataRef.current.width,
-                    sourceImageDataRef.current.height,
-                    currentVersion,
-                    selectedPaletteItems,
-                    buildMode,
+                const result = await api.generateMapartExportV1({
+                    protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                    requestId: Date.now(),
+                    sourceVersion: sourceImageVersion,
+                    config: toProcessingConfig(paramsRef.current, sourceImage.width, sourceImage.height),
+                    source: transferableSource(sourceImage),
+                    manualEdits: paramsRef.current.manualEdits,
                     filename,
                     metadata,
-                    threeDPrecision,
-                    dithering,
-                    usePerceptual,
-                    hybridStrength,
-                    independentMaps,
-                    manualEdits,
-                    blockSupport,
-                    supportBlockId,
-                    exportMode,
-                    paletteVersion,
-                    exportFormat
-                );
-
+                });
                 const { triggerDownload } = await import('../utils/export');
                 triggerDownload(result.blob, result.filename);
             } catch (err) {
@@ -220,7 +95,7 @@ export function useExportPipeline({
                 setIsExporting(false);
             }
         },
-        [sourceImageVersion, isExporting, sourceImageDataRef, workerApiRef, workerImageVersionRef]
+        [sourceImageVersion, isExporting, sourceImageDataRef, workerApiRef]
     );
 
     return {

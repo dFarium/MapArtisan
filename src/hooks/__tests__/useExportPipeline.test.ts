@@ -5,6 +5,7 @@ import type { WorkerRefs, ExportParams } from '../types';
 import type { MaterialCounts } from '../../utils/export/materials';
 import type { MapartWorkerApi } from '../../workers/mapart.worker';
 import type { Remote } from 'comlink';
+import { PROCESSING_PROTOCOL_VERSION } from '../../engine';
 
 vi.mock('../../utils/export', () => ({
     triggerDownload: vi.fn(),
@@ -13,8 +14,8 @@ vi.mock('../../utils/export', () => ({
 const createMockWorkerRefs = (): WorkerRefs => ({
     workerApiRef: {
         current: {
-            calculateMaterialCounts: vi.fn(),
-            generateMapartExport: vi.fn(),
+            calculateMaterialCountsV1: vi.fn(),
+            generateMapartExportV1: vi.fn(),
         } as unknown as Remote<MapartWorkerApi>,
     },
     isProcessingRef: { current: false },
@@ -50,8 +51,14 @@ describe('useExportPipeline', () => {
             };
 
             const refs = createMockWorkerRefs();
-            const mockCalculate = vi.mocked(refs.workerApiRef.current!.calculateMaterialCounts);
-            mockCalculate.mockResolvedValue(mockCounts);
+            const mockCalculate = vi.mocked(refs.workerApiRef.current!.calculateMaterialCountsV1);
+            mockCalculate.mockResolvedValue({
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: 1,
+                sourceVersion: 1,
+                status: 'completed',
+                counts: mockCounts,
+            });
 
             const sourceImageDataRef = {
                 current: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
@@ -97,7 +104,7 @@ describe('useExportPipeline', () => {
 
         it('maneja errores del worker', async () => {
             const refs = createMockWorkerRefs();
-            const mockCalculate = vi.mocked(refs.workerApiRef.current!.calculateMaterialCounts);
+            const mockCalculate = vi.mocked(refs.workerApiRef.current!.calculateMaterialCountsV1);
             mockCalculate.mockRejectedValue(new Error('Worker error'));
 
             const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -130,12 +137,16 @@ describe('useExportPipeline', () => {
     describe('exportMapart', () => {
         it('genera archivo de exportación', async () => {
             const mockResult = {
+                protocolVersion: PROCESSING_PROTOCOL_VERSION,
+                requestId: 1,
+                sourceVersion: 1,
+                status: 'completed' as const,
                 blob: new Blob(['test']),
                 filename: 'test.litematic',
             };
 
             const refs = createMockWorkerRefs();
-            const mockExport = vi.mocked(refs.workerApiRef.current!.generateMapartExport);
+            const mockExport = vi.mocked(refs.workerApiRef.current!.generateMapartExportV1);
             mockExport.mockResolvedValue(mockResult);
 
             const sourceImageDataRef = {

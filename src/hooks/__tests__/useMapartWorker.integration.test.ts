@@ -25,31 +25,43 @@ vi.stubGlobal('Worker', MockWorker);
 // Mock de Comlink
 vi.mock('comlink', () => {
   const releaseProxy = Symbol('releaseProxy');
+  const processingResponse = () => ({
+    protocolVersion: 1,
+    requestId: 1,
+    sourceVersion: 1,
+    status: 'completed',
+    width: 128,
+    height: 128,
+    buffers: {
+      rgba: new Uint8Array(128 * 128 * 4).buffer,
+      packedResults: new Uint32Array(128 * 128).buffer,
+      toneMap: null,
+      heightPath: new Int32Array(128 * 128).buffer,
+    },
+    stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128).buffer },
+  });
   return {
   releaseProxy,
   wrap: vi.fn(() => ({
     [releaseProxy]: vi.fn(),
     setDiagnosticsEnabled: vi.fn(),
     clearCache: vi.fn(),
-    processMapart: vi.fn().mockResolvedValue({
-      version: 1,
-      stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128) },
-      packedResults: new Uint32Array(128 * 128),
-      heightPath: new Int32Array(128 * 128),
-    }),
-    applyEdits: vi.fn().mockResolvedValue({
-      version: 1,
-      imageData: new ImageData(new Uint8ClampedArray(128 * 128 * 4), 128, 128),
-      stats: { minHeight: 0, maxHeight: 5, heightMap: new Int32Array(128) },
-      packedResults: new Uint32Array(128 * 128),
-    }),
-    generateMapartExport: vi.fn().mockResolvedValue({
+    processV1: vi.fn().mockImplementation(() => Promise.resolve(processingResponse())),
+    applyEditsV1: vi.fn().mockImplementation(() => Promise.resolve(processingResponse())),
+    generateMapartExportV1: vi.fn().mockResolvedValue({
+      protocolVersion: 1,
+      requestId: 1,
+      sourceVersion: 1,
+      status: 'completed',
       blob: new Blob(['test']),
       filename: 'test.litematic',
     }),
-    calculateMaterialCounts: vi.fn().mockResolvedValue({
-      total: 1000,
-      perSection: [],
+    calculateMaterialCountsV1: vi.fn().mockResolvedValue({
+      protocolVersion: 1,
+      requestId: 1,
+      sourceVersion: 1,
+      status: 'completed',
+      counts: { total: {}, reusable: {} },
     }),
     getBlockAt: vi.fn().mockResolvedValue({
       blockId: 'minecraft:stone',
