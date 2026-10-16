@@ -191,7 +191,7 @@ export const useMapartStore = create<MapartState>((set) => ({
     exportMode: 'sections',
     exportFormat: 'litematic',
     previewSection: null,
-    dithering: 'hybrid',
+    dithering: 'hybrid-v2',
     uploadedImage: null,
     previewUrl: null,
     imageFitMode: 'adjust',

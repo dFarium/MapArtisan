@@ -85,8 +85,8 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                     }}
                     className="h-8 text-xs"
                 >
-                    <option value="hybrid-v2">Smart V2 (Parallel Hybrid)</option>
-                    <option value="hybrid">Smart V1 (Legacy Hybrid)</option>
+                    <option value="hybrid-v2">Smart V2 (Adaptive Hybrid)</option>
+                    <option value="hybrid">Smart V1 (Hybrid)</option>
                     <option value="floyd-steinberg">Standard (Floyd-Steinberg)</option>
                     <option value="ordered">Retro 4x4 (Bayer)</option>
                     <option value="ordered-8x8">Retro 8x8 (Bayer)</option>
