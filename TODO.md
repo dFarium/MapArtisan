@@ -213,7 +213,8 @@ El motor Rust/WASM (`rust/processing-core`, `rust/processing-wasm`, `src/wasm/`,
 - [x] Optimizar OKLab WASM con LUT gamma, caché acotada, buffer RGB compacto y reducción de copias del puente.
 - [x] Implementar paralelismo seguro con Rayon mediante wavefront por tiles, conservando resultados deterministas frente a la ejecución serial.
 - [x] Implementar Hybrid V2 con actividad local inmutable, difusión adaptativa continua y aislamiento estricto entre mapas independientes.
-  - [x] Mantener Hybrid V1 como opción legacy y exponer V2 explícitamente en la interfaz.
+  - [x] Mantener Hybrid V1 como opción y exponer V2 explícitamente en la interfaz.
+  - [x] Hacer de Smart V2 el modo por defecto (2026-10-16).
   - [x] Verificar fuerza 100% byte por byte contra Floyd–Steinberg.
   - [x] Verificar paridad TypeScript/Rust/WASM en RGB, OKLab y mapas independientes.
   - [x] Medir Hybrid V2 nativo en release: Rayon con 4 hilos logra 2.05× en 512² y 2.37× en 1024×512 frente al núcleo serial.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "texture-cache-v2";
+const CACHE_NAME = "texture-cache-fce4da168c76";
 const TEXTURES_TO_CACHE = [
   "/textures/acacia_leaves.png",
   "/textures/acacia_log.png",

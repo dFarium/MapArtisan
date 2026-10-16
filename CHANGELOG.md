@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+This update builds every 3D column as low as its shading allows, replaces the 3D precision slider with a height limit in blocks, makes Smart V2 the default dithering, and hardens memory use, caching and exports.
+
+### Added
+- **Height Limit**: Cap the 3D build height in blocks. When a column would grow taller, the quantizer picks the closest color with the opposite shade and dithering absorbs the difference. Three styles control how those resets look on flat areas: `Lines`, `Balanced` and `Noise`. Manually painted pixels always take priority over the limit.
+- **Smart V2 Dithering**: Diffuses error fully on detailed areas and gently on flat ones, guided by a local activity map that respects independent map boundaries.
+- **Build Height in the Status Bar**: Shows the real height of the tallest column, and turns red above the world limit or when manual edits exceed the height limit.
+- **Map Count Limits**: Grids are capped at 128 maps, with a warning and a RAM estimate from 96 maps.
+- **Diagnostics Switch**: Informational logs are off by default; enable them with `?debug=1` or the `mapartisan:debug` local storage key.
+- **Test Card**: A 1×2 test image and generator (`docs/test-images`, `scripts/generate-test-card.mjs`) for checking heights and exports in game.
+- **Golden Fixtures**: 616 generated cases freeze the processing output across grids, build modes, dithering modes, color spaces, edits, independent maps and height limits.
+
+### Changed
+- **Lowest Possible Staircase**: The 3D layout now reaches the theoretical minimum height for every column: its longest run of highlights or shadows, plus one block.
+- **Smart V2 is the Default**: Smart V1 remains available as `Smart V1`.
+- **Versioned Processing Contract**: The worker processes, edits, counts materials and exports through one versioned engine API, and materials and exports reuse the cached result instead of reprocessing.
+- **Texture Cache Versioning**: The service worker cache name now follows the texture contents, so updated textures replace the old cache.
+
+### Removed
+- **3D Precision Slider**: Replaced by the height limit, which keeps far more color accuracy at the same height.
+- **Rust/WASM Engine**: Retired after measuring it slower than the TypeScript engine with real palettes; its last state is kept in the `rust-engine-final` tag. The COOP/COEP headers it required are gone as well.
+- **Legacy Worker API**: Only the versioned contract remains.
+
+### Fixed
+- **Independent Map Exports**: The last row of every 128-row section is no longer dropped.
+- **Single-File Exports**: The north reference block (noobline) is placed correctly.
+- **Block Picker**: Reads the latest processed result.
+- **Version Changes**: Switching Minecraft versions invalidates colors that are no longer available.
+- **Memory**: Bounded caches, undo deltas, texture LRU, and cleanup of buffers, Blob URLs, timers and WebGL resources on image, grid and palette changes.
+
 ## [1.2.0] - 2026-06-11
 
 This update modernizes the entire dependency stack, adopts the OKLab perceptual color space for high-fidelity block matching, implements major core optimizations (allocation-free algorithms, fast 32-bit bitpacking, and hoisted loops), and resolves React hooks violations for React 19 compatibility.

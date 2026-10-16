@@ -1,4 +1,5 @@
-import { readdirSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,7 +16,16 @@ const textures = readdirSync(TEXTURES_DIR)
 
 console.log(`[generate-sw] Found ${textures.length} textures`);
 
-const sw = `const CACHE_NAME = "texture-cache-v2";
+// The cache name follows the texture contents, so changed or added textures
+// replace the old cache on the next visit instead of being served stale.
+const hash = createHash("sha256");
+for (const texture of textures) {
+  hash.update(texture);
+  hash.update(readFileSync(join(TEXTURES_DIR, texture.slice("/textures/".length))));
+}
+const cacheVersion = hash.digest("hex").slice(0, 12);
+
+const sw = `const CACHE_NAME = "texture-cache-${cacheVersion}";
 const TEXTURES_TO_CACHE = [
 ${textures.map((t) => `  "${t}",`).join("\n")}
 ];
