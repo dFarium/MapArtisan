@@ -6,6 +6,8 @@ interface CanvasStatusBarProps {
     mapartResolution: { width: number; height: number };
     gridDimensions: GridDimensions;
     mapartStats: MapartStats | null;
+    /** Height limit in blocks, 0 when there is none. */
+    heightLimit: number;
 }
 
 /**
@@ -21,7 +23,11 @@ function buildHeight(stats: MapartStats): number {
     return tallest + 1;
 }
 
-export const CanvasStatusBar = ({ mapartResolution, gridDimensions, mapartStats }: CanvasStatusBarProps) => {
+export const CanvasStatusBar = ({ mapartResolution, gridDimensions, mapartStats, heightLimit }: CanvasStatusBarProps) => {
+    const height = mapartStats ? buildHeight(mapartStats) : 0;
+    // Manual edits win over the limit, so a painted column may still exceed it.
+    const overLimit = height > 384 || (heightLimit > 0 && height > heightLimit);
+
     return (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-zinc-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-zinc-700 text-xs text-zinc-400 flex items-center gap-4 shadow-xl whitespace-nowrap">
             <div className="flex items-center gap-2">
@@ -49,10 +55,12 @@ export const CanvasStatusBar = ({ mapartResolution, gridDimensions, mapartStats 
                     <div className="flex items-center gap-2">
                         <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Height</span>
                         <span
-                            className={clsx("font-mono font-bold text-xs", buildHeight(mapartStats) > 384 ? "text-red-400" : "text-emerald-400")}
-                            title="Tallest column, including its north reference block"
+                            className={clsx("font-mono font-bold text-xs", overLimit ? "text-red-400" : "text-emerald-400")}
+                            title={heightLimit > 0 && height > heightLimit
+                                ? "Manual edits push this column over the height limit"
+                                : "Tallest column, including its north reference block"}
                         >
-                            {buildHeight(mapartStats)} blocks
+                            {height}{heightLimit > 0 ? ` / ${heightLimit}` : ''} blocks
                         </span>
                     </div>
                 </>

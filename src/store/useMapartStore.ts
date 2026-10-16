@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
-import type { DitheringMode } from '../utils/processing';
+import type { DitheringMode, HeightLimitStyle } from '../utils/processing';
 import paletteData from '../data/palette.json';
 import { applyReplacements, checkPresetCompatibility, isBlockAvailable } from '../utils/filterPaletteByVersion';
 import type { PaletteColor } from '../types/palette';
@@ -119,8 +119,10 @@ export interface MapartState {
     cropSettings: CropSettings;
     /** Map color index mapping to minecraft block IDs */
     selectedPaletteItems: Record<number, string | null>;
-    /** Height penalty threshold for 3D steps (0% to 100%) */
-    threeDPrecision: number;
+    /** Maximum 3D build height in blocks (0 = no limit) */
+    heightLimit: number;
+    /** How forced resets are spread when the height limit binds */
+    heightLimitStyle: HeightLimitStyle;
     /** Use OKLab perceptual distance (true) or RGB Euclidean distance (false) */
     usePerceptual: boolean;
     /** Error diffusion threshold scale for adaptive/hybrid dithering */
@@ -158,7 +160,8 @@ export interface MapartState {
     setCropSettings: (settings: Partial<CropSettings> | ((prev: CropSettings) => CropSettings)) => void;
     resetCropSettings: () => void;
     setSelectedPaletteItems: (items: Record<number, string | null> | ((prev: Record<number, string | null>) => Record<number, string | null>)) => void;
-    setThreeDPrecision: (value: number) => void;
+    setHeightLimit: (value: number) => void;
+    setHeightLimitStyle: (style: HeightLimitStyle) => void;
     setUsePerceptual: (value: boolean) => void;
     setHybridStrength: (value: number) => void;
     setMapartStats: (stats: MapartStats | null) => void;
@@ -194,7 +197,8 @@ export const useMapartStore = create<MapartState>((set) => ({
     imageFitMode: 'adjust',
     cropSettings: defaultCropSettings,
     selectedPaletteItems: {},
-    threeDPrecision: 100,
+    heightLimit: 0,
+    heightLimitStyle: 'balanced',
     usePerceptual: true,
     hybridStrength: 50,
     mapartStats: null,
@@ -277,9 +281,8 @@ export const useMapartStore = create<MapartState>((set) => ({
     setSelectedPaletteItems: (items) => set((state) => ({
         selectedPaletteItems: typeof items === 'function' ? items(state.selectedPaletteItems) : items
     })),
-    setThreeDPrecision: (value) => set({
-        threeDPrecision: value
-    }),
+    setHeightLimit: (value) => set({ heightLimit: value }),
+    setHeightLimitStyle: (style) => set({ heightLimitStyle: style }),
     setUsePerceptual: (value) => set({
         usePerceptual: value
     }),

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { processMapart, clearColorCache, unpackTone, unpackCandidateIdx } from '../processing';
+import { NO_HEIGHT_LIMIT, processMapart, type HeightLimit, clearColorCache, unpackTone, unpackCandidateIdx } from '../processing';
 import { generateMapartExport } from '../export/fileExport';
 import JSZip from 'jszip';
 
@@ -12,6 +12,9 @@ const PALETTE_MULTI = {
     12: 'minecraft:white_wool',
     30: 'minecraft:red_wool'
 };
+
+// One block forces every tone to normal, a flat 3D build.
+const FLAT: HeightLimit = { blocks: 1, style: 'lines' };
 
 function makeGradientImage(w: number, h: number): ImageData {
     const data = new Uint8ClampedArray(w * h * 4);
@@ -32,7 +35,7 @@ describe('Hotpath Regression Tests (512x512)', () => {
 
     it('TC1: 2D None - compute baseline checksums', () => {
         const img = makeGradientImage(512, 512);
-        const result = processMapart(img, '2d', PALETTE_MULTI, 50, 'none', true, 50, false);
+        const result = processMapart(img, '2d', PALETTE_MULTI, NO_HEIGHT_LIMIT, 'none', true, 50, false);
         
         let toneCheck = 0;
         let indicesCheck = 0;
@@ -51,7 +54,7 @@ describe('Hotpath Regression Tests (512x512)', () => {
 
     it('TC2: 3D Valley + Floyd-Steinberg - compute baseline checksums', () => {
         const img = makeGradientImage(512, 512);
-        const result = processMapart(img, '3d_valley', PALETTE_MULTI, 50, 'floyd-steinberg', true, 50, false);
+        const result = processMapart(img, '3d_valley', PALETTE_MULTI, FLAT, 'floyd-steinberg', true, 50, false);
         
         let toneCheck = 0;
         let indicesCheck = 0;
@@ -70,7 +73,7 @@ describe('Hotpath Regression Tests (512x512)', () => {
 
     it('TC3: 2D Ordered Dithering - compute baseline checksums', () => {
         const img = makeGradientImage(512, 512);
-        const result = processMapart(img, '2d', PALETTE_MULTI, 50, 'ordered', false, 50, false);
+        const result = processMapart(img, '2d', PALETTE_MULTI, NO_HEIGHT_LIMIT, 'ordered', false, 50, false);
         
         let toneCheck = 0;
         let indicesCheck = 0;
@@ -90,13 +93,13 @@ describe('Hotpath Regression Tests (512x512)', () => {
     it('TC4: E2E Export Pipeline Regression (2x2 Multi-Map Split)', async () => {
         // Create a 256x256 image (which splits into exactly 2x2 = 4 maps of 128x128)
         const img = makeGradientImage(256, 256);
-        const result = processMapart(img, '3d_valley', PALETTE_MULTI, 50, 'floyd-steinberg', true, 50, false);
+        const result = processMapart(img, '3d_valley', PALETTE_MULTI, FLAT, 'floyd-steinberg', true, 50, false);
 
         // Run full export pipeline
         const exportResult = await generateMapartExport(
             img, PALETTE_MULTI, '3d_valley', 'regression_mapart.litematic',
             { name: 'Regression', author: 'Author', description: 'Desc' },
-            0, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+            FLAT, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
             'sections', '1.20', result.packedResults
         );
 

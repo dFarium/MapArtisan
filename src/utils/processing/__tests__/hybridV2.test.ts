@@ -4,6 +4,7 @@ import {
     hybridV2ErrorScale,
 } from '../dithering';
 import { processMapart } from '../pipeline';
+import { NO_HEIGHT_LIMIT } from '../heightLimit';
 
 const PALETTE = {
     1: 'minecraft:grass_block',
@@ -65,8 +66,8 @@ describe('Hybrid V2', () => {
 
     it('is byte-identical to Floyd-Steinberg at 100% strength', () => {
         const image = source(24, 16);
-        const floyd = processMapart(image, '2d', PALETTE, 100, 'floyd-steinberg', true, 50, false);
-        const hybrid = processMapart(image, '2d', PALETTE, 100, 'hybrid-v2', true, 100, false);
+        const floyd = processMapart(image, '2d', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
+        const hybrid = processMapart(image, '2d', PALETTE, NO_HEIGHT_LIMIT, 'hybrid-v2', true, 100, false);
 
         expect(hybrid.imageData.data).toEqual(floyd.imageData.data);
         expect(hybrid.packedResults).toEqual(floyd.packedResults);
@@ -75,7 +76,7 @@ describe('Hybrid V2', () => {
     it('makes adjacent independent maps identical to separate processing', () => {
         const combinedSource = source(256, 128);
         const combined = processMapart(
-            combinedSource, '2d', PALETTE, 100, 'hybrid-v2', false, 50, true
+            combinedSource, '2d', PALETTE, NO_HEIGHT_LIMIT, 'hybrid-v2', false, 50, true
         );
 
         for (let section = 0; section < 2; section++) {
@@ -89,7 +90,7 @@ describe('Hybrid V2', () => {
             }
             const separate = processMapart(
                 new ImageData(sectionData, 128, 128),
-                '2d', PALETTE, 100, 'hybrid-v2', false, 50, true
+                '2d', PALETTE, NO_HEIGHT_LIMIT, 'hybrid-v2', false, 50, true
             );
             for (let y = 0; y < 128; y++) {
                 const combinedPixelStart = y * 256 + section * 128;

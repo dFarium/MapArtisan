@@ -34,7 +34,6 @@ describe('mapart.worker performance', () => {
             3: 'sand',
             4: 'cobblestone'
         };
-        const threeDPrecision = 80;
         const dithering: DitheringMode = 'floyd-steinberg'; // Expensive dithering
         const usePerceptual = true;
 
@@ -53,7 +52,8 @@ describe('mapart.worker performance', () => {
                     height,
                     buildMode,
                     selectedPaletteItems: palette,
-                    threeDPrecision,
+                    heightLimit: 0,
+                    heightLimitStyle: 'balanced',
                     dithering,
                     usePerceptual,
                     hybridStrength: 50,

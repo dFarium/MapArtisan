@@ -7,6 +7,7 @@ import type { ManualEdit } from '../types/mapart';
 import {
     cloneBuffer,
     createProcessingConfigKey,
+    heightLimitOf,
     ProcessingEngineError,
     PROCESSING_PROTOCOL_VERSION,
     statsToProtocol,
@@ -84,7 +85,7 @@ export class TypeScriptEngine implements ProcessingEngineV1 {
                 source,
                 request.config.buildMode,
                 request.config.selectedPaletteItems,
-                request.config.threeDPrecision,
+                heightLimitOf(request.config),
                 request.config.dithering,
                 request.config.usePerceptual,
                 request.config.hybridStrength,

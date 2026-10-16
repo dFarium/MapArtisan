@@ -12,8 +12,8 @@ describe('processing golden fixture generator', () => {
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 
-        expect(createGoldenConfigs()).toHaveLength(352);
-        expect(manifest.cases).toHaveLength(352);
-        expect(new Set(manifest.cases.map(item => item.id)).size).toBe(352);
+        expect(createGoldenConfigs()).toHaveLength(616);
+        expect(manifest.cases).toHaveLength(616);
+        expect(new Set(manifest.cases.map(item => item.id)).size).toBe(616);
     }, 60_000);
 });

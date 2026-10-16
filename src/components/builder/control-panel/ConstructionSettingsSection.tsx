@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMapartStore as useMapart, type BlockSupport } from '../../../store/useMapartStore';
 import type { BuildMode } from '../../../types/mapart';
+import { HEIGHT_LIMIT_STYLES, type HeightLimitStyle } from '../../../utils/processing';
 import { CollapsibleSection } from '../../ui/CollapsibleSection';
 import { PrecisionSlider } from '../../ui/PrecisionSlider';
 import { Hammer, Layers, Box } from 'lucide-react';
@@ -14,6 +15,14 @@ interface SectionProps {
     isOpen?: boolean;
     onToggle?: () => void;
 }
+
+const DEFAULT_HEIGHT_LIMIT = 32;
+
+const HEIGHT_LIMIT_STYLE_INFO: Record<HeightLimitStyle, { label: string; hint: string }> = {
+    lines: { label: 'Lines', hint: 'Resets line up across columns: faint horizontal lines on flat areas, least grain.' },
+    balanced: { label: 'Balanced', hint: 'Resets spread out gradually: few lines and light grain.' },
+    noise: { label: 'Noise', hint: 'Resets scatter at random: no lines, slightly more grain.' },
+};
 
 interface SupportBlockIdEditorProps {
     supportBlockId: string;
@@ -49,7 +58,8 @@ const SupportBlockIdEditor = ({ supportBlockId, onApply }: SupportBlockIdEditorP
 export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
         buildMode, setBuildMode,
-        threeDPrecision, setThreeDPrecision,
+        heightLimit, setHeightLimit,
+        heightLimitStyle, setHeightLimitStyle,
         blockSupport, setBlockSupport,
         supportBlockId, setSupportBlockId,
         exportMode, setExportMode,
@@ -57,6 +67,12 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         previewSection, setPreviewSection,
         gridDimensions
     } = useMapart();
+    const [lastHeightLimit, setLastHeightLimit] = useState(heightLimit > 0 ? heightLimit : DEFAULT_HEIGHT_LIMIT);
+
+    const changeHeightLimit = (value: number) => {
+        setLastHeightLimit(value);
+        setHeightLimit(value);
+    };
 
     // Enforce selection constraints based on export mode
     useEffect(() => {
@@ -103,22 +119,54 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                     ))}
                 </div>
 
-                {/* 3D Precision Slider - Only for 3D modes */}
+                {/* Height Limit - Only for 3D modes */}
                 {buildMode === '3d_valley' && (
-                    <div className="mt-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
-                        <PrecisionSlider
-                            label="3D Precision"
-                            value={threeDPrecision}
-                            min={0}
-                            max={100}
-                            step={1}
-                            unit="%"
-                            onChange={setThreeDPrecision}
-                            accentColor="accent-purple-500"
-                        />
-                        <p className="text-xs text-zinc-500 mt-1">
-                            0% = Flat map, 100% = Full 3D precision
-                        </p>
+                    <div className="mt-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50 space-y-2">
+                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={heightLimit > 0}
+                                onChange={(e) => setHeightLimit(e.target.checked ? lastHeightLimit : 0)}
+                                className="w-3 h-3 accent-purple-500"
+                            />
+                            <span className="font-bold tracking-wide">Limit build height</span>
+                        </label>
+                        {heightLimit > 0 ? (
+                            <>
+                                <PrecisionSlider
+                                    label="Max Height"
+                                    value={heightLimit}
+                                    min={1}
+                                    max={128}
+                                    step={1}
+                                    unit=" blocks"
+                                    onChange={changeHeightLimit}
+                                    accentColor="accent-purple-500"
+                                />
+                                <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+                                    {HEIGHT_LIMIT_STYLES.map((style) => (
+                                        <button
+                                            key={style}
+                                            onClick={() => setHeightLimitStyle(style)}
+                                            className={cn(
+                                                "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
+                                                heightLimitStyle === style ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                                            )}
+                                            type="button"
+                                        >
+                                            {HEIGHT_LIMIT_STYLE_INFO[style].label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-zinc-500 px-1">
+                                    {HEIGHT_LIMIT_STYLE_INFO[heightLimitStyle].hint}
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-[10px] text-zinc-500 px-1">
+                                Full color accuracy. Columns grow as tall as the image needs.
+                            </p>
+                        )}
                     </div>
                 )}
             </div>

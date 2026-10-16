@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { performance } from 'perf_hooks';
-import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, createHeightWorkspace, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../processing';
+import { NO_HEIGHT_LIMIT, processMapart, clearColorCache, getValidColors, optimizeColumnHeights, createHeightWorkspace, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../processing';
 import { imageDataToBlockStates } from '../export/blockGeneration';
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
 
@@ -511,7 +511,7 @@ describe('Schematic Export Performance Benchmarks', () => {
         // Precompute packed results for clean isolation of block generation.
         // For NEW:
         clearColorCache();
-        const processResultNew = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
+        const processResultNew = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
         const packedResultsNew = processResultNew.packedResults;
 
         // For LEGACY, we translate the new packed array to the legacy layout
@@ -557,7 +557,7 @@ describe('Schematic Export Performance Benchmarks', () => {
         const tBlockGenNew = runBench(blockGenIters, () => {
             imageDataToBlockStates(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', packedResultsNew
             );
         });
@@ -580,7 +580,7 @@ describe('Schematic Export Performance Benchmarks', () => {
         
         const tPipelineLegacy = runBench(pipelineIters, () => {
             clearColorCache();
-            const processResult = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
+            const processResult = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
             // Simulate the O(W x H) loop that was removed
             const simulatedToneMap = new Int8Array(512 * 512);
             for (let i = 0; i < processResult.packedResults.length; i++) {
@@ -595,17 +595,17 @@ describe('Schematic Export Performance Benchmarks', () => {
 
         const tPipelineNew = runBench(pipelineIters, () => {
             clearColorCache();
-            const processResult = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
+            const processResult = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
             imageDataToBlockStates(
                 img, PALETTE, '3d_valley', true,
-                50, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
+                NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false, undefined, 'all', 'minecraft:cobblestone',
                 'sections', processResult.packedResults
             );
         });
 
         const tPipelineTypedArray = runBench(pipelineIters, () => {
             clearColorCache();
-            const processResult = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
+            const processResult = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
             imageDataToBlockStatesTypedArray(
                 img, PALETTE, '3d_valley', true,
                 false, undefined, 'all', 'minecraft:cobblestone',

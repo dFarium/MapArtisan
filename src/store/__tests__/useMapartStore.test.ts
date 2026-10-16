@@ -35,7 +35,8 @@ describe('useMapartStore - Regression Tests', () => {
         expect(state.imageFitMode).toBe('adjust');
         expect(state.cropSettings).toEqual({ zoom: 1, offsetX: 0, offsetY: 0 });
         expect(state.selectedPaletteItems).toEqual({});
-        expect(state.threeDPrecision).toBe(100);
+        expect(state.heightLimit).toBe(0);
+        expect(state.heightLimitStyle).toBe('balanced');
         expect(state.usePerceptual).toBe(true);
         expect(state.hybridStrength).toBe(50);
         expect(state.mapartStats).toBeNull();

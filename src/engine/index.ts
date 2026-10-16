@@ -4,6 +4,7 @@ export {
     PROCESSING_PROTOCOL_VERSION,
     ProcessingEngineError,
     createProcessingConfigKey,
+    heightLimitOf,
     type ApplyEditsRequestV1,
     type CalculateMaterialsRequestV1,
     type CalculateMaterialsResponseV1,

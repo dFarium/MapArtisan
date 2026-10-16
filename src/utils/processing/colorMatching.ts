@@ -56,7 +56,7 @@ export interface CandidatesSoA {
     oklabL: Float64Array;
     oklabA: Float64Array;
     oklabB: Float64Array;
-    notNormal: Uint8Array; // 1 if brightness level is 'high' or 'low', 0 if 'normal'
+    tone: Int8Array; // 1 for high, -1 for low, 0 for normal
     sortedToOriginal: Int32Array; // Maps sorted position to original candidate index
 }
 
@@ -87,7 +87,7 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
     const oklabL = new Float64Array(count);
     const oklabA = new Float64Array(count);
     const oklabB = new Float64Array(count);
-    const notNormal = new Uint8Array(count);
+    const tone = new Int8Array(count);
 
     for (let i = 0; i < count; i++) {
         const origIdx = sortedToOriginal[i];
@@ -99,10 +99,10 @@ export function buildCandidatesSoA(candidates: ColorCandidate[]): CandidatesSoA 
         oklabL[i] = oklab.L;
         oklabA[i] = oklab.a;
         oklabB[i] = oklab.b;
-        notNormal[i] = c.brightness !== 'normal' ? 1 : 0;
+        tone[i] = c.brightness === 'high' ? 1 : c.brightness === 'low' ? -1 : 0;
     }
 
-    return { count, r, g, b, oklabL, oklabA, oklabB, notNormal, sortedToOriginal };
+    return { count, r, g, b, oklabL, oklabA, oklabB, tone, sortedToOriginal };
 }
 
 // ============================================================================
@@ -218,8 +218,7 @@ export function findClosestColorIndex(
     tb: number,
     candidatesSoA: CandidatesSoA,
     usePerceptual: boolean,
-    skipCache: boolean = false,
-    heightPenalty: number = 0
+    skipCache: boolean = false
 ): ColorMatchResult {
     const key = (((tr + 0.5) | 0) << 16) | (((tg + 0.5) | 0) << 8) | ((tb + 0.5) | 0);
     const colorCache = getColorCache();
@@ -252,94 +251,47 @@ export function findClosestColorIndex(
         const da_start = ta - candidatesSoA.oklabA[startIdx];
         const db_start = tbVal - candidatesSoA.oklabB[startIdx];
         bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
-        if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
-            bestDist += heightPenalty;
-        }
 
         // 3. Two-pointer scan outwards
         let left = startIdx - 1;
         let right = startIdx + 1;
 
-        if (heightPenalty > 0) {
-            while (left >= 0 || right < n) {
-                if (left >= 0) {
-                    const dL = tL - candidatesSoA.oklabL[left];
-                    const dL2 = dL * dL;
-                    if (dL2 >= bestDist) {
-                        left = -1; // stop searching left
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[left];
-                        const db = tbVal - candidatesSoA.oklabB[left];
-                        let dist = dL2 + da * da + db * db;
-                        if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
-                        if (dist < bestDist) { bestDist = dist; bestIndex = left; }
-                        left--;
-                    }
-                }
-                if (right < n) {
-                    const dL = tL - candidatesSoA.oklabL[right];
-                    const dL2 = dL * dL;
-                    if (dL2 >= bestDist) {
-                        right = n; // stop searching right
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[right];
-                        const db = tbVal - candidatesSoA.oklabB[right];
-                        let dist = dL2 + da * da + db * db;
-                        if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
-                        if (dist < bestDist) { bestDist = dist; bestIndex = right; }
-                        right++;
-                    }
+        while (left >= 0 || right < n) {
+            if (left >= 0) {
+                const dL = tL - candidatesSoA.oklabL[left];
+                const dL2 = dL * dL;
+                if (dL2 >= bestDist) {
+                    left = -1; // stop searching left
+                } else {
+                    const da = ta - candidatesSoA.oklabA[left];
+                    const db = tbVal - candidatesSoA.oklabB[left];
+                    const dist = dL2 + da * da + db * db;
+                    if (dist < bestDist) { bestDist = dist; bestIndex = left; }
+                    left--;
                 }
             }
-        } else {
-            while (left >= 0 || right < n) {
-                if (left >= 0) {
-                    const dL = tL - candidatesSoA.oklabL[left];
-                    const dL2 = dL * dL;
-                    if (dL2 >= bestDist) {
-                        left = -1; // stop searching left
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[left];
-                        const db = tbVal - candidatesSoA.oklabB[left];
-                        const dist = dL2 + da * da + db * db;
-                        if (dist < bestDist) { bestDist = dist; bestIndex = left; }
-                        left--;
-                    }
-                }
-                if (right < n) {
-                    const dL = tL - candidatesSoA.oklabL[right];
-                    const dL2 = dL * dL;
-                    if (dL2 >= bestDist) {
-                        right = n; // stop searching right
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[right];
-                        const db = tbVal - candidatesSoA.oklabB[right];
-                        const dist = dL2 + da * da + db * db;
-                        if (dist < bestDist) { bestDist = dist; bestIndex = right; }
-                        right++;
-                    }
+            if (right < n) {
+                const dL = tL - candidatesSoA.oklabL[right];
+                const dL2 = dL * dL;
+                if (dL2 >= bestDist) {
+                    right = n; // stop searching right
+                } else {
+                    const da = ta - candidatesSoA.oklabA[right];
+                    const db = tbVal - candidatesSoA.oklabB[right];
+                    const dist = dL2 + da * da + db * db;
+                    if (dist < bestDist) { bestDist = dist; bestIndex = right; }
+                    right++;
                 }
             }
         }
     } else {
         // --- RGB path: branch resolved once, no OKLab objects created ---
-        if (heightPenalty > 0) {
-            for (let i = 0; i < n; i++) {
-                const dr = tr - candidatesSoA.r[i];
-                const dg = tg - candidatesSoA.g[i];
-                const db = tb - candidatesSoA.b[i];
-                let dist = dr * dr + dg * dg + db * db;
-                if (candidatesSoA.notNormal[i] !== 0) dist += heightPenalty;
-                if (dist < bestDist) { bestDist = dist; bestIndex = i; }
-            }
-        } else {
-            for (let i = 0; i < n; i++) {
-                const dr = tr - candidatesSoA.r[i];
-                const dg = tg - candidatesSoA.g[i];
-                const db = tb - candidatesSoA.b[i];
-                const dist = dr * dr + dg * dg + db * db;
-                if (dist < bestDist) { bestDist = dist; bestIndex = i; }
-            }
+        for (let i = 0; i < n; i++) {
+            const dr = tr - candidatesSoA.r[i];
+            const dg = tg - candidatesSoA.g[i];
+            const db = tb - candidatesSoA.b[i];
+            const dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
         }
     }
 
@@ -350,6 +302,48 @@ export function findClosestColorIndex(
     _singleResult.index = finalIndex;
     _singleResult.distance = bestDist;
     return _singleResult;
+}
+
+/**
+ * Find the closest candidate that has a given tone (-1, 0 or 1).
+ * Used when the height limit rules out the tone of the free choice. It runs
+ * only on those pixels, so a plain scan is enough. Returns -1 when no
+ * candidate has that tone.
+ */
+export function findClosestColorIndexWithTone(
+    tr: number,
+    tg: number,
+    tb: number,
+    candidatesSoA: CandidatesSoA,
+    usePerceptual: boolean,
+    tone: number
+): number {
+    let bestIndex = -1;
+    let bestDist = Infinity;
+    const n = candidatesSoA.count;
+
+    if (usePerceptual) {
+        const target = rgbToOklab(tr, tg, tb);
+        for (let i = 0; i < n; i++) {
+            if (candidatesSoA.tone[i] !== tone) continue;
+            const dL = target.L - candidatesSoA.oklabL[i];
+            const da = target.a - candidatesSoA.oklabA[i];
+            const db = target.b - candidatesSoA.oklabB[i];
+            const dist = dL * dL + da * da + db * db;
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
+        }
+    } else {
+        for (let i = 0; i < n; i++) {
+            if (candidatesSoA.tone[i] !== tone) continue;
+            const dr = tr - candidatesSoA.r[i];
+            const dg = tg - candidatesSoA.g[i];
+            const db = tb - candidatesSoA.b[i];
+            const dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) { bestDist = dist; bestIndex = i; }
+        }
+    }
+
+    return bestIndex < 0 ? -1 : candidatesSoA.sortedToOriginal[bestIndex];
 }
 
 /**
@@ -365,8 +359,7 @@ export function findTwoClosestColors(
     tg: number,
     tb: number,
     candidatesSoA: CandidatesSoA,
-    usePerceptual: boolean,
-    heightPenalty: number = 0
+    usePerceptual: boolean
 ): { first: ColorMatchResult; second: ColorMatchResult } {
     let bestIndex = 0;
     let bestDist = Infinity;
@@ -390,123 +383,61 @@ export function findTwoClosestColors(
         const da_start = ta - candidatesSoA.oklabA[startIdx];
         const db_start = tbVal - candidatesSoA.oklabB[startIdx];
         bestDist = dL_start * dL_start + da_start * da_start + db_start * db_start;
-        if (heightPenalty > 0 && candidatesSoA.notNormal[startIdx] !== 0) {
-            bestDist += heightPenalty;
-        }
 
         // 3. Two-pointer scan outwards
         let left = startIdx - 1;
         let right = startIdx + 1;
 
-        if (heightPenalty > 0) {
-            while (left >= 0 || right < n) {
-                if (left >= 0) {
-                    const dL = tL - candidatesSoA.oklabL[left];
-                    const dL2 = dL * dL;
-                    if (dL2 >= secondDist) {
-                        left = -1; // stop searching left
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[left];
-                        const db = tbVal - candidatesSoA.oklabB[left];
-                        let dist = dL2 + da * da + db * db;
-                        if (candidatesSoA.notNormal[left] !== 0) dist += heightPenalty;
-                        if (dist < bestDist) {
-                            secondDist = bestDist; secondIndex = bestIndex;
-                            bestDist = dist;      bestIndex = left;
-                        } else if (dist < secondDist) {
-                            secondDist = dist; secondIndex = left;
-                        }
-                        left--;
+        while (left >= 0 || right < n) {
+            if (left >= 0) {
+                const dL = tL - candidatesSoA.oklabL[left];
+                const dL2 = dL * dL;
+                if (dL2 >= secondDist) {
+                    left = -1; // stop searching left
+                } else {
+                    const da = ta - candidatesSoA.oklabA[left];
+                    const db = tbVal - candidatesSoA.oklabB[left];
+                    const dist = dL2 + da * da + db * db;
+                    if (dist < bestDist) {
+                        secondDist = bestDist; secondIndex = bestIndex;
+                        bestDist = dist;      bestIndex = left;
+                    } else if (dist < secondDist) {
+                        secondDist = dist; secondIndex = left;
                     }
-                }
-                if (right < n) {
-                    const dL = tL - candidatesSoA.oklabL[right];
-                    const dL2 = dL * dL;
-                    if (dL2 >= secondDist) {
-                        right = n; // stop searching right
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[right];
-                        const db = tbVal - candidatesSoA.oklabB[right];
-                        let dist = dL2 + da * da + db * db;
-                        if (candidatesSoA.notNormal[right] !== 0) dist += heightPenalty;
-                        if (dist < bestDist) {
-                            secondDist = bestDist; secondIndex = bestIndex;
-                            bestDist = dist;      bestIndex = right;
-                        } else if (dist < secondDist) {
-                            secondDist = dist; secondIndex = right;
-                        }
-                        right++;
-                    }
+                    left--;
                 }
             }
-        } else {
-            while (left >= 0 || right < n) {
-                if (left >= 0) {
-                    const dL = tL - candidatesSoA.oklabL[left];
-                    const dL2 = dL * dL;
-                    if (dL2 >= secondDist) {
-                        left = -1; // stop searching left
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[left];
-                        const db = tbVal - candidatesSoA.oklabB[left];
-                        const dist = dL2 + da * da + db * db;
-                        if (dist < bestDist) {
-                            secondDist = bestDist; secondIndex = bestIndex;
-                            bestDist = dist;      bestIndex = left;
-                        } else if (dist < secondDist) {
-                            secondDist = dist; secondIndex = left;
-                        }
-                        left--;
+            if (right < n) {
+                const dL = tL - candidatesSoA.oklabL[right];
+                const dL2 = dL * dL;
+                if (dL2 >= secondDist) {
+                    right = n; // stop searching right
+                } else {
+                    const da = ta - candidatesSoA.oklabA[right];
+                    const db = tbVal - candidatesSoA.oklabB[right];
+                    const dist = dL2 + da * da + db * db;
+                    if (dist < bestDist) {
+                        secondDist = bestDist; secondIndex = bestIndex;
+                        bestDist = dist;      bestIndex = right;
+                    } else if (dist < secondDist) {
+                        secondDist = dist; secondIndex = right;
                     }
-                }
-                if (right < n) {
-                    const dL = tL - candidatesSoA.oklabL[right];
-                    const dL2 = dL * dL;
-                    if (dL2 >= secondDist) {
-                        right = n; // stop searching right
-                    } else {
-                        const da = ta - candidatesSoA.oklabA[right];
-                        const db = tbVal - candidatesSoA.oklabB[right];
-                        const dist = dL2 + da * da + db * db;
-                        if (dist < bestDist) {
-                            secondDist = bestDist; secondIndex = bestIndex;
-                            bestDist = dist;      bestIndex = right;
-                        } else if (dist < secondDist) {
-                            secondDist = dist; secondIndex = right;
-                        }
-                        right++;
-                    }
+                    right++;
                 }
             }
         }
     } else {
         // --- RGB path ---
-        if (heightPenalty > 0) {
-            for (let i = 0; i < n; i++) {
-                const dr = tr - candidatesSoA.r[i];
-                const dg = tg - candidatesSoA.g[i];
-                const db = tb - candidatesSoA.b[i];
-                let dist = dr * dr + dg * dg + db * db;
-                if (candidatesSoA.notNormal[i] !== 0) dist += heightPenalty;
-                if (dist < bestDist) {
-                    secondDist = bestDist; secondIndex = bestIndex;
-                    bestDist = dist;      bestIndex = i;
-                } else if (dist < secondDist) {
-                    secondDist = dist; secondIndex = i;
-                }
-            }
-        } else {
-            for (let i = 0; i < n; i++) {
-                const dr = tr - candidatesSoA.r[i];
-                const dg = tg - candidatesSoA.g[i];
-                const db = tb - candidatesSoA.b[i];
-                const dist = dr * dr + dg * dg + db * db;
-                if (dist < bestDist) {
-                    secondDist = bestDist; secondIndex = bestIndex;
-                    bestDist = dist;      bestIndex = i;
-                } else if (dist < secondDist) {
-                    secondDist = dist; secondIndex = i;
-                }
+        for (let i = 0; i < n; i++) {
+            const dr = tr - candidatesSoA.r[i];
+            const dg = tg - candidatesSoA.g[i];
+            const db = tb - candidatesSoA.b[i];
+            const dist = dr * dr + dg * dg + db * db;
+            if (dist < bestDist) {
+                secondDist = bestDist; secondIndex = bestIndex;
+                bestDist = dist;      bestIndex = i;
+            } else if (dist < secondDist) {
+                secondDist = dist; secondIndex = i;
             }
         }
     }

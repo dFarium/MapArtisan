@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { 
+    NO_HEIGHT_LIMIT,
     processMapart, 
     applyManualEdits, 
     suggestDitheringMode,
@@ -35,7 +36,7 @@ describe('Processing Pipeline - Regression Tests', () => {
 
     it('processMapart returns expected structure', () => {
         const img = makeTestImage(64, 64);
-        const result = processMapart(img, '2d', PALETTE, 50, 'none', true, 50, false);
+        const result = processMapart(img, '2d', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
         
         expect(result.imageData).toBeDefined();
         expect(result.imageData.width).toBe(64);
@@ -52,7 +53,7 @@ describe('Processing Pipeline - Regression Tests', () => {
 
     it('processMapart 3D valley returns heightPath', () => {
         const img = makeTestImage(64, 64);
-        const result = processMapart(img, '3d_valley', PALETTE, 50, 'floyd-steinberg', true, 50, false);
+        const result = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
         
         expect(result.heightPath).toBeDefined();
         expect(result.heightPath).not.toBeNull();
@@ -68,7 +69,7 @@ describe('Processing Pipeline - Regression Tests', () => {
 
     it('applyManualEdits modifies packedResults correctly', () => {
         const img = makeTestImage(32, 32);
-        const baseResult = processMapart(img, '2d', PALETTE, 50, 'none', true, 50, false);
+        const baseResult = processMapart(img, '2d', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
         
         const manualEdits = {
             0: { blockId: 'minecraft:stone', brightness: 'normal' as const, rgb: { r: 128, g: 128, b: 128 } }
@@ -89,7 +90,7 @@ describe('Processing Pipeline - Regression Tests', () => {
 
     it('applyManualEdits returns a height path consistent with its tone map', () => {
         const img = makeTestImage(2, 4);
-        const baseResult = processMapart(img, '3d_valley', PALETTE, 100, 'none', true, 50, false);
+        const baseResult = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
         const manualEdits = {
             0: { blockId: 'minecraft:stone', brightness: 'high' as const, rgb: { r: 128, g: 128, b: 128 } }
         };
@@ -154,7 +155,7 @@ describe('Processing Pipeline - Regression Tests', () => {
 
     it('packPixel/unpack roundtrip for pipeline data', () => {
         const img = makeTestImage(16, 16);
-        const result = processMapart(img, '3d_valley', PALETTE, 50, 'none', true, 50, false);
+        const result = processMapart(img, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
         
         for (let i = 0; i < Math.min(100, result.packedResults.length); i++) {
             const packed = result.packedResults[i];

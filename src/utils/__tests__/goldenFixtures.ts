@@ -1,15 +1,22 @@
 import type { ManualEdit, MapartStats } from '../../types/mapart';
 import {
     DITHERING_MODES,
+    NO_HEIGHT_LIMIT,
     applyManualEdits,
     processMapart,
     type BuildMode,
+    type HeightLimit,
     type ColorCandidate,
     type DitheringMode,
 } from '../processing';
 
 export const GOLDEN_MAP_EDGE = 128;
-export const GOLDEN_THREE_D_PRECISION = 73;
+/** Limited variants of every unedited 3D case; one per reset style. */
+export const GOLDEN_HEIGHT_LIMITS: readonly HeightLimit[] = [
+    { blocks: 4, style: 'lines' },
+    { blocks: 6, style: 'balanced' },
+    { blocks: 8, style: 'noise' },
+];
 export const GOLDEN_HYBRID_STRENGTH = 61;
 
 export const GOLDEN_PALETTE: Record<number, string> = {
@@ -30,6 +37,7 @@ export interface GoldenCaseConfig {
     usePerceptual: boolean;
     withEdits: boolean;
     independentMaps: boolean;
+    heightLimit: HeightLimit;
 }
 
 export interface GoldenProbe {
@@ -65,7 +73,6 @@ export interface GoldenManifest {
     schemaVersion: 1;
     hashAlgorithm: 'fnv1a-64-le-bytes';
     mapEdge: number;
-    threeDPrecision: number;
     hybridStrength: number;
     palette: Record<number, string>;
     cases: GoldenCase[];
@@ -94,7 +101,13 @@ export function createGoldenConfigs(): GoldenCaseConfig[] {
                 for (const usePerceptual of BOOLEAN_VALUES) {
                     for (const withEdits of BOOLEAN_VALUES) {
                         for (const independentMaps of BOOLEAN_VALUES) {
-                            configs.push({ ...grid, buildMode, dithering, usePerceptual, withEdits, independentMaps });
+                            // Edits are applied after quantization, so limits only need unedited cases.
+                            const heightLimits = buildMode === '3d_valley' && !withEdits
+                                ? [NO_HEIGHT_LIMIT, ...GOLDEN_HEIGHT_LIMITS]
+                                : [NO_HEIGHT_LIMIT];
+                            for (const heightLimit of heightLimits) {
+                                configs.push({ ...grid, buildMode, dithering, usePerceptual, withEdits, independentMaps, heightLimit });
+                            }
                         }
                     }
                 }
@@ -109,7 +122,8 @@ export function goldenCaseId(config: GoldenCaseConfig): string {
     const colorSpace = config.usePerceptual ? 'oklab' : 'rgb';
     const edits = config.withEdits ? 'edits' : 'base';
     const segmentation = config.independentMaps ? 'independent' : 'continuous';
-    return `${grid}__${config.buildMode}__${config.dithering}__${colorSpace}__${edits}__${segmentation}`;
+    const limit = config.heightLimit.blocks > 0 ? `__h${config.heightLimit.blocks}-${config.heightLimit.style}` : '';
+    return `${grid}__${config.buildMode}__${config.dithering}__${colorSpace}__${edits}__${segmentation}${limit}`;
 }
 
 export function makeGoldenSource(width: number, height: number): ImageData {
@@ -230,7 +244,7 @@ export function generateGoldenCase(config: GoldenCaseConfig): GoldenCase {
         source,
         config.buildMode,
         GOLDEN_PALETTE,
-        GOLDEN_THREE_D_PRECISION,
+        config.heightLimit,
         config.dithering,
         config.usePerceptual,
         GOLDEN_HYBRID_STRENGTH,
@@ -275,7 +289,6 @@ export function generateGoldenManifest(): GoldenManifest {
         schemaVersion: 1,
         hashAlgorithm: 'fnv1a-64-le-bytes',
         mapEdge: GOLDEN_MAP_EDGE,
-        threeDPrecision: GOLDEN_THREE_D_PRECISION,
         hybridStrength: GOLDEN_HYBRID_STRENGTH,
         palette: GOLDEN_PALETTE,
         cases: configs.map(generateGoldenCase),

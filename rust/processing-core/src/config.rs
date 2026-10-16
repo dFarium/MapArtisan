@@ -38,6 +38,20 @@ pub enum ExportFormat {
     Nbt,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeightLimitStyle {
+    Lines,
+    Balanced,
+    Noise,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HeightLimit {
+    /// Maximum 3D build height in blocks. 0 means no limit.
+    pub blocks: u32,
+    pub style: HeightLimitStyle,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PaletteItem {
     pub color_id: u16,
@@ -53,7 +67,7 @@ pub struct ProcessingConfig {
     pub height: u32,
     pub build_mode: BuildMode,
     pub palette: Vec<PaletteItem>,
-    pub three_d_precision: u8,
+    pub height_limit: HeightLimit,
     pub dithering: DitheringMode,
     pub use_perceptual: bool,
     pub hybrid_strength: u8,

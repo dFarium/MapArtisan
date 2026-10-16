@@ -27,10 +27,16 @@ import {
     buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
+    findClosestColorIndexWithTone,
     findTwoClosestColors
 } from './colorMatching';
+import { type HeightLimit, ColumnRunLimiter } from './heightLimit';
 
 export type { BuildMode };
+
+function brightnessTone(brightness: BrightnessLevel): number {
+    return brightness === 'high' ? 1 : brightness === 'low' ? -1 : 0;
+}
 
 function buildHeightLayout(
     toneMap: Int8Array,
@@ -90,7 +96,7 @@ function buildHeightLayout(
  * @param imageData Raw input pixel data.
  * @param buildMode Structural target layout (2D flat vs 3D valley steps).
  * @param selectedPaletteItems Selected color indices mapped to block namespaces.
- * @param threeDPrecision Height limits/precision slider percentage.
+ * @param heightLimit Maximum 3D build height in blocks (0 = no limit) and how forced resets are spread.
  * @param dithering Pixel thresholding and error diffusion strategy.
  * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
@@ -117,7 +123,7 @@ export function processMapart(
     imageData: ImageData,
     buildMode: BuildMode,
     selectedPaletteItems: Record<number, string | null>,
-    threeDPrecision: number,
+    heightLimit: HeightLimit,
     dithering: DitheringMode = 'none',
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
@@ -177,17 +183,10 @@ export function processMapart(
 
     const output = new Uint8ClampedArray(data);
 
-    // Height penalty for 3D Precision Slider
-    const normalizedPrecision = threeDPrecision / 100;
-    let heightPenalty = 0;
-
-    if (buildMode === '3d_valley') {
-        if (threeDPrecision < 100) {
-            const PRACTICAL_MAX = usePerceptual ? 0.25 : 200000;
-            heightPenalty = PRACTICAL_MAX * (1 - normalizedPrecision);
-            if (threeDPrecision === 0) heightPenalty = Infinity;
-        }
-    }
+    // Height limit: tracks the run of every column and forces a reset before it gets too long
+    const limiter = buildMode === '3d_valley' && heightLimit.blocks > 0
+        ? new ColumnRunLimiter(width, heightLimit)
+        : null;
 
     // Pre-compute Struct of Arrays for candidates
     const candidatesSoA = buildCandidatesSoA(candidates);
@@ -235,6 +234,9 @@ export function processMapart(
             if (independentMaps && y > 0 && y % 128 === 0) {
                 colHeights.fill(0);
             }
+            if (limiter && (y === 0 || (independentMaps && y % 128 === 0))) {
+                limiter.resetSegment(y);
+            }
             const yOffset = y * paddedWidth;
 
             for (let x = 0; x < width; x++) {
@@ -253,7 +255,7 @@ export function processMapart(
 
                 if (dithering === 'ordered' || dithering === 'ordered-8x8') {
                     // Ordered dithering
-                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidatesSoA, usePerceptual, heightPenalty);
+                    const twoClosest = findTwoClosestColors(clampR, clampG, clampB, candidatesSoA, usePerceptual);
                     const is8x8 = dithering === 'ordered-8x8';
                     const threshold = is8x8 ? BAYER_8X8[y % 8][x % 8] : BAYER_4X4[y % 4][x % 4];
                     const maxThreshold = is8x8 ? 65 : 17;
@@ -266,8 +268,18 @@ export function processMapart(
                     }
                 } else {
                     // Error diffusion / None
-                    const result = findClosestColorIndex(clampR, clampG, clampB, candidatesSoA, usePerceptual, isErrorDiffusion, heightPenalty);
+                    const result = findClosestColorIndex(clampR, clampG, clampB, candidatesSoA, usePerceptual, isErrorDiffusion);
                     bestIndex = result.index;
+                }
+
+                if (limiter) {
+                    const tone = brightnessTone(candidates[bestIndex].brightness);
+                    const allowed = limiter.allowedTone(x, y, tone);
+                    if (allowed !== tone) {
+                        const forced = findClosestColorIndexWithTone(clampR, clampG, clampB, candidatesSoA, usePerceptual, allowed);
+                        if (forced >= 0) bestIndex = forced;
+                    }
+                    limiter.commit(x, y, brightnessTone(candidates[bestIndex].brightness));
                 }
 
                 const best = candidates[bestIndex];

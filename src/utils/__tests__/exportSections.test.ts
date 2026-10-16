@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateMaterialCounts, imageDataToBlockStates, splitBlocksIntoSections, type ExportSection } from '../export';
-import { processMapart, unpackTone } from '../processing';
+import { NO_HEIGHT_LIMIT, processMapart, unpackTone } from '../processing';
 
 const WIDTH = 128;
 const HEIGHT = 256;
@@ -29,9 +29,9 @@ function testImage(): ImageData {
 
 function exportSections(independentMaps: boolean, blockSupport: 'all' | 'needed') {
     const image = testImage();
-    const { packedResults } = processMapart(image, '3d_valley', PALETTE, 100, 'none', true, 50, independentMaps);
+    const { packedResults } = processMapart(image, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, independentMaps);
     const blocks = imageDataToBlockStates(
-        image, PALETTE, '3d_valley', true, 100, 'none', true, 50, independentMaps,
+        image, PALETTE, '3d_valley', true, NO_HEIGHT_LIMIT, 'none', true, 50, independentMaps,
         undefined, blockSupport, SUPPORT, 'sections', packedResults,
     );
     return { packedResults, sections: splitBlocksIntoSections(blocks, WIDTH, HEIGHT, independentMaps) };
@@ -116,7 +116,7 @@ describe('calculateMaterialCounts with independent sections', () => {
     it('counts each noobline in the map that owns it', () => {
         const image = testImage();
         const counts = calculateMaterialCounts(
-            image, PALETTE, '3d_valley', 100, 'none', true, 50, true,
+            image, PALETTE, '3d_valley', NO_HEIGHT_LIMIT, 'none', true, 50, true,
             undefined, 'needed', SUPPORT, 'sections',
         );
 

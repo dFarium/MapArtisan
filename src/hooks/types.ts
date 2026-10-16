@@ -2,7 +2,7 @@ import type { Remote } from 'comlink';
 import type { MapartWorkerApi } from '../workers/mapart.worker';
 import type { MapartStats, ManualEdit, BuildMode, ExportFormat } from '../types/mapart';
 import type { MaterialCounts } from '../utils/export/materials';
-import type { DitheringMode } from '../utils/processing';
+import type { DitheringMode, HeightLimitStyle } from '../utils/processing';
 
 export interface WorkerRefs {
     workerApiRef: React.RefObject<Remote<MapartWorkerApi> | null>;
@@ -21,7 +21,8 @@ export interface ProcessingResult {
 export interface ProcessingConfig {
     buildMode: BuildMode;
     selectedPaletteItems: Record<number, string | null>;
-    threeDPrecision: number;
+    heightLimit: number;
+    heightLimitStyle: HeightLimitStyle;
     dithering: DitheringMode;
     usePerceptual: boolean;
     hybridStrength: number;

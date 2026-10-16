@@ -8,12 +8,14 @@ pub mod config;
 pub mod dithering;
 pub mod errors;
 pub mod height;
+pub mod height_limit;
 pub mod oklab;
 pub mod processing;
 
 pub use color::{closest_rgb, quantize_rgba, rgb_distance_sq, PaletteColor, Rgb};
 pub use config::{
-    BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, PaletteItem, ProcessingConfig,
+    BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, HeightLimit,
+    HeightLimitStyle, PaletteItem, ProcessingConfig,
 };
 pub use errors::ProcessingError;
 pub use oklab::{

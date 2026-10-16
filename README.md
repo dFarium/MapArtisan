@@ -36,7 +36,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 
 **Additional Options:**
 
-- **3D Precision Slider** — Control "lossyness" (0% = Flat, 100% = Full 3D)
+- **Height Limit** — Cap the 3D build height in blocks. Columns that would grow taller swap a pixel for the closest color with the opposite shade, and dithering absorbs the difference. Choose how those swaps look on flat areas: `Lines` (aligned, least grain), `Balanced`, or `Noise` (scattered, no lines). Manually painted pixels always win over the limit.
 - **Structural Support** — Choose between full support, floating, or gravity-only support
 
 ### Version Support

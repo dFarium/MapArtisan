@@ -5,7 +5,7 @@
 
 import JSZip from 'jszip';
 import type { BuildMode, BrightnessLevel, ExportFormat } from '../../types/mapart';
-import type { DitheringMode } from '../processing';
+import { NO_HEIGHT_LIMIT, type DitheringMode, type HeightLimit } from '../processing';
 import { serializeNBT } from '../nbtWriter';
 import { DEFAULT_VERSION } from '../../data/supportedVersions';
 import type { LitematicaMetadata, BlockStatesBuffers } from './types';
@@ -28,7 +28,7 @@ import { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
  * @param buildMode Structural target layout (2D flat vs 3D valley steps).
  * @param filename Default filename prefix.
  * @param metadata Title, author, and description fields.
- * @param threeDPrecision Height optimizations slider limits.
+ * @param heightLimit Maximum 3D build height and reset style used when re-quantizing.
  * @param dithering Pixel error diffusion/threshold matrix strategy.
  * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
@@ -46,7 +46,7 @@ export async function generateMapartExport(
     buildMode: BuildMode,
     filename: string = 'mapart.litematic',
     metadata: LitematicaMetadata = {},
-    threeDPrecision: number = 0,
+    heightLimit: HeightLimit = NO_HEIGHT_LIMIT,
     dithering: DitheringMode = 'none',
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
@@ -70,7 +70,7 @@ export async function generateMapartExport(
         // Single Map Case
         const blockStatesOpt = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
             exportMode, precomputedPackedResults
         );
 
@@ -91,7 +91,7 @@ export async function generateMapartExport(
         // 1. Generate ALL blocks globally or per section depending on independentMaps
         const allBlocks = imageDataToBlockStates(
             imageData, selectedPaletteItems, buildMode, true,
-            threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+            heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
             exportMode, precomputedPackedResults
         );
 

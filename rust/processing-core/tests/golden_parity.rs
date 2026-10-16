@@ -4,7 +4,6 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Manifest {
-    three_d_precision: u8,
     hybrid_strength: u8,
     cases: Vec<Case>,
 }
@@ -26,6 +25,13 @@ struct CaseConfig {
     use_perceptual: bool,
     with_edits: bool,
     independent_maps: bool,
+    height_limit: HeightLimitDto,
+}
+
+#[derive(Deserialize)]
+struct HeightLimitDto {
+    blocks: u32,
+    style: String,
 }
 
 #[derive(Deserialize)]
@@ -230,7 +236,15 @@ fn matches_all_typescript_golden_fixtures() {
                     BuildMode::TwoD
                 },
                 palette: palette.clone(),
-                three_d_precision: manifest.three_d_precision,
+                height_limit: HeightLimit {
+                    blocks: case.config.height_limit.blocks,
+                    style: match case.config.height_limit.style.as_str() {
+                        "lines" => HeightLimitStyle::Lines,
+                        "balanced" => HeightLimitStyle::Balanced,
+                        "noise" => HeightLimitStyle::Noise,
+                        other => panic!("unknown height limit style {other}"),
+                    },
+                },
                 dithering: mode(&case.config.dithering),
                 use_perceptual: case.config.use_perceptual,
                 hybrid_strength: manifest.hybrid_strength,

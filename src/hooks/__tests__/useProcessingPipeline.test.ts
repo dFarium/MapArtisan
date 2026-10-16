@@ -36,7 +36,8 @@ const createMockWorkerRefs = (): WorkerRefs => ({
 const createMockParams = (): ProcessingParams => ({
     buildMode: '3d_valley',
     selectedPaletteItems: { 1: 'minecraft:stone' },
-    threeDPrecision: 50,
+    heightLimit: 0,
+    heightLimitStyle: 'balanced',
     dithering: 'floyd-steinberg',
     usePerceptual: true,
     hybridStrength: 50,
@@ -239,13 +240,13 @@ describe('useProcessingPipeline', () => {
             expect(latestResult.packedResults[0]).toBe(9);
             expect(latestResult.heightPath[0]).toBe(3);
 
-            rerender({ params: { ...initialParams, threeDPrecision: 51 } });
+            rerender({ params: { ...initialParams, heightLimit: 51 } });
             await act(async () => {
                 await vi.advanceTimersByTimeAsync(100);
                 await Promise.resolve();
             });
             expect(processV1).toHaveBeenCalledTimes(2);
-            expect(processV1.mock.calls[1][0].config.threeDPrecision).toBe(51);
+            expect(processV1.mock.calls[1][0].config.heightLimit).toBe(51);
             expect(processV1.mock.calls[1][0].source).not.toBeNull();
         });
 
@@ -362,7 +363,7 @@ describe('useProcessingPipeline', () => {
             expect(pending).toHaveLength(1);
 
             for (let precision = 51; precision <= 75; precision++) {
-                rerender({ params: { ...initialParams, threeDPrecision: precision } });
+                rerender({ params: { ...initialParams, heightLimit: precision } });
                 await act(async () => {
                     await vi.advanceTimersByTimeAsync(50);
                 });
@@ -374,7 +375,7 @@ describe('useProcessingPipeline', () => {
                 await Promise.resolve();
             });
             await vi.waitFor(() => expect(pending).toHaveLength(2));
-            expect(vi.mocked(refs.workerApiRef.current!.processV1).mock.calls[1][0].config.threeDPrecision).toBe(75);
+            expect(vi.mocked(refs.workerApiRef.current!.processV1).mock.calls[1][0].config.heightLimit).toBe(75);
             expect(onResult).not.toHaveBeenCalled();
 
             await act(async () => {

@@ -24,6 +24,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         uploadedImage, setUploadedImage, gridDimensions,
         selectedPaletteItems,
         mapartStats,
+        buildMode,
+        heightLimit,
         blockSupport,
         supportBlockId,
         exportMode,
@@ -133,6 +135,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         mapartResolution={mapartResolution}
                         gridDimensions={gridDimensions}
                         mapartStats={mapartStats}
+                        heightLimit={buildMode === '3d_valley' ? heightLimit : 0}
                     />
 
                     {is3DMode ? (

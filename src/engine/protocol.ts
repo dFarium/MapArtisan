@@ -1,6 +1,6 @@
 import type { ManualEdit, MapartStats, BuildMode, ExportFormat } from '../types/mapart';
 import type { MaterialCounts } from '../utils/export/materials';
-import type { DitheringMode } from '../utils/processing';
+import type { DitheringMode, HeightLimit, HeightLimitStyle } from '../utils/processing';
 
 export const PROCESSING_PROTOCOL_VERSION = 1 as const;
 
@@ -10,7 +10,9 @@ export interface ProcessingConfigV1 {
     height: number;
     buildMode: BuildMode;
     selectedPaletteItems: Record<number, string | null>;
-    threeDPrecision: number;
+    /** Maximum 3D build height in blocks. 0 means no limit. */
+    heightLimit: number;
+    heightLimitStyle: HeightLimitStyle;
     dithering: DitheringMode;
     usePerceptual: boolean;
     hybridStrength: number;
@@ -142,7 +144,8 @@ export function createProcessingConfigKey(sourceVersion: number, config: Process
         config.height,
         config.buildMode,
         palette,
-        config.threeDPrecision,
+        config.heightLimit,
+        config.heightLimitStyle,
         config.dithering,
         config.usePerceptual,
         config.hybridStrength,
@@ -153,6 +156,10 @@ export function createProcessingConfigKey(sourceVersion: number, config: Process
         config.exportFormat,
         config.paletteVersion,
     ]);
+}
+
+export function heightLimitOf(config: ProcessingConfigV1): HeightLimit {
+    return { blocks: config.heightLimit, style: config.heightLimitStyle };
 }
 
 export function statsToProtocol(stats: MapartStats): ProcessingStatsV1 {

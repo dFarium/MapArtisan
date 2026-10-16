@@ -1,8 +1,8 @@
 import { describe, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { GOLDEN_HYBRID_STRENGTH, GOLDEN_PALETTE, GOLDEN_THREE_D_PRECISION, makeGoldenSource } from './goldenFixtures';
-import { getValidColors, processMapart, type BuildMode, type DitheringMode } from '../processing';
+import { GOLDEN_HYBRID_STRENGTH, GOLDEN_PALETTE, makeGoldenSource } from './goldenFixtures';
+import { NO_HEIGHT_LIMIT, getValidColors, processMapart, type BuildMode, type DitheringMode } from '../processing';
 import { initSync, process_v1 } from '../../wasm/processing/processing_wasm';
 
 interface Scenario { name: string; width: number; height: number; build: BuildMode; dither: DitheringMode; perceptual: boolean }
@@ -30,7 +30,7 @@ describe('TypeScript/Rust processing comparison baseline', () => {
             const values: number[] = [];
             for (let iteration = 0; iteration < iterations + warmup; iteration++) {
                 const start = performance.now();
-                processMapart(source, scenario.build, GOLDEN_PALETTE, GOLDEN_THREE_D_PRECISION,
+                processMapart(source, scenario.build, GOLDEN_PALETTE, NO_HEIGHT_LIMIT,
                     scenario.dither, scenario.perceptual, GOLDEN_HYBRID_STRENGTH, false);
                 if (iteration >= warmup) values.push(performance.now() - start);
             }
@@ -56,7 +56,7 @@ describe('TypeScript/Rust processing comparison baseline', () => {
             const config = {
                 protocolVersion: 1, requestId: 1, sourceVersion: 1,
                 width: scenario.width, height: scenario.height, buildMode: scenario.build,
-                threeDPrecision: GOLDEN_THREE_D_PRECISION, dithering: scenario.dither,
+                heightLimit: 0, heightLimitStyle: 'balanced', dithering: scenario.dither,
                 usePerceptual: scenario.perceptual, hybridStrength: GOLDEN_HYBRID_STRENGTH,
                 independentMaps: false, blockSupport: 'all', supportBlockId: 'minecraft:cobblestone',
                 exportMode: 'sections', exportFormat: 'litematic', paletteVersion: 'benchmark',

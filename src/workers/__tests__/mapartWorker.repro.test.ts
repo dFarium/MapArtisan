@@ -19,7 +19,8 @@ function makeConfig(overrides: Partial<ProcessingConfigV1> = {}): ProcessingConf
         height: 128,
         buildMode: '3d_valley',
         selectedPaletteItems: { 1: 'minecraft:stone', 2: 'minecraft:dirt' },
-        threeDPrecision: 80,
+        heightLimit: 0,
+        heightLimitStyle: 'balanced',
         dithering: 'floyd-steinberg',
         usePerceptual: true,
         hybridStrength: 50,
@@ -100,7 +101,7 @@ describe('mapart.worker idempotency', () => {
             width: 1,
             height: 4,
             selectedPaletteItems: { 4: 'minecraft:stone' },
-            threeDPrecision: 100,
+            heightLimit: 0,
             dithering: 'none',
         });
 

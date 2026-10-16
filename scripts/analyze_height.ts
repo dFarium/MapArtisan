@@ -2,7 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createCanvas, loadImage, ImageData as CanvasImageData } from 'canvas';
-import { processMapart } from '../src/utils/mapartProcessing';
+import { NO_HEIGHT_LIMIT, processMapart } from '../src/utils/processing';
 import paletteData from '../src/data/palette.json' with { type: 'json' };
 
 import { type PaletteData } from '../src/types/mapart';
@@ -59,7 +59,7 @@ async function main() {
                 imageData as unknown as ImageData, // Cast for node-canvas compatibility
                 '3d_valley',
                 mockSelectedPalette,
-                100, // 3D Precision
+                NO_HEIGHT_LIMIT,
                 'none', // No dithering for pure height analysis first
                 true, // OKLab
                 50,

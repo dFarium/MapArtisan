@@ -4,9 +4,10 @@
  */
 
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
-import type { DitheringMode } from '../processing';
+import type { DitheringMode, HeightLimit } from '../processing';
 import {
     processMapart,
+    NO_HEIGHT_LIMIT,
     optimizeColumnHeights,
     createHeightWorkspace,
     getValidColors,
@@ -29,7 +30,7 @@ import type { BlockStatesBuffers } from './types';
  * @param selectedPaletteItems Selected color indices mapped to block namespaces.
  * @param buildMode Structural target layout (2D flat vs 3D valley steps).
  * @param applyOptimization True to optimize structural height utilizing Smart Drop.
- * @param threeDPrecision Height optimizations slider limits.
+ * @param heightLimit Maximum 3D build height and reset style used when re-quantizing.
  * @param dithering Pixel error diffusion/threshold matrix strategy.
  * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
@@ -45,7 +46,7 @@ export function imageDataToBlockStates(
     selectedPaletteItems: Record<number, string | null>,
     buildMode: BuildMode,
     applyOptimization: boolean = true,
-    threeDPrecision: number = 0,
+    heightLimit: HeightLimit = NO_HEIGHT_LIMIT,
     dithering: DitheringMode = 'none',
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
@@ -67,7 +68,7 @@ export function imageDataToBlockStates(
             imageData,
             buildMode,
             selectedPaletteItems,
-            threeDPrecision,
+            heightLimit,
             dithering,
             usePerceptual,
             hybridStrength,

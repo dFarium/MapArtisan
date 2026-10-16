@@ -51,7 +51,8 @@ export const useMapartWorker = ({
     cropSettings,
     buildMode,
     selectedPaletteItems,
-    threeDPrecision,
+    heightLimit,
+    heightLimitStyle,
     dithering,
     usePerceptual,
     hybridStrength,
@@ -96,7 +97,8 @@ export const useMapartWorker = ({
     const processingParams = useMemo(() => ({
         buildMode,
         selectedPaletteItems,
-        threeDPrecision,
+        heightLimit,
+        heightLimitStyle,
         dithering,
         usePerceptual,
         hybridStrength,
@@ -107,7 +109,7 @@ export const useMapartWorker = ({
         exportFormat,
         paletteVersion,
         manualEdits,
-    }), [buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, blockSupport, supportBlockId, exportMode, exportFormat, paletteVersion, manualEdits]);
+    }), [buildMode, selectedPaletteItems, heightLimit, heightLimitStyle, dithering, usePerceptual, hybridStrength, independentMaps, blockSupport, supportBlockId, exportMode, exportFormat, paletteVersion, manualEdits]);
 
     const handleProcessingResult = useCallback((result: ProcessingResult) => {
         setPreviewImageData(result.imageData);

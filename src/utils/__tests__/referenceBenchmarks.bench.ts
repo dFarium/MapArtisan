@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearColorCache, clearOklabCache, processMapart, type BuildMode } from '../processing';
+import { NO_HEIGHT_LIMIT, clearColorCache, clearOklabCache, processMapart, type BuildMode } from '../processing';
 import { MAX_MAPS_TOTAL } from '../memory';
 
 const MAP_EDGE = 128;
@@ -30,7 +30,7 @@ function runReference(width: number, height: number, buildMode: BuildMode) {
     clearOklabCache();
     const image = makeImageData(width, height);
     const start = performance.now();
-    const result = processMapart(image, buildMode, palette, 100, 'hybrid', true, 50, false);
+    const result = processMapart(image, buildMode, palette, NO_HEIGHT_LIMIT, 'hybrid', true, 50, false);
     return { result, duration: performance.now() - start };
 }
 

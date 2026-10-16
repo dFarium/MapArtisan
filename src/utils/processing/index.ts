@@ -38,6 +38,17 @@ export {
 // Height Optimization
 export { optimizeColumnHeights, createHeightWorkspace, type SmartDropWorkspace } from './heightOptimization';
 
+// Height Limit
+export {
+    type HeightLimit,
+    type HeightLimitStyle,
+    HEIGHT_LIMIT_STYLES,
+    NO_HEIGHT_LIMIT,
+    isHeightLimitStyle,
+    hash01,
+    ColumnRunLimiter
+} from './heightLimit';
+
 // Color Matching
 export {
     type ColorCandidate,
@@ -46,6 +57,7 @@ export {
     buildCandidatesSoA,
     getValidColors,
     findClosestColorIndex,
+    findClosestColorIndexWithTone,
     findTwoClosestColors
 } from './colorMatching';
 

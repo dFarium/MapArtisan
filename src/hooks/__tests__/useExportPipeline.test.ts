@@ -25,7 +25,8 @@ const createMockWorkerRefs = (): WorkerRefs => ({
 const createMockExportParams = (): ExportParams => ({
     buildMode: '3d_valley',
     selectedPaletteItems: { 1: 'minecraft:stone' },
-    threeDPrecision: 50,
+    heightLimit: 0,
+    heightLimitStyle: 'balanced',
     dithering: 'floyd-steinberg',
     usePerceptual: true,
     hybridStrength: 50,

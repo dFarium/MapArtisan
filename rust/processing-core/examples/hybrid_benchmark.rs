@@ -1,6 +1,6 @@
 use processing_core::{
-    process, BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, ImageBuffer,
-    PaletteItem, ProcessingConfig, ProcessingRequest,
+    process, BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, HeightLimit,
+    HeightLimitStyle, ImageBuffer, PaletteItem, ProcessingConfig, ProcessingRequest,
 };
 use std::time::{Duration, Instant};
 
@@ -55,7 +55,10 @@ fn request(width: u32, height: u32, mode: DitheringMode) -> ProcessingRequest {
             height,
             build_mode: BuildMode::ThreeDValley,
             palette: palette(),
-            three_d_precision: 73,
+            height_limit: HeightLimit {
+                blocks: 0,
+                style: HeightLimitStyle::Balanced,
+            },
             dithering: mode,
             use_perceptual: true,
             hybrid_strength: 61,

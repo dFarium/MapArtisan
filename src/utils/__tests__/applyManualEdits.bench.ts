@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { performance } from 'perf_hooks';
-import { processMapart, applyManualEdits, clearColorCache } from '../processing';
+import { NO_HEIGHT_LIMIT, processMapart, applyManualEdits, clearColorCache } from '../processing';
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -70,7 +70,7 @@ describe('applyManualEdits Performance Benchmarks', () => {
         const buildMode: BuildMode = '3d_valley';
 
         clearColorCache();
-        const baseResult = processMapart(img, buildMode, PALETTE, 50, 'floyd-steinberg', true, 50, false);
+        const baseResult = processMapart(img, buildMode, PALETTE, NO_HEIGHT_LIMIT, 'floyd-steinberg', true, 50, false);
 
         const editCounts = [1, 10, 100, 1000];
         const iters = 10;

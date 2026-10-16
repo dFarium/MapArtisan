@@ -26,7 +26,7 @@ const Builder: React.FC = () => {
     // Lift worker state to Builder so we can share it
     const {
         uploadedImage, gridDimensions,
-        imageFitMode, cropSettings, buildMode, selectedPaletteItems, threeDPrecision, dithering, usePerceptual, hybridStrength,
+        imageFitMode, cropSettings, buildMode, selectedPaletteItems, heightLimit, heightLimitStyle, dithering, usePerceptual, hybridStrength,
         setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion,
         exportFormat
     } = useMapart();
@@ -39,7 +39,8 @@ const Builder: React.FC = () => {
         cropSettings,
         buildMode,
         selectedPaletteItems,
-        threeDPrecision,
+        heightLimit,
+        heightLimitStyle,
         dithering,
         usePerceptual,
         hybridStrength,

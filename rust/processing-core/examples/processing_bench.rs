@@ -104,7 +104,10 @@ fn run(s: Scenario) -> (f64, f64, f64, f64, f64) {
         height: s.height,
         build_mode: s.build,
         palette: palette(matches!(s.build, BuildMode::ThreeDValley)),
-        three_d_precision: 73,
+        height_limit: HeightLimit {
+            blocks: 0,
+            style: HeightLimitStyle::Balanced,
+        },
         dithering: s.dither,
         use_perceptual: s.perceptual,
         hybrid_strength: 61,

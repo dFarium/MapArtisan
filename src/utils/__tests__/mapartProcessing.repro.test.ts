@@ -35,7 +35,7 @@ describe('mapartProcessing Idempotency', () => {
             imageData,
             '3d_valley',
             selectedPaletteItems,
-            50,        // 3D Precision
+            { blocks: 1, style: 'lines' }, // Flat: every tone normal
             'hybrid', // Dithering
             true,      // OKLab perceptual
             50,        // Hybrid Strength

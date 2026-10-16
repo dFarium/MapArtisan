@@ -113,7 +113,8 @@ toneMap[y * width + x]      // row-major
 | `height` | `number` | Affects pixel count and layout |
 | `buildMode` | `'2d' \| '3d_valley'` | Affects tone and height calculations |
 | `palette` | `[number, string][]` | Sorted `[colorIndex, blockId]` pairs |
-| `threeDPrecision` | `number` | Affects height penalty |
+| `heightLimit` | `number` | Max 3D build height in blocks (0 = none); forces tone resets |
+| `heightLimitStyle` | `HeightLimitStyle` | Where forced resets land (`lines`, `balanced`, `noise`) |
 | `dithering` | `DitheringMode` | Affects color matching |
 | `usePerceptual` | `boolean` | OKLab vs RGB distance |
 | `hybridStrength` | `number` | Affects hybrid dithering |

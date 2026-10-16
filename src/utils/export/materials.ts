@@ -4,7 +4,7 @@
  */
 
 import type { BuildMode, BrightnessLevel } from '../../types/mapart';
-import type { DitheringMode } from '../processing';
+import { NO_HEIGHT_LIMIT, type DitheringMode, type HeightLimit } from '../processing';
 import { imageDataToBlockStates } from './blockGeneration';
 
 /**
@@ -25,7 +25,7 @@ export type MaterialCounts = {
  * @param imageData Raw input pixel data.
  * @param selectedPaletteItems Selected color indices mapped to block namespaces.
  * @param buildMode Structural target layout (2D flat vs 3D valley steps).
- * @param threeDPrecision Height optimizations slider limits.
+ * @param heightLimit Maximum 3D build height and reset style used when re-quantizing.
  * @param dithering Pixel error diffusion/threshold matrix strategy.
  * @param usePerceptual Flag to compare colors in OKLab perceptual space rather than RGB.
  * @param hybridStrength Weighting multiplier for hybrid/adaptive dithering.
@@ -40,7 +40,7 @@ export function calculateMaterialCounts(
     imageData: ImageData,
     selectedPaletteItems: Record<number, string | null>,
     buildMode: BuildMode,
-    threeDPrecision: number = 0,
+    heightLimit: HeightLimit = NO_HEIGHT_LIMIT,
     dithering: DitheringMode = 'none',
     usePerceptual: boolean = true,
     hybridStrength: number = 50,
@@ -53,7 +53,7 @@ export function calculateMaterialCounts(
 ): MaterialCounts {
     const blockStates = imageDataToBlockStates(
         imageData, selectedPaletteItems, buildMode, true,
-        threeDPrecision, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+        heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
         exportMode, precomputedPackedResults
     );
 

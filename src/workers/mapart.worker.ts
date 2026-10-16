@@ -4,7 +4,7 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { setDebugEnabled } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, heightLimitOf, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Snapshot of the latest processed result, kept for block picking.
@@ -85,7 +85,7 @@ const api = {
             imageData,
             request.config.selectedPaletteItems,
             request.config.buildMode,
-            request.config.threeDPrecision,
+            heightLimitOf(request.config),
             request.config.dithering,
             request.config.usePerceptual,
             request.config.hybridStrength,
@@ -118,7 +118,7 @@ const api = {
             request.config.buildMode,
             request.filename,
             request.metadata,
-            request.config.threeDPrecision,
+            heightLimitOf(request.config),
             request.config.dithering,
             request.config.usePerceptual,
             request.config.hybridStrength,

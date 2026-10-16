@@ -1,3 +1,4 @@
+use crate::height_limit::{RunLimiter, RunState};
 use crate::{
     oklab_distance_sq, rgb_to_oklab, rgb_to_oklab_cached, Oklab, ProcessingConfig, ProcessingError,
     Rgb,
@@ -89,21 +90,10 @@ pub fn process(request: ProcessingRequest) -> Result<ProcessingResponse, Process
             })
             .collect();
         let oklab_colors: Vec<Oklab> = colors.iter().map(|color| rgb_to_oklab(*color)).collect();
-        let height_penalty = if matches!(request.config.build_mode, crate::BuildMode::ThreeDValley)
-            && request.config.three_d_precision < 100
-        {
-            if request.config.three_d_precision == 0 {
-                f64::INFINITY
-            } else {
-                let maximum = if request.config.use_perceptual {
-                    0.25
-                } else {
-                    200_000.0
-                };
-                maximum * (1.0 - request.config.three_d_precision as f64 / 100.0)
-            }
+        let limiter = if matches!(request.config.build_mode, crate::BuildMode::ThreeDValley) {
+            RunLimiter::new(request.config.height_limit)
         } else {
-            0.0
+            None
         };
         let mut candidate_order: Vec<usize> = (0..colors.len()).collect();
         candidate_order.sort_by(|a, b| oklab_colors[*a].l.total_cmp(&oklab_colors[*b].l));
@@ -127,14 +117,16 @@ pub fn process(request: ProcessingRequest) -> Result<ProcessingResponse, Process
                 &colors,
                 &oklab_colors,
                 &candidate_order,
-                height_penalty,
+                limiter,
             )?;
         } else {
+            let width = request.config.width as usize;
+            let mut run_states = vec![RunState::default(); width];
             for index in 0..pixel_count {
                 let offset = index * 4;
                 let working_offset = index * 3;
-                let x = index % request.config.width as usize;
-                let y = index / request.config.width as usize;
+                let x = index % width;
+                let y = index / width;
                 let source_rgb = [
                     working[working_offset].clamp(0.0, 255.0),
                     working[working_offset + 1].clamp(0.0, 255.0),
@@ -153,9 +145,7 @@ pub fn process(request: ProcessingRequest) -> Result<ProcessingResponse, Process
                         &colors,
                         &oklab_colors,
                         &candidate_order,
-                        &request.config.palette,
                         target_oklab,
-                        height_penalty,
                     );
                     let (threshold, maximum) =
                         if matches!(request.config.dithering, crate::DitheringMode::Ordered8x8) {
@@ -178,7 +168,7 @@ pub fn process(request: ProcessingRequest) -> Result<ProcessingResponse, Process
                         &candidate_order,
                         &request.config.palette,
                         target_oklab,
-                        height_penalty,
+                        None,
                     )
                     .ok_or(ProcessingError::SourceRequired)?
                 } else {
@@ -189,9 +179,30 @@ pub fn process(request: ProcessingRequest) -> Result<ProcessingResponse, Process
                         &candidate_order,
                         &request.config.palette,
                         None,
-                        height_penalty,
+                        None,
                     )
                     .ok_or(ProcessingError::SourceRequired)?
+                };
+                let candidate = if let Some(limiter) = limiter.as_ref() {
+                    let state = &mut run_states[x];
+                    if y == 0 || (request.config.independent_maps && y.is_multiple_of(128)) {
+                        *state = limiter.segment_start(x, y);
+                    }
+                    limit_candidate(
+                        limiter,
+                        state,
+                        x,
+                        y,
+                        candidate,
+                        source_rgb,
+                        &colors,
+                        &oklab_colors,
+                        &candidate_order,
+                        &request.config.palette,
+                        target_oklab,
+                    )
+                } else {
+                    candidate
                 };
                 let item = &request.config.palette[candidate];
                 rgba[offset..offset + 4].copy_from_slice(&[
@@ -384,7 +395,9 @@ struct FloydContext<'a> {
     colors: &'a [Rgb],
     oklab_colors: &'a [Oklab],
     candidate_order: &'a [usize],
-    height_penalty: f64,
+    limiter: Option<RunLimiter>,
+    /// Column run state after each pixel; a pixel reads the one above it.
+    run_states: &'a WavefrontCells<RunState>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -398,7 +411,7 @@ fn process_floyd_wavefront(
     colors: &[Rgb],
     oklab_colors: &[Oklab],
     candidate_order: &[usize],
-    height_penalty: f64,
+    limiter: Option<RunLimiter>,
 ) -> Result<(), ProcessingError> {
     let width = config.width as usize;
     let height = config.height as usize;
@@ -411,6 +424,11 @@ fn process_floyd_wavefront(
     );
     let packed = WavefrontCells::new(vec![0_u32; pixel_count]);
     let tones = WavefrontCells::new(vec![0_i8; pixel_count]);
+    let run_states = WavefrontCells::new(if limiter.is_some() {
+        vec![RunState::default(); pixel_count]
+    } else {
+        Vec::new()
+    });
     let context = FloydContext {
         original,
         hybrid_v2_activity,
@@ -422,7 +440,8 @@ fn process_floyd_wavefront(
         colors,
         oklab_colors,
         candidate_order,
-        height_penalty,
+        limiter,
+        run_states: &run_states,
     };
 
     // Transform (x, y) into (u=x+2y, v=y). Every Floyd predecessor has a
@@ -514,9 +533,35 @@ fn process_floyd_pixel(context: &FloydContext<'_>, x: usize, y: usize) {
         context.candidate_order,
         &context.config.palette,
         target_oklab,
-        context.height_penalty,
+        None,
     )
     .expect("Floyd wavefront requires a non-empty palette");
+    // Every Floyd predecessor, including the pixel above, finishes before this
+    // one, so the column's run state is ready to read.
+    let candidate = if let Some(limiter) = context.limiter.as_ref() {
+        let mut state = if y == 0 || (context.config.independent_maps && y.is_multiple_of(128)) {
+            limiter.segment_start(x, y)
+        } else {
+            context.run_states.read(index - width)
+        };
+        let candidate = limit_candidate(
+            limiter,
+            &mut state,
+            x,
+            y,
+            candidate,
+            source_rgb,
+            context.colors,
+            context.oklab_colors,
+            context.candidate_order,
+            &context.config.palette,
+            target_oklab,
+        );
+        context.run_states.write(index, state);
+        candidate
+    } else {
+        candidate
+    };
     let item = &context.config.palette[candidate];
     let error_scale = match context.config.dithering {
         crate::DitheringMode::Adaptive => 0.85,
@@ -602,19 +647,53 @@ fn add_diffusion_error(value: &mut [f32; 3], error: [f64; 3], weight: f32) {
     }
 }
 
-fn two_closest(
+/// Applies the height limit to a free choice: when the column cannot take its
+/// tone, returns the closest candidate with the tone that must replace it.
+#[allow(clippy::too_many_arguments)]
+fn limit_candidate(
+    limiter: &RunLimiter,
+    state: &mut RunState,
+    x: usize,
+    y: usize,
+    candidate: usize,
     query: [f32; 3],
     colors: &[Rgb],
     oklab_colors: &[Oklab],
     order: &[usize],
     palette: &[crate::PaletteItem],
     target_oklab: Option<Oklab>,
-    height_penalty: f64,
+) -> usize {
+    let tone = palette[candidate].brightness.clamp(-1, 1);
+    let allowed = limiter.allowed_tone(state, x, y, tone);
+    let candidate = if allowed == tone {
+        candidate
+    } else {
+        closest_candidate(
+            query,
+            colors,
+            oklab_colors,
+            order,
+            palette,
+            target_oklab,
+            Some(allowed),
+        )
+        .unwrap_or(candidate)
+    };
+    limiter.commit(state, x, y, palette[candidate].brightness.clamp(-1, 1));
+    candidate
+}
+
+fn two_closest(
+    query: [f32; 3],
+    colors: &[Rgb],
+    oklab_colors: &[Oklab],
+    order: &[usize],
+    target_oklab: Option<Oklab>,
 ) -> (usize, f64, usize, f64) {
     let mut best = (0usize, f64::INFINITY);
     let mut second = (0usize, f64::INFINITY);
     for &index in order {
-        let mut distance = if let Some(target) = target_oklab {
+        let distance = if let Some(target) = target_oklab {
             oklab_distance_sq(target, oklab_colors[index])
         } else {
             let candidate = colors[index];
@@ -622,9 +701,6 @@ fn two_closest(
                 + (query[1] as f64 - candidate.g as f64).powi(2)
                 + (query[2] as f64 - candidate.b as f64).powi(2)
         };
-        if palette[index].brightness != 0 {
-            distance += height_penalty;
-        }
         if distance < best.1 {
             second = best;
             best = (index, distance);
@@ -635,6 +711,7 @@ fn two_closest(
     (best.0, best.1, second.0, second.1)
 }
 
+/// Closest candidate, optionally restricted to one tone (-1, 0 or 1).
 fn closest_candidate(
     query: [f32; 3],
     colors: &[Rgb],
@@ -642,12 +719,15 @@ fn closest_candidate(
     order: &[usize],
     palette: &[crate::PaletteItem],
     target: Option<Oklab>,
-    height_penalty: f64,
+    tone: Option<i8>,
 ) -> Option<usize> {
     let mut best = None;
     let mut best_distance = f64::INFINITY;
     for &index in order {
-        let mut distance = if let Some(target) = target {
+        if tone.is_some_and(|tone| palette[index].brightness.clamp(-1, 1) != tone) {
+            continue;
+        }
+        let distance = if let Some(target) = target {
             oklab_distance_sq(target, oklab_colors[index])
         } else {
             let candidate = colors[index];
@@ -655,9 +735,6 @@ fn closest_candidate(
                 + (query[1] as f64 - candidate.g as f64).powi(2)
                 + (query[2] as f64 - candidate.b as f64).powi(2)
         };
-        if palette[index].brightness != 0 {
-            distance += height_penalty;
-        }
         if distance < best_distance {
             best = Some(index);
             best_distance = distance;
@@ -902,8 +979,8 @@ fn validate_request(request: &ProcessingRequest) -> Result<(), ProcessingError> 
 mod tests {
     use super::*;
     use crate::{
-        BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, PaletteItem,
-        ProcessingConfig,
+        BlockSupport, BuildMode, DitheringMode, ExportFormat, ExportMode, HeightLimit,
+        HeightLimitStyle, PaletteItem, ProcessingConfig,
     };
 
     fn config() -> ProcessingConfig {
@@ -912,7 +989,10 @@ mod tests {
             height: 1,
             build_mode: BuildMode::TwoD,
             palette: vec![],
-            three_d_precision: 50,
+            height_limit: crate::HeightLimit {
+                blocks: 0,
+                style: crate::HeightLimitStyle::Balanced,
+            },
             dithering: DitheringMode::None,
             use_perceptual: false,
             hybrid_strength: 50,
@@ -1183,6 +1263,78 @@ mod tests {
                 first.packed_results, second.packed_results,
                 "packed results differ for {mode:?}"
             );
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    #[test]
+    fn parallel_wavefront_applies_height_limit_like_a_single_thread() {
+        let width = 512;
+        let height = 640;
+        let mut cfg = config();
+        cfg.width = width;
+        cfg.height = height;
+        cfg.build_mode = BuildMode::ThreeDValley;
+        cfg.use_perceptual = true;
+        cfg.independent_maps = true;
+        cfg.palette = [[24, 32, 48], [112, 136, 96], [224, 216, 192]]
+            .iter()
+            .enumerate()
+            .flat_map(|(color, rgb)| {
+                (-1_i8..=1).map(move |brightness| PaletteItem {
+                    color_id: color as u16 + 1,
+                    block_id: format!("block_{color}"),
+                    rgb: rgb.map(|channel| {
+                        (channel as f32 * (1.0 + 0.12 * brightness as f32)).min(255.0) as u8
+                    }),
+                    brightness,
+                    needs_support: false,
+                })
+            })
+            .collect();
+        let mut source = Vec::with_capacity(width as usize * height as usize * 4);
+        for index in 0..width as usize * height as usize {
+            let shade = if index % width as usize > 256 {
+                255
+            } else {
+                (index.wrapping_mul(17) & 0xff) as u8
+            };
+            source.extend_from_slice(&[shade, shade, (index.wrapping_mul(13) & 0xff) as u8, 255]);
+        }
+        for style in [
+            HeightLimitStyle::Lines,
+            HeightLimitStyle::Balanced,
+            HeightLimitStyle::Noise,
+        ] {
+            for mode in [DitheringMode::FloydSteinberg, DitheringMode::HybridV2] {
+                cfg.dithering = mode;
+                cfg.height_limit = HeightLimit { blocks: 5, style };
+                let request = ProcessingRequest {
+                    protocol_version: 1,
+                    request_id: 1,
+                    source_version: 1,
+                    config: cfg.clone(),
+                    source: Some(ImageBuffer {
+                        width,
+                        height,
+                        rgba: source.clone(),
+                    }),
+                    manual_edits: vec![],
+                };
+
+                let single = rayon::ThreadPoolBuilder::new()
+                    .num_threads(1)
+                    .build()
+                    .unwrap()
+                    .install(|| process(request.clone()).unwrap());
+                let parallel = process(request).unwrap();
+                assert_eq!(
+                    single.packed_results, parallel.packed_results,
+                    "{style:?} {mode:?}"
+                );
+                let tallest = parallel.stats.height_map.iter().max().unwrap() + 1;
+                assert!(tallest <= 5, "{style:?} {mode:?}: {tallest} blocks");
+            }
         }
     }
 }
