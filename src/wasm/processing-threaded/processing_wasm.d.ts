@@ -52,11 +52,11 @@ export interface InitOutput {
     readonly wasmprocessingresult_tone_map: (a: number) => any;
     readonly wasmprocessingresult_width: (a: number) => number;
     readonly __wbg_wbg_rayon_poolbuilder_free: (a: number, b: number) => void;
-    readonly initThreadPool: (a: number) => any;
     readonly wbg_rayon_poolbuilder_build: (a: number) => void;
     readonly wbg_rayon_poolbuilder_numThreads: (a: number) => number;
     readonly wbg_rayon_poolbuilder_receiver: (a: number) => number;
     readonly wbg_rayon_start_worker: (a: number) => void;
+    readonly initThreadPool: (a: number) => any;
     readonly memory: WebAssembly.Memory;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

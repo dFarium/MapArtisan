@@ -15423,8 +15423,8 @@
         "packedResults": "b00ba2046ae10ba1",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "348824cbd805aed1",
-        "heightPath": "24f6f38a737e0224",
-        "heightMap": "cc082a8bc49f1b21",
+        "heightPath": "6c4ddc706b2923a4",
+        "heightMap": "e61a61cb80109b40",
         "minHeight": -6,
         "maxHeight": 3,
         "manualEditCount": 0,
@@ -15527,8 +15527,8 @@
         "packedResults": "b00ba2046ae10ba1",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "348824cbd805aed1",
-        "heightPath": "24f6f38a737e0224",
-        "heightMap": "cc082a8bc49f1b21",
+        "heightPath": "6c4ddc706b2923a4",
+        "heightMap": "e61a61cb80109b40",
         "minHeight": -6,
         "maxHeight": 3,
         "manualEditCount": 0,
@@ -15631,8 +15631,8 @@
         "packedResults": "fb7f11d20909d808",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "8bc8bac532767e4a",
-        "heightPath": "4cc107390c0d1db5",
-        "heightMap": "c88afe8947ca2960",
+        "heightPath": "27b82a57a38194b5",
+        "heightMap": "ecaf0ab53107af41",
         "minHeight": -6,
         "maxHeight": 3,
         "manualEditCount": 6,
@@ -15735,8 +15735,8 @@
         "packedResults": "fb7f11d20909d808",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "8bc8bac532767e4a",
-        "heightPath": "4cc107390c0d1db5",
-        "heightMap": "c88afe8947ca2960",
+        "heightPath": "27b82a57a38194b5",
+        "heightMap": "ecaf0ab53107af41",
         "minHeight": -6,
         "maxHeight": 3,
         "manualEditCount": 6,
@@ -45635,10 +45635,10 @@
         "packedResults": "1d7664bb4fdfd539",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "ee83548fa63c1a27",
-        "heightPath": "08a1c84b9f37c246",
-        "heightMap": "5fd0bc487b08ad5c",
+        "heightPath": "5376dc57d99ba5b6",
+        "heightMap": "380aac759577835c",
         "minHeight": -9,
-        "maxHeight": 2,
+        "maxHeight": 5,
         "manualEditCount": 0,
         "probes": [
           {
@@ -45730,7 +45730,7 @@
             ],
             "packed": 18,
             "tone": -1,
-            "height": 2
+            "height": 0
           },
           {
             "x": 127,
@@ -45830,10 +45830,10 @@
         "packedResults": "1d7664bb4fdfd539",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "ee83548fa63c1a27",
-        "heightPath": "226f2ace30f5e2e4",
+        "heightPath": "979620bbcd79c684",
         "heightMap": "f9bd7b2699efbf65",
         "minHeight": -5,
-        "maxHeight": 2,
+        "maxHeight": 3,
         "manualEditCount": 0,
         "probes": [
           {
@@ -46025,10 +46025,10 @@
         "packedResults": "472fce54d7b4c73f",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "2d0cb84cb026b5ab",
-        "heightPath": "200e91de55ee0a44",
-        "heightMap": "8f148cdbbff8c73d",
+        "heightPath": "152bd99b3cea5365",
+        "heightMap": "05803275786b297d",
         "minHeight": -9,
-        "maxHeight": 2,
+        "maxHeight": 5,
         "manualEditCount": 13,
         "probes": [
           {
@@ -46120,7 +46120,7 @@
             ],
             "packed": 3,
             "tone": -1,
-            "height": 1
+            "height": 0
           },
           {
             "x": 127,
@@ -46220,10 +46220,10 @@
         "packedResults": "472fce54d7b4c73f",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "2d0cb84cb026b5ab",
-        "heightPath": "a5b4237596957004",
+        "heightPath": "54ee5806d68517d5",
         "heightMap": "0d2894f04e51d406",
         "minHeight": -5,
-        "maxHeight": 2,
+        "maxHeight": 3,
         "manualEditCount": 13,
         "probes": [
           {
@@ -47195,10 +47195,10 @@
         "packedResults": "e1903f392238cca0",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "919b0ef7ef36ddd1",
-        "heightPath": "15ec45a10a153b16",
-        "heightMap": "292f78209da70a9c",
+        "heightPath": "922e2139daf0a5b6",
+        "heightMap": "8962ea771c638218",
         "minHeight": -10,
-        "maxHeight": 3,
+        "maxHeight": 5,
         "manualEditCount": 0,
         "probes": [
           {
@@ -47290,7 +47290,7 @@
             ],
             "packed": 18,
             "tone": -1,
-            "height": 2
+            "height": 0
           },
           {
             "x": 127,
@@ -47390,7 +47390,7 @@
         "packedResults": "e1903f392238cca0",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "919b0ef7ef36ddd1",
-        "heightPath": "352003087a329bd6",
+        "heightPath": "54f3254056881776",
         "heightMap": "121668b391f3ac95",
         "minHeight": -6,
         "maxHeight": 3,
@@ -47585,10 +47585,10 @@
         "packedResults": "d8c6ebdce9b6d636",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "a233cdc6f04c82bd",
-        "heightPath": "7888ee2a3363fcb6",
-        "heightMap": "5658b2a1e9caf57f",
+        "heightPath": "0e5ee14532a1e047",
+        "heightMap": "eafb83cc5c1a689b",
         "minHeight": -10,
-        "maxHeight": 3,
+        "maxHeight": 5,
         "manualEditCount": 13,
         "probes": [
           {
@@ -47680,7 +47680,7 @@
             ],
             "packed": 3,
             "tone": -1,
-            "height": 1
+            "height": 0
           },
           {
             "x": 127,
@@ -47780,7 +47780,7 @@
         "packedResults": "d8c6ebdce9b6d636",
         "candidates": "27164b2e51c1c2c8",
         "toneMap": "a233cdc6f04c82bd",
-        "heightPath": "fa1ece96d4bb3f94",
+        "heightPath": "1dd7a2097b4b81a5",
         "heightMap": "77f13bc40f93bc05",
         "minHeight": -6,
         "maxHeight": 3,

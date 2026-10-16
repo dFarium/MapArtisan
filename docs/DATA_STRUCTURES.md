@@ -84,7 +84,8 @@ packPixel(candidateIdx: number, tone: number, needsSupport: boolean): number
 
 - `null` in 2D mode
 - All values `>= 0` (normalized to start at Y=0)
-- Computed by the Smart Drop algorithm (`optimizeColumnHeights`)
+- Computed by `optimizeColumnHeights`, which reaches the minimum possible range per column: the longest run of highlights without a shadow, or of shadows without a highlight. Steps inside a run move one block; the step before a run in the other direction jumps as far as that run needs.
+- `MapartStats.heightMap[x]` is that range for column `x` (the worst segment in `independentMaps` mode). The build height is `max(heightMap) + 1` blocks, including the north reference block.
 - In `independentMaps` mode, each 128-row segment is optimized independently
 - Used by 3D preview and export to determine block Z positions
 

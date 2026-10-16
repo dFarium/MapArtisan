@@ -1,47 +1,55 @@
 /**
- * Height Optimization (Smart Drop Algorithm)
- * Ported from Python implementation
+ * Height Optimization
+ *
+ * Minecraft shades a map pixel by comparing its block with the block to its
+ * north: higher gives a highlight (+1), equal gives normal (0), lower gives a
+ * shadow (-1). Only the sign matters, so a step may climb or drop by any
+ * number of blocks. Each column is independent of its neighbours.
  */
 
-// ============================================================================
-// Smart Drop Optimization
-// ============================================================================
-
 /**
- * Optimizes the height profile of a column to minimize the total height range.
- * Uses a "Smart Drop" strategy that capitalizes on shadow blocks (tone -1)
- * to drop deeper when safe, recovering height for future climbs.
- * 
- * Optimized to read directly from a shared buffer to avoid allocations.
- */
-/**
- * Shared memory buffers to reuse during Smart Drop calculations.
- * Pre-allocating these buffers prevents garbage collection spikes when processing large images.
+ * Reusable buffers for column optimization. Create them with
+ * `createHeightWorkspace` and pass them to every call in a loop to avoid
+ * per-column allocations on large images.
  */
 export interface SmartDropWorkspace {
-    ref: Int32Array;        // Reference heights from the classic accumulation algorithm
-    minFuturo: Int32Array;  // Suffix minimum heights tracking the lowest height reached in the future
-    path: Int32Array;       // Optimized height path
+    /** upAhead[i]: highlights from row i onward before the next shadow. */
+    upAhead: Int32Array;
+    /** downAhead[i]: shadows from row i onward before the next highlight. */
+    downAhead: Int32Array;
+    /** Output heights, one per row. */
+    path: Int32Array;
+}
+
+export function createHeightWorkspace(rows: number): SmartDropWorkspace {
+    return {
+        upAhead: new Int32Array(rows + 1),
+        downAhead: new Int32Array(rows + 1),
+        path: new Int32Array(rows),
+    };
 }
 
 /**
- * Optimizes the height profile of a vertical map column to minimize the total Y range (height profile).
- * 
- * Minecraft maps display shadows and highlights depending on relative height differences between 
- * adjacent blocks along the north-to-south column.
- * - Going UP (North is lower than South) creates a HIGHLIGHT block (+1).
- * - Staying FLAT creates a NORMAL block (0).
- * - Going DOWN (North is higher than South) creates a SHADOW block (-1).
- * 
- * Smart Drop optimization looks ahead at future heights using a suffix-minimum table.
- * If a shadow block (-1) is encountered, rather than just descending 1 block, it checks if it can drop 
- * significantly lower to recover height headroom for future climbs, without violating subsequent shade requirements.
- * 
- * @param toneMap Array or TypedArray containing relative pixel tones (-1, 0, 1).
- * @param startIndex Starting index of the column in the flat 1D image buffer.
- * @param stride Distance between elements of the column (typically the width of the image).
- * @param count Number of pixels in the column.
- * @param workspace Optional preallocated buffers to reuse.
+ * Builds the lowest possible staircase for one map column.
+ *
+ * A run of highlights with no shadow in between must rise one block per
+ * highlight at least, and a run of shadows with no highlight must fall one
+ * block per shadow, so the column can never be shorter than its longest such
+ * run. This function always reaches that bound:
+ * - Inside a run, every step moves exactly one block.
+ * - The last highlight before a run of shadows jumps high enough for the
+ *   whole descent to stay above the floor.
+ * - The last shadow before a run of highlights drops low enough for the whole
+ *   climb to stay below the ceiling.
+ *
+ * Heights are relative to the north reference block (the noobline) at 0, and
+ * `min`/`max` include that reference, so `max - min` is the column range.
+ *
+ * @param toneMap Relative tones (-1, 0, 1), one per pixel.
+ * @param startIndex Index of the column's first (northernmost) pixel.
+ * @param stride Distance between consecutive pixels of the column.
+ * @param count Number of pixels in the column, or -1 for the whole array.
+ * @param workspace Optional reusable buffers from `createHeightWorkspace`.
  */
 export function optimizeColumnHeights(
     toneMap: Int8Array | number[],
@@ -52,79 +60,64 @@ export function optimizeColumnHeights(
 ): { min: number; max: number; path: number[] | Int32Array } {
     const n = count === -1 ? toneMap.length : count;
 
-    // Use workspace buffers if available, otherwise allocate
-    let ref: Int32Array;
-    let minFuturo: Int32Array;
+    let upAhead: Int32Array;
+    let downAhead: Int32Array;
     let path: Int32Array | number[];
-
     if (workspace) {
-        if (workspace.ref.length < n + 1) {
-            workspace.ref = new Int32Array(n + 1);
-        }
-        ref = workspace.ref;
-
-        if (workspace.minFuturo.length < n + 1) {
-            workspace.minFuturo = new Int32Array(n + 1);
-        }
-        minFuturo = workspace.minFuturo;
-
-        if (workspace.path.length < n) {
-            workspace.path = new Int32Array(n);
-        }
+        if (workspace.upAhead.length < n + 1) workspace.upAhead = new Int32Array(n + 1);
+        if (workspace.downAhead.length < n + 1) workspace.downAhead = new Int32Array(n + 1);
+        if (workspace.path.length < n) workspace.path = new Int32Array(n);
+        upAhead = workspace.upAhead;
+        downAhead = workspace.downAhead;
         path = workspace.path;
     } else {
-        ref = new Int32Array(n + 1);
-        minFuturo = new Int32Array(n + 1);
-        path = new Array(n); // Legacy array allocation for compatibility
+        upAhead = new Int32Array(n + 1);
+        downAhead = new Int32Array(n + 1);
+        path = new Array(n);
     }
 
-    // 1. Classical Reference Height:
-    // Calculates a direct accumulation profile.
-    ref[0] = 0;
-    for (let i = 0; i < n; i++) {
+    // 1. Remaining run lengths, scanning from the south end. The longest run
+    //    anywhere in the column is the minimum possible range.
+    upAhead[n] = 0;
+    downAhead[n] = 0;
+    let range = 0;
+    for (let i = n - 1; i >= 0; i--) {
         const t = toneMap[startIndex + i * stride];
-        if (t === 1) ref[i + 1] = ref[i] + 1;
-        else if (t === 0) ref[i + 1] = ref[i];
-        else if (t === -1) ref[i + 1] = ref[i] - 1;
-    }
-
-    // 2. Suffix Minimum (Future Lookahead):
-    // Computes the absolute lowest height reached from index i to the end of the column.
-    let currentMin = Infinity;
-    for (let i = n; i >= 0; i--) {
-        if (ref[i] < currentMin) currentMin = ref[i];
-        minFuturo[i] = currentMin;
-    }
-
-    // 3. Smart Drop Construction:
-    // Builds the optimized height profile. If tone is -1 (descending), we compare 
-    // the current reference height against the suffix minimum to determine if we can drop
-    // further down.
-    let currentOpt = 0;
-    let maxOpt = 0;
-    let minOpt = 0;
-
-    for (let i = 0; i < n; i++) {
-        const t = toneMap[startIndex + i * stride];
-
-        if (t === -1) {
-            // Find the lowest safe drop level that doesn't violate future slopes
-            const alturaSegura = ref[i + 1] - minFuturo[i + 1];
-            if (alturaSegura < currentOpt) {
-                currentOpt = alturaSegura;
-            } else {
-                currentOpt -= 1;
-            }
-        } else if (t === 1) {
-            currentOpt += 1;
+        if (t === 1) {
+            upAhead[i] = upAhead[i + 1] + 1;
+            downAhead[i] = 0;
+        } else if (t === -1) {
+            upAhead[i] = 0;
+            downAhead[i] = downAhead[i + 1] + 1;
+        } else {
+            upAhead[i] = upAhead[i + 1];
+            downAhead[i] = downAhead[i + 1];
         }
-        // If t === 0, currentOpt remains identical.
-
-        path[i] = currentOpt;
-
-        if (currentOpt > maxOpt) maxOpt = currentOpt;
-        if (currentOpt < minOpt) minOpt = currentOpt;
+        if (upAhead[i] > range) range = upAhead[i];
+        if (downAhead[i] > range) range = downAhead[i];
     }
 
-    return { min: minOpt, max: maxOpt, path };
+    // 2. Walk north to south inside [0, range]. The reference starts high
+    //    enough for an opening run of shadows.
+    const reference = downAhead[0];
+    let current = reference;
+    let min = 0;
+    let max = 0;
+    for (let i = 0; i < n; i++) {
+        const t = toneMap[startIndex + i * stride];
+        if (t === 1) {
+            const needed = downAhead[i + 1];
+            current = current + 1 > needed ? current + 1 : needed;
+        } else if (t === -1) {
+            const allowed = range - upAhead[i + 1];
+            current = current - 1 < allowed ? current - 1 : allowed;
+        }
+
+        const relative = current - reference;
+        path[i] = relative;
+        if (relative > max) max = relative;
+        if (relative < min) min = relative;
+    }
+
+    return { min, max, path };
 }

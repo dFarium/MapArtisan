@@ -32,7 +32,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 | Mode | Description |
 |------|-------------|
 | `2D` | Flat map, no height variation |
-| `3D Valley` | _Default._ Optimized height selection with Smart Drop for easier construction |
+| `3D Valley` | _Default._ Lowest possible staircase for every column, for easier construction |
 
 **Additional Options:**
 

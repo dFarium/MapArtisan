@@ -8,6 +8,7 @@ import type { DitheringMode } from '../processing';
 import {
     processMapart,
     optimizeColumnHeights,
+    createHeightWorkspace,
     getValidColors,
     unpackCandidateIdx,
     unpackTone,
@@ -129,17 +130,8 @@ export function imageDataToBlockStates(
     const useIndependent = independentMaps && exportMode === 'sections';
 
     // Pre-allocate SmartDrop workspaces outside the loop
-    const globalWorkspace = applySD ? {
-        ref: new Int32Array(height + 1),
-        minFuturo: new Int32Array(height + 1),
-        path: new Int32Array(height)
-    } : null;
-
-    const independentWorkspace = (applySD && useIndependent) ? {
-        ref: new Int32Array(129),
-        minFuturo: new Int32Array(129),
-        path: new Int32Array(128)
-    } : null;
+    const globalWorkspace = applySD ? createHeightWorkspace(height) : null;
+    const independentWorkspace = (applySD && useIndependent) ? createHeightWorkspace(128) : null;
 
     const chunkTones = (applySD && useIndependent) ? new Int8Array(128) : null;
 

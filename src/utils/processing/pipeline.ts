@@ -20,7 +20,7 @@ import {
 } from './dithering';
 import {
     optimizeColumnHeights,
-    type SmartDropWorkspace
+    createHeightWorkspace
 } from './heightOptimization';
 import {
     type ColorCandidate,
@@ -42,11 +42,7 @@ function buildHeightLayout(
     let maxHeight = 0;
     const heightMap = new Int32Array(width);
     const heightPath = new Int32Array(width * height);
-    const workspace: SmartDropWorkspace = {
-        ref: new Int32Array(height + 1),
-        minFuturo: new Int32Array(height + 1),
-        path: new Int32Array(height)
-    };
+    const workspace = createHeightWorkspace(height);
 
     for (let x = 0; x < width; x++) {
         const chunkCount = independentMaps ? Math.ceil(height / 128) : 1;

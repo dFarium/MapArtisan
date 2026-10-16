@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { performance } from 'perf_hooks';
-import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../processing';
+import { processMapart, clearColorCache, getValidColors, optimizeColumnHeights, createHeightWorkspace, unpackCandidateIdx, unpackTone, unpackNeedsSupport } from '../processing';
 import { imageDataToBlockStates } from '../export/blockGeneration';
 import type { BuildMode, BrightnessLevel, RGB } from '../../types/mapart';
 
@@ -131,11 +131,7 @@ function imageDataToBlockStatesLegacy(
         if (applySD) {
             if (useIndependent) {
                 const numMaps = Math.ceil(height / 128);
-                const workspace = {
-                    ref: new Int32Array(129),
-                    minFuturo: new Int32Array(129),
-                    path: new Int32Array(128)
-                };
+                const workspace = createHeightWorkspace(128);
 
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
@@ -160,11 +156,7 @@ function imageDataToBlockStatesLegacy(
                     }
                 }
             } else {
-                const workspace = {
-                    ref: new Int32Array(height + 1),
-                    minFuturo: new Int32Array(height + 1),
-                    path: new Int32Array(height)
-                };
+                const workspace = createHeightWorkspace(height);
                 const { path, min: minPathY } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
                 const shiftY = -minPathY;
 
@@ -356,11 +348,7 @@ function imageDataToBlockStatesTypedArray(
         if (applySD) {
             if (useIndependent) {
                 const numMaps = Math.ceil(height / 128);
-                const workspace = {
-                    ref: new Int32Array(129),
-                    minFuturo: new Int32Array(129),
-                    path: new Int32Array(128)
-                };
+                const workspace = createHeightWorkspace(128);
 
                 for (let m = 0; m < numMaps; m++) {
                     const zStart = m * 128;
@@ -385,11 +373,7 @@ function imageDataToBlockStatesTypedArray(
                     }
                 }
             } else {
-                const workspace = {
-                    ref: new Int32Array(height + 1),
-                    minFuturo: new Int32Array(height + 1),
-                    path: new Int32Array(height)
-                };
+                const workspace = createHeightWorkspace(height);
                 const { path, min: minPathY } = optimizeColumnHeights(columnTones, 0, 1, height, workspace);
                 const shiftY = -minPathY;
 

@@ -3,6 +3,7 @@ import {
     rgbToOklab,
     oklabDistance,
     optimizeColumnHeights,
+    createHeightWorkspace,
     getValidColors,
     processMapart,
     applyManualEdits,
@@ -141,6 +142,68 @@ describe('mapartProcessing', () => {
 
             // Optimized should be equal or better
             expect(optRange).toBeLessThanOrEqual(refRange);
+        });
+
+        /** The longest run of highlights without a shadow, or shadows without a highlight. */
+        const longestRun = (tones: number[]): number => {
+            let best = 0, ups = 0, downs = 0;
+            for (const t of tones) {
+                if (t === 1) { ups++; downs = 0; }
+                else if (t === -1) { downs++; ups = 0; }
+                best = Math.max(best, ups, downs);
+            }
+            return best;
+        };
+
+        /** Every step must reproduce its tone against the block to its north. */
+        const expectTonesHonoured = (tones: number[], path: ArrayLike<number>) => {
+            let north = 0; // noobline
+            tones.forEach((tone, i) => {
+                expect(Math.sign(path[i] - north), `tones ${tones.join(',')} at ${i}`).toBe(tone);
+                north = path[i];
+            });
+        };
+
+        it('reaches the minimum possible range for every column up to 8 rows', () => {
+            for (let length = 1; length <= 8; length++) {
+                for (let code = 0; code < 3 ** length; code++) {
+                    const tones: number[] = [];
+                    for (let i = 0, rest = code; i < length; i++, rest = Math.floor(rest / 3)) {
+                        tones.push((rest % 3) - 1);
+                    }
+                    const result = optimizeColumnHeights(tones);
+                    expectTonesHonoured(tones, result.path);
+                    expect(result.max - result.min, `tones ${tones.join(',')}`).toBe(longestRun(tones));
+                }
+            }
+        });
+
+        it('reaches the minimum range on long random columns and with a shared workspace', () => {
+            let seed = 42;
+            const random = () => {
+                seed = (seed * 1664525 + 1013904223) >>> 0;
+                return seed / 0x100000000;
+            };
+            const workspace = createHeightWorkspace(4);
+            for (let sample = 0; sample < 200; sample++) {
+                const darkBias = sample / 200;
+                const tones = Array.from({ length: 256 }, () => {
+                    const r = random();
+                    return r < darkBias * 0.6 ? -1 : r < 0.6 ? 1 : 0;
+                });
+                const result = optimizeColumnHeights(Int8Array.from(tones), 0, 1, tones.length, workspace);
+                expectTonesHonoured(tones, result.path);
+                expect(result.max - result.min).toBe(longestRun(tones));
+            }
+        });
+
+        it('keeps a long shadow-heavy column within its longest run', () => {
+            // One highlight followed by three shadows, repeated: the old algorithm
+            // sank one block per repetition; the minimum range is 3.
+            const tones = Array.from({ length: 128 }, (_, i) => (i % 4 === 0 ? 1 : -1));
+            const result = optimizeColumnHeights(tones);
+            expectTonesHonoured(tones, result.path);
+            expect(result.max - result.min).toBe(3);
         });
     });
 
