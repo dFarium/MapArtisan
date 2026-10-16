@@ -218,7 +218,15 @@ export function buildHybridV2ActivityMap(
     return activity;
 }
 
-/** Continuous Hybrid V2 diffusion weight. Strength is the minimum diffusion. */
+/**
+ * Continuous Hybrid V2 diffusion weight.
+ *
+ * `need` (0..1) grows with local detail and with large quantization errors.
+ * Strength maps onto one continuous scale, like Smart V1's slider:
+ * - 50-100%: strength is the minimum diffusion, so flat areas get `strength`
+ *   and detailed areas get full diffusion; 100% is Floyd-Steinberg.
+ * - 0-50%: the 50% curve fades out evenly, down to no dithering at 0%.
+ */
 export function hybridV2ErrorScale(
     activity: number,
     sourceR: number,
@@ -237,9 +245,11 @@ export function hybridV2ErrorScale(
     const errorNeed = smoothstep(HYBRID_V2_ERROR_LOW, HYBRID_V2_ERROR_HIGH, quantizationError);
     const need = detailNeed
         + (1 - detailNeed) * errorNeed * HYBRID_V2_ERROR_ASSIST;
-    const unclampedMinimum = strength / 100;
-    const minimum = unclampedMinimum < 0 ? 0 : unclampedMinimum > 1 ? 1 : unclampedMinimum;
-    const weight = minimum + (1 - minimum) * need;
+    const unclamped = strength / 100;
+    const level = unclamped < 0 ? 0 : unclamped > 1 ? 1 : unclamped;
+    const weight = level >= 0.5
+        ? level + (1 - level) * need
+        : level * (1 + need);
     return weight < 0 ? 0 : weight > 1 ? 1 : weight;
 }
 

@@ -45,23 +45,38 @@ describe('Hybrid V2', () => {
     });
 
     it('has bounded monotonic and continuous diffusion weights', () => {
-        const flatLowError = hybridV2ErrorScale(0, 100, 100, 100, 100, 100, 100, 0);
-        const flatHighError = hybridV2ErrorScale(0, 200, 200, 200, 100, 100, 100, 0);
-        const detailed = hybridV2ErrorScale(0xffff, 100, 100, 100, 100, 100, 100, 0);
-        expect(flatLowError).toBe(0);
+        const flatLowError = hybridV2ErrorScale(0, 100, 100, 100, 100, 100, 100, 50);
+        const flatHighError = hybridV2ErrorScale(0, 200, 200, 200, 100, 100, 100, 50);
+        const detailed = hybridV2ErrorScale(0xffff, 100, 100, 100, 100, 100, 100, 50);
+        expect(flatLowError).toBe(0.5);
         expect(flatHighError).toBeGreaterThan(flatLowError);
         expect(detailed).toBe(1);
 
-        const strengths = [0, 25, 50, 75, 100].map(strength =>
+        const strengths = [0, 10, 25, 40, 50, 75, 100].map(strength =>
             hybridV2ErrorScale(20_000, 140, 120, 100, 100, 100, 100, strength)
         );
         expect(strengths.every((value, index) => value >= 0 && value <= 1
             && (index === 0 || value >= strengths[index - 1]))).toBe(true);
+        expect(strengths[0]).toBe(0);
         expect(strengths.at(-1)).toBe(1);
+
+        // No jump where the lower half meets the minimum-diffusion half.
+        const justBelowHalf = hybridV2ErrorScale(20_000, 140, 120, 100, 100, 100, 100, 49.999);
+        const atHalf = hybridV2ErrorScale(20_000, 140, 120, 100, 100, 100, 100, 50);
+        expect(Math.abs(atHalf - justBelowHalf)).toBeLessThan(0.0001);
 
         const below = hybridV2ErrorScale(10_000, 118.25, 100, 100, 100, 100, 100, 40);
         const above = hybridV2ErrorScale(10_000, 118.26, 100, 100, 100, 100, 100, 40);
         expect(Math.abs(above - below)).toBeLessThan(0.001);
+    });
+
+    it('matches no dithering at 0% strength', () => {
+        const image = source(24, 16);
+        const none = processMapart(image, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
+        const hybrid = processMapart(image, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'hybrid-v2', true, 0, false);
+
+        expect(hybrid.imageData.data).toEqual(none.imageData.data);
+        expect(hybrid.packedResults).toEqual(none.packedResults);
     });
 
     it('is byte-identical to Floyd-Steinberg at 100% strength', () => {

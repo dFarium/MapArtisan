@@ -23,7 +23,7 @@ A powerful map art tool suite for Minecraft. Convert any image into schematics w
 
 - **11 Dithering Algorithms**: Smart V2, Smart V1, Floyd-Steinberg, Bayer 4x4, Bayer 8x8, Adaptive, Atkinson, Stucki, Burkes, Sierra-Lite, or None
 - **Smart V2 by Default**: Diffuses error fully on detailed areas and softly on flat ones, so smooth regions stay clean without losing texture
-- **Strength Slider**: For Smart V2 sets the minimum diffusion (100% equals Floyd-Steinberg); for Smart V1 trades noise reduction against detail
+- **Strength Slider**: 0% means no dithering and 100% equals Floyd-Steinberg for both Smart modes; in between, Smart V2 keeps full diffusion on detail and scales it on flat areas
 - **Auto-Detect Mode**: Analyzes your image to suggest the best dithering settings
 - **OKLab Color Space**: Perceptually uniform color matching (enabled by default)
 

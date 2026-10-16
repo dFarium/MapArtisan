@@ -22,6 +22,7 @@ This update builds every 3D column as low as its shading allows, replaces the 3D
 ### Changed
 - **Lowest Possible Staircase**: The 3D layout now reaches the theoretical minimum height for every column: its longest run of highlights or shadows, plus one block.
 - **Smart V2 is the Default**: Smart V1 remains available as `Smart V1`.
+- **Smart V2 Strength Scale**: The slider now runs from no dithering at 0% to Floyd-Steinberg at 100%, like Smart V1. Values from 50% up behave exactly as before; below 50% the dithering fades out evenly.
 - **Versioned Processing Contract**: The worker processes, edits, counts materials and exports through one versioned engine API, and materials and exports reuse the cached result instead of reprocessing.
 - **Faster Color Filters**: Brightness, contrast and saturation reuse the resampled image instead of scaling the source again.
 - **Texture Cache Versioning**: The service worker cache name now follows the texture contents, so updated textures replace the old cache.

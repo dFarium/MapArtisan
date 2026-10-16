@@ -103,7 +103,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             {(dithering === 'hybrid' || dithering === 'hybrid-v2') && (
                 <div className="p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
                     <PrecisionSlider
-                        label={dithering === 'hybrid-v2' ? "Minimum Diffusion" : "Hybrid Strength"}
+                        label={dithering === 'hybrid-v2' ? "Strength" : "Hybrid Strength"}
                         value={hybridStrength}
                         min={0}
                         max={100}
@@ -114,7 +114,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                     />
                     <p className="text-xs text-zinc-500 mt-1">
                         {dithering === 'hybrid-v2'
-                            ? "0% = Fully adaptive, 100% = Floyd-Steinberg"
+                            ? "0% = No dithering, 50% = Adaptive, 100% = Floyd-Steinberg"
                             : "0% = Aggressive noise reduction, 100% = More detail"}
                     </p>
                 </div>
