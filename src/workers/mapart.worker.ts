@@ -4,7 +4,7 @@ import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
 import type { ManualEdit } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { setDebugEnabled } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, heightLimitOf, WasmEngine, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, heightLimitOf, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Snapshot of the latest processed result, kept for block picking.
@@ -23,7 +23,6 @@ let pickerState: {
 } | null = null;
 
 const processingEngine = new TypeScriptEngine();
-const wasmEngine = new WasmEngine(processingEngine);
 
 function rememberForPicker(response: ProcessingResponseV1, config: ProcessingConfigV1): void {
     pickerState = {
@@ -55,21 +54,20 @@ const api = {
     clearCache: (): void => {
         pickerState = null;
         processingEngine.clear();
-        wasmEngine.clear();
         clearColorCache();
         clearOklabCache();
     },
 
     /** Versioned processing contract used by the worker migration path. */
     processV1: async (request: ProcessingRequestV1): Promise<ProcessingResponseV1> => {
-        const response = await wasmEngine.process(request);
+        const response = processingEngine.process(request);
         rememberForPicker(response, request.config);
         return transferProcessingResponse(response);
     },
 
     /** Applies edits against the cached v1 base result without re-quantizing. */
     applyEditsV1: async (request: ApplyEditsRequestV1): Promise<ProcessingResponseV1> => {
-        const response = await wasmEngine.applyEdits(request);
+        const response = processingEngine.applyEdits(request);
         rememberForPicker(response, request.config);
         return transferProcessingResponse(response);
     },

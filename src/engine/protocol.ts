@@ -132,7 +132,7 @@ export class ProcessingEngineError extends Error {
     }
 }
 
-/** Stable cache key shared by the TypeScript facade and future Rust adapters. */
+/** Stable cache key for every engine implementing the v1 contract. */
 export function createProcessingConfigKey(sourceVersion: number, config: ProcessingConfigV1): string {
     const palette = Object.entries(config.selectedPaletteItems)
         .map(([index, blockId]) => [Number(index), blockId] as const)

@@ -17,7 +17,7 @@
  *   that grows towards the limit.
  *
  * Randomness comes from a hash of the pixel position, so the same image and
- * settings always give the same map, in TypeScript and in Rust.
+ * settings always give the same map.
  */
 
 export const HEIGHT_LIMIT_STYLES = ['lines', 'balanced', 'noise'] as const;
@@ -36,7 +36,7 @@ export interface HeightLimit {
 
 export const NO_HEIGHT_LIMIT: HeightLimit = { blocks: 0, style: 'balanced' };
 
-/** Deterministic hash of two integers into [0, 1). Mirrored in Rust. */
+/** Deterministic hash of two integers into [0, 1). */
 export function hash01(a: number, b: number): number {
     let h = (Math.imul(a, 374761393) + Math.imul(b, 668265263)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);

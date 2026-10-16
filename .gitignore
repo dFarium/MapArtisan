@@ -12,8 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Rust build artifacts
-rust/**/target/
 
 # Generated files
 public/sw.js

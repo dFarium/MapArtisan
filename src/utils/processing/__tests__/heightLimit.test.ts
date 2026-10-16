@@ -52,7 +52,7 @@ describe('height limit', () => {
     const source = makeSource(32, 160);
 
     it('hashes positions deterministically into [0, 1)', () => {
-        // Pinned values: the Rust port asserts the same numbers.
+        // Pinned values: a change here changes every limited map.
         expect(hash01(0, 0)).toBe(0);
         expect(hash01(7, 3)).toBe(0.6220613436307758);
         expect(hash01(-5, 123456)).toBe(0.6503004196565598);

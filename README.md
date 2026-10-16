@@ -120,7 +120,8 @@ Informational diagnostics are disabled by default. Enable them for both the page
 
 - [Processing data structures and cache invariants](docs/DATA_STRUCTURES.md)
 - [TypeScript performance baselines](docs/PERFORMANCE_BASELINES.md)
-- [Processing golden fixtures and Rust parity contract](docs/GOLDEN_FIXTURES.md)
+- [Processing golden fixtures](docs/GOLDEN_FIXTURES.md)
+- [Processing engine contract](docs/PROCESSING_CONTRACT.md)
 
 ---
 

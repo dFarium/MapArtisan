@@ -1,5 +1,4 @@
 export { TypeScriptEngine } from './typescriptEngine';
-export { WasmEngine } from './wasmEngine';
 export {
     PROCESSING_PROTOCOL_VERSION,
     ProcessingEngineError,

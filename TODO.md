@@ -175,38 +175,21 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
     - 2048×1024 (16×8, 128 mapas): 308.7 ms
     - 512×512 en 2D: 112.8 ms
 
-## Futuro — Motor Rust/WASM
+## Archivado — Motor Rust/WASM (retirado 2026-10-16)
 
-- [ ] Preparar la implementación TypeScript como referencia estable antes del port.
-  - [ ] Completar la limpieza funcional y de recursos pendiente en TypeScript.
-  - [x] Definir el límite oficial: 128 mapas, equivalentes a 2.097.152 píxeles, con benchmark representativo 16×8.
-  - [x] Crear 320 fixtures dorados generados programáticamente para 1×1/2×2, 2D/3D valley, todos los dithering, RGB/OKLab, ediciones y mapas independientes.
-  - [ ] Registrar resultados, latencia y memoria de referencia para 128×128, 512×512 y el máximo permitido.
+El motor Rust/WASM (`rust/processing-core`, `rust/processing-wasm`, `src/wasm/`, `WasmEngine`) se retiró de la aplicación. Su último estado queda en el tag local `rust-engine-final` (commit `6f168ac`), con paridad exacta frente a TypeScript en los 616 fixtures dorados, incluido el límite de altura.
 
-- [ ] Diseñar una API de procesamiento independiente de React y basada en buffers.
-  - [ ] Versionar las estructuras de solicitud, configuración y resultado.
-  - [ ] Mantener la imagen fuente y los buffers de trabajo dentro del motor.
-  - [ ] Enviar en cada interacción solo parámetros y devolver buffers transferibles.
-  - [ ] Conservar semántica latest-wins, cancelación e invalidación por versión.
+**Por qué se retiró.** Medido con una imagen real, modo 3D, cachés frías y paleta completa (61 colores, 183 candidatos), WASM en un hilo fue más lento que TypeScript en todos los modos OKLab (0.47–0.94×) y apenas igual o algo mejor en RGB (1.0–1.25×). Las ganancias registradas antes venían de un benchmark con solo 7 colores. Con hilos, el caso más grande ahorraría unos 200 ms; para una app que procesa una sola imagen en la máquina del usuario, eso no compensa mantener dos implementaciones de cada algoritmo, la toolchain de Rust, ~320 KB de WASM y las cabeceras COOP/COEP.
 
-- [ ] Implementar el núcleo matemático como crate Rust puro.
-  - [ ] Portar matching OKLab/RGB, dithering, resultados empaquetados y Smart Drop.
-  - [ ] Separar el crate de cualquier dependencia del navegador, Electron o UI.
-  - [ ] Verificar paridad exacta o documentar tolerancias numéricas explícitas.
-  - [ ] Añadir pruebas Rust con los mismos fixtures utilizados por TypeScript.
+**Efectos de retirarlo.**
+- [x] El worker usa solo `TypeScriptEngine`; materiales y exportación reutilizan el resultado base en caché en lugar de reprocesar.
+- [x] Las ediciones manuales vuelven a ser incrementales en todos los modos.
+- [x] Se quitaron las cabeceras COOP/COEP de Vite y Vercel (solo las necesitaban los hilos de WASM).
 
-- [ ] Integrar Rust compilado a WASM dentro del Web Worker actual.
-  - [ ] Mantener despliegue frontend estático, offline y sin backend.
-  - [ ] Inicializar el módulo WASM una sola vez por worker.
-  - [ ] Minimizar copias entre `ArrayBuffer` y memoria WASM.
-  - [ ] Conservar temporalmente el motor TypeScript como fallback y referencia de paridad.
-
-- [ ] Evaluar reutilizar el mismo crate como motor nativo de escritorio.
-  - [ ] Comparar Electron con sidecar Rust frente a Tauri.
-  - [ ] Diseñar IPC binario, lifecycle, reinicio y límites de memoria del proceso nativo.
-  - [ ] Evitar bifurcar los algoritmos entre web y escritorio.
-
-- **Aceptación:** el motor Rust produce resultados equivalentes al motor TypeScript, reduce de forma medida la latencia o memoria en los escenarios objetivo, mantiene procesamiento local y no requiere un backend.
+**Cuándo reconsiderarlo.** Solo si aparece una versión de escritorio nativa (Tauri o sidecar) o si el procesamiento se vuelve un cuello de botella medido. En ese caso, recuperar el crate desde el tag y antes de integrarlo:
+- [ ] Portar la búsqueda de colores podada por luminosidad de `colorMatching.ts` con candidatos en arreglos contiguos, y la caché por color exacto en `none`.
+- [ ] Medir con la paleta completa, nunca solo con la golden de 7 colores.
+- [ ] Resolver Smart V1, que no se puede paralelizar porque su varianza lee vecinos que aún reciben error.
 
 ## Verificación obligatoria por fase
 

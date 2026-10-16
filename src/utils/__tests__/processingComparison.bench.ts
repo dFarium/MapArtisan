@@ -1,9 +1,6 @@
 import { describe, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { GOLDEN_HYBRID_STRENGTH, GOLDEN_PALETTE, makeGoldenSource } from './goldenFixtures';
-import { NO_HEIGHT_LIMIT, getValidColors, processMapart, type BuildMode, type DitheringMode } from '../processing';
-import { initSync, process_v1 } from '../../wasm/processing/processing_wasm';
+import { NO_HEIGHT_LIMIT, processMapart, type BuildMode, type DitheringMode } from '../processing';
 
 interface Scenario { name: string; width: number; height: number; build: BuildMode; dither: DitheringMode; perceptual: boolean }
 const scenarios: Scenario[] = [
@@ -20,7 +17,7 @@ const scenarios: Scenario[] = [
 
 function percentile(sorted: number[], ratio: number): number { return sorted[Math.ceil((sorted.length - 1) * ratio)]; }
 
-describe('TypeScript/Rust processing comparison baseline', () => {
+describe('TypeScript processing baseline per scenario', () => {
     it('measures the TypeScript engine after warm-up', { timeout: 120_000 }, () => {
         console.log('engine,scenario,mean_ms,median_ms,p95_ms,min_ms,max_ms');
         for (const scenario of scenarios) {
@@ -37,43 +34,6 @@ describe('TypeScript/Rust processing comparison baseline', () => {
             values.sort((a, b) => a - b);
             const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
             console.log(`typescript,${scenario.name},${mean.toFixed(3)},${percentile(values, .5).toFixed(3)},${percentile(values, .95).toFixed(3)},${values[0].toFixed(3)},${values.at(-1)!.toFixed(3)}`);
-        }
-    });
-
-    it('measures the WASM bridge including result buffer copies', { timeout: 120_000 }, () => {
-        const bytes = readFileSync(resolve(process.cwd(), 'src/wasm/processing/processing_wasm_bg.wasm'));
-        initSync({ module: bytes });
-        console.log('engine,scenario,mean_ms,median_ms,p95_ms,min_ms,max_ms');
-        for (const scenario of scenarios) {
-            const source = makeGoldenSource(scenario.width, scenario.height);
-            const sourceBytes = new Uint8Array(source.data.buffer, source.data.byteOffset, source.data.byteLength);
-            const palette = getValidColors(GOLDEN_PALETTE, scenario.build).map(candidate => ({
-                colorId: candidate.colorID, blockId: candidate.blockId,
-                rgb: [candidate.rgb.r, candidate.rgb.g, candidate.rgb.b],
-                brightness: candidate.brightness === 'low' ? -1 : candidate.brightness === 'high' ? 1 : 0,
-                needsSupport: candidate.needsSupport,
-            }));
-            const config = {
-                protocolVersion: 1, requestId: 1, sourceVersion: 1,
-                width: scenario.width, height: scenario.height, buildMode: scenario.build,
-                heightLimit: 0, heightLimitStyle: 'balanced', dithering: scenario.dither,
-                usePerceptual: scenario.perceptual, hybridStrength: GOLDEN_HYBRID_STRENGTH,
-                independentMaps: false, blockSupport: 'all', supportBlockId: 'minecraft:cobblestone',
-                exportMode: 'sections', exportFormat: 'litematic', paletteVersion: 'benchmark',
-            };
-            const iterations = scenario.width * scenario.height >= 500_000 ? 16 : 30;
-            const warmup = 5;
-            const values: number[] = [];
-            for (let iteration = 0; iteration < iterations + warmup; iteration++) {
-                const start = performance.now();
-                const result = process_v1(sourceBytes, config, palette, []);
-                result.rgba(); result.packed_results(); result.tone_map(); result.height_path(); result.height_map();
-                result.free();
-                if (iteration >= warmup) values.push(performance.now() - start);
-            }
-            values.sort((a, b) => a - b);
-            const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-            console.log(`wasm,${scenario.name},${mean.toFixed(3)},${percentile(values, .5).toFixed(3)},${percentile(values, .95).toFixed(3)},${values[0].toFixed(3)},${values.at(-1)!.toFixed(3)}`);
         }
     });
 });

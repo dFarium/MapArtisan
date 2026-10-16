@@ -1,6 +1,6 @@
 # TypeScript Processing Baselines
 
-These measurements provide a reproducible reference for the TypeScript engine before the Rust/WASM port. They are regression indicators, not performance guarantees across browsers or machines.
+These measurements provide a reproducible reference for the TypeScript engine. They are regression indicators, not performance guarantees across browsers or machines.
 
 ## Official workload limit
 
