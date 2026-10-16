@@ -143,6 +143,11 @@ export function imageDataToBlockStates(
 
     const chunkTones = (applySD && useIndependent) ? new Int8Array(128) : null;
 
+    // Independent sections are split into separate files later. Map m-1's last
+    // row and map m's own noobline both sit at z = m*128, so z alone cannot tell
+    // them apart: every block records the map row that owns it.
+    const sectionRows = (applySD && useIndependent) ? new Int32Array(maxBlocks) : null;
+
     for (let x = 0; x < width; x++) {
         let h = 0;
 
@@ -162,11 +167,12 @@ export function imageDataToBlockStates(
         }
 
         // 2. Optimization and Grounding
-        const addBlock = (bx: number, by: number, bz: number, blockId: string) => {
+        const addBlock = (bx: number, by: number, bz: number, blockId: string, section: number) => {
             xList[count] = bx;
             yList[count] = by;
             zList[count] = bz;
             paletteIndicesList[count] = getPaletteIndex(blockId);
+            if (sectionRows) sectionRows[count] = section;
             count++;
         };
 
@@ -193,9 +199,9 @@ export function imageDataToBlockStates(
                     }
 
                     // Add Noobline for this section (at global Z = zStart)
-                    addBlock(x, 0 + shiftY, zStart, supportBlockId);
+                    addBlock(x, 0 + shiftY, zStart, supportBlockId, m);
                     if (0 + shiftY > 0 && blockSupport === 'all') {
-                        addBlock(x, shiftY - 1, zStart, supportBlockId);
+                        addBlock(x, shiftY - 1, zStart, supportBlockId, m);
                     }
                 }
             } else {
@@ -208,9 +214,9 @@ export function imageDataToBlockStates(
                 }
 
                 // Add Global Noobline
-                addBlock(x, 0 + shiftY, 0, supportBlockId);
+                addBlock(x, 0 + shiftY, 0, supportBlockId, 0);
                 if (0 + shiftY > 0 && blockSupport === 'all') {
-                    addBlock(x, shiftY - 1, 0, supportBlockId);
+                    addBlock(x, shiftY - 1, 0, supportBlockId, 0);
                 }
             }
         } else {
@@ -219,7 +225,7 @@ export function imageDataToBlockStates(
                 finalHeights[i] = rawHeights[i];
             }
             // Basic Noobline
-            addBlock(x, 0, 0, supportBlockId);
+            addBlock(x, 0, 0, supportBlockId, 0);
         }
 
         // 3. Create blocks with final heights
@@ -248,6 +254,8 @@ export function imageDataToBlockStates(
             if (blockId === 'minecraft:air') continue;
 
             const blockY = finalHeights[y];
+            const ownerSection = Math.floor(y / 128);
+            if (sectionRows) sectionRows[count] = ownerSection;
             xList[count] = x;
             yList[count] = blockY;
             zList[count] = y + 1;
@@ -265,6 +273,7 @@ export function imageDataToBlockStates(
                     yList[count] = blockY - 1;
                     zList[count] = y + 1;
                     paletteIndicesList[count] = getPaletteIndex(supportBlockId);
+                    if (sectionRows) sectionRows[count] = ownerSection;
                     count++;
                 }
             }
@@ -291,6 +300,7 @@ export function imageDataToBlockStates(
         z: zList.subarray(0, count),
         palette,
         paletteIndices: paletteIndicesList.subarray(0, count),
-        count
+        count,
+        ...(sectionRows ? { sectionRows: sectionRows.subarray(0, count) } : {}),
     };
 }

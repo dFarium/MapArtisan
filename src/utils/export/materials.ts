@@ -70,10 +70,13 @@ export function calculateMaterialCounts(
         // Section Counts (Reusable Logic)
         const mapX = Math.floor(blockStates.x[i] / 128);
 
-        // Fix for Noobline (z=0). It belongs to the first map (Section 0)
-        // Map Section 0 covers z=[0, 128] effectively (128 pixels + noobline)
-        const adjustedZ = Math.max(0, blockStates.z[i] - 1);
-        const mapZ = Math.floor(adjustedZ / 128);
+        // Independent sections tag each block with its owning map, because the
+        // noobline of map m shares z = m*128 with the last row of map m-1.
+        // Otherwise map m covers z = [m*128 + 1, (m+1)*128] and the noobline at
+        // z = 0 belongs to map 0.
+        const mapZ = blockStates.sectionRows
+            ? blockStates.sectionRows[i]
+            : Math.floor(Math.max(0, blockStates.z[i] - 1) / 128);
 
         const sectionKey = `${mapX}_${mapZ}`;
 

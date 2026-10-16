@@ -20,6 +20,11 @@ export interface BlockStatesBuffers {
     palette: string[];
     paletteIndices: Uint32Array;
     count: number;
+    /**
+     * Map row (section Y index) that owns each block. Only present for
+     * independent maps exported as sections, where z alone is ambiguous.
+     */
+    sectionRows?: Int32Array;
 }
 
 export interface LitematicaMetadata {
