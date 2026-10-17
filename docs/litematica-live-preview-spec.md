@@ -26,16 +26,21 @@ el alcance y las comprobaciones previas a implementar.
 - Litematica y su MaLiLib compatible instalados como dependencias obligatorias.
 - MapArtisan servido localmente; conexión WebSocket mediante loopback.
 - Una sesión, una pestaña con control de escritura y una construcción activa.
-- Un mapa de 128 × 128 píxeles, modos 2D y 3D valley.
+- Una sección de 128 × 128 a la vez, en modos 2D y 3D valley, según el *File
+  Layout* (sección 10.2): un mapa de 1 × 1 con *Single File*, o la sección elegida
+  de un mapa de cualquier tamaño con *Multiple Files*.
 - Pintura manual, deshacer/rehacer y cambios en imagen, paleta, procesamiento,
   alturas y soportes deben producir una nueva revisión de la construcción.
 - Una zona vacía y reservada dentro de un mundo descartable.
 - Flujo unidireccional MapArtisan → Minecraft.
+- Función oculta por defecto: solo se habilita desde la consola del navegador
+  (sección 10.1).
 
 Quedan fuera de v1: multiplayer/LAN, Servux, otros loaders o versiones de
 Minecraft, sincronización de ediciones hechas dentro del juego, entidades,
-inventarios/NBT de entidades de bloque, multimap y secciones independientes,
-rotaciones arbitrarias, web pública HTTPS y soporte sin Litematica.
+inventarios/NBT de entidades de bloque, varias secciones a la vez, mapas mayores
+de 128 en modo de exportación completa, rotaciones arbitrarias, web pública HTTPS
+y soporte sin Litematica.
 
 La exportación manual a Litematica/NBT y el preview web deben seguir funcionando
 sin conexión al mod. El puente no es necesario para utilizar esas funciones.
@@ -355,6 +360,58 @@ esperando al juego, sin acumular tareas ni confirmar una aplicación inexistente
 
 ## 10. Controles y límites
 
+### 10.1 Habilitación desde la consola
+
+El conector no aparece en la interfaz por defecto. Se habilita o deshabilita
+desde la consola de DevTools del navegador, con una API global mínima:
+
+```js
+mapartisan.connector.enable()   // muestra los controles del conector
+mapartisan.connector.disable()  // cierra la sesión y oculta los controles
+mapartisan.connector.status()   // informa si está habilitado y el estado de la conexión
+```
+
+La consola de DevTools evalúa JavaScript, así que no admite una sintaxis tipo
+`/connector enable`; las funciones cumplen el mismo papel.
+
+- El estado se guarda en `localStorage` con la clave `mapartisan:connector`, igual
+  que el flag de diagnósticos `mapartisan:debug`, y sobrevive a recargas. Si
+  `localStorage` no está disponible, la función queda deshabilitada.
+- Deshabilitado, MapArtisan no muestra controles, no abre WebSocket y no carga el
+  módulo del conector: el objeto global solo contiene estas tres funciones, y el
+  resto se importa de forma diferida al habilitar.
+- `enable()` y `disable()` surten efecto sin recargar la página. `disable()` con
+  una sesión activa envía `closeSession` y desconecta; los bloques ya colocados
+  quedan en el mundo (sección 9).
+- Es un control de visibilidad, no de seguridad: cualquiera puede llamarlo desde
+  la consola. La protección del puente sigue siendo el token, el encabezado
+  Origin y el loopback de esta sección.
+
+### 10.2 Disponibilidad según el *File Layout*
+
+El conector solo sincroniza con estas combinaciones del control *File Layout*
+(`exportMode`) de *Construction Model*:
+
+| *File Layout* | Tamaños admitidos | Qué se renderiza |
+|---|---|---|
+| *Single File* (`full`) | Solo 1 × 1 | El mapa completo. |
+| *Multiple Files* (`sections`) | Cualquiera, incluido 1 × 1 | La sección elegida en *3D Preview Area* (`previewSection`), una a la vez. En 1 × 1 es la única sección, `(0, 0)`. |
+
+- Con la única combinación no admitida, un mapa mayor de 1 × 1 con *Single File*,
+  los controles del conector siguen visibles si está habilitado,
+  pero no se generan ni envían instantáneas. Se indica el motivo y el cambio
+  necesario, por ejemplo "Usa *Multiple Files* para mapas de más de 1 × 1".
+- Si la combinación deja de ser válida durante una sesión, la sincronización se
+  pausa con ese motivo y se reanuda al volver a una combinación válida. Los
+  bloques ya colocados quedan en el mundo.
+- Elegir otra sección en *3D Preview Area* produce una nueva revisión en la misma
+  área reservada (sección 12.1). El selector ya existe y se usa para la vista 3D,
+  así que no se añade otro control.
+- El modo global o independiente de los mapas no cambia la disponibilidad: ambos
+  se admiten con *Multiple Files*.
+
+### 10.3 Controles
+
 MapArtisan ofrece conectar, desconectar, activar sincronización automática,
 pausar envíos y resincronizar. Muestra mundo/dimensión, origen y revisión aplicada.
 Pausar detiene nuevos envíos; una tarea activa termina si el juego sigue avanzando.
@@ -393,6 +450,10 @@ liberación de tickets se verificará junto con el comportamiento de Litematica.
 7. No se toca ningún bloque fuera del área ni se alteran colocaciones/configuraciones ajenas.
 8. Estados desconocidos y mensajes inválidos se rechazan antes de modificar el mundo.
 9. El preview web y las exportaciones existentes funcionan con la función desconectada.
+10. Sin habilitar desde la consola no hay controles visibles, conexiones WebSocket
+    ni carga del módulo del conector.
+11. Con un *File Layout* no admitido para el tamaño del mapa (sección 10.2) no se
+    envía ninguna instantánea y se muestra el motivo.
 
 Pruebas: contratos y revisiones del protocolo; ensamblado de transferencias;
 comparación de instantáneas con fixtures existentes de exportación; secuencias de
@@ -412,11 +473,97 @@ completo por frame ni cambios instantáneos bajo cualquier carga.
 3. Puente local y pegado completo manual de una revisión.
 4. Reemplazo con aire, confirmaciones, recuperación y aislamiento del destino.
 5. Sincronización automática, controles y pruebas de ráfagas/undo/redo.
-6. Medición y ajustes; solo después evaluar multimap, Servux o web publicada.
+6. Medición y ajustes; solo después evaluar varias secciones a la vez, Servux o
+   web publicada.
 
 Prerrequisito de producto: Minecraft 26.3 ya está habilitado en las versiones
 soportadas de MapArtisan (versión por defecto, DataVersion 5023), y los formatos
 exportados se validaron en el juego el 2026-10-17.
+
+### 12.1 Diseño de la etapa 2: instantánea constructiva
+
+Decidido el 2026-10-17. Objetivo: que el worker produzca la instantánea que
+recibirá el mod, idéntica bloque a bloque al archivo que MapArtisan exportaría
+para esa misma sección.
+
+**Función compartida.** La generación de bloques de una sección se extrae a una
+única función que usan `generateMapartExportV1` (para el archivo único y para
+cada archivo del ZIP por secciones) y la nueva operación del worker. La
+equivalencia queda garantizada por construcción; las pruebas la confirman.
+
+**Secciones.**
+
+Las combinaciones admitidas son las de la sección 10.2.
+
+- Mapa de 1 × 1 con *Single File* (`exportMode: 'full'`): hay una sola sección,
+  `(0, 0)`, igual al archivo único exportado.
+- Cualquier tamaño, incluido 1 × 1, con *Multiple Files* (`exportMode:
+  'sections'`), global o independiente: la sección es la elegida en *3D Preview
+  Area* (`previewSection`).
+  La instantánea es exactamente lo que `splitBlocksIntoSections` asigna a esa
+  sección: coordenadas locales, noobline en `z=0`, fila compartida en el borde en
+  modo global y re-normalización vertical en modo independiente.
+- Un mapa mayor de 1 × 1 con *Single File*, o una sección fuera de rango: la
+  operación lo rechaza con un error explícito.
+- Se renderiza una sección a la vez. Cambiar de sección es una revisión más en la
+  misma área reservada: el mod limpia con la unión de límites (sección 7), sin
+  abrir otra sesión.
+- En modo global las alturas de una sección no se re-normalizan, así que su
+  volumen puede empezar por encima de `y=0`. Es el mismo comportamiento que el
+  archivo exportado.
+
+**Formato de la instantánea.**
+
+| Campo | Contenido |
+|---|---|
+| `section` | `sX`, `sY` y la cuadrícula `mapsX × mapsY`. |
+| `bounds` | Tamaño local derivado de los bloques. |
+| `palette` | Estados canónicos `minecraft:id[clave=valor,...]` con las propiedades ordenadas alfabéticamente. |
+| `x`, `y`, `z`, `paletteIndices` | `Int32Array` / `Uint32Array` recortados con `.slice()` a la longitud exacta y transferidos. |
+| `config` | Modo de construcción, soporte, material de soporte y versión de Minecraft objetivo. |
+| `contentHash` | Hash no criptográfico de 64 bits (p. ej. FNV-1a) de la paleta y los arrays en el orden emitido, que es determinista para la misma entrada. No depende de `crypto.subtle`, que no existe fuera de contextos seguros. |
+
+La revisión y la sesión no forman parte de la instantánea: las asigna el
+coordinador de la etapa 5.
+
+**Estados canónicos y hojas.** Una sola función produce el estado canónico de
+cada bloque y la usa la generación compartida. Así la instantánea, la exportación
+`.litematic` y la `.nbt` reciben lo mismo:
+
+- propiedades ordenadas alfabéticamente;
+- las hojas llevan `persistent=true`. Hoy se exportan sin propiedades, con
+  `persistent=false`, y se descomponen tras pegarlas. Esto corrige también la
+  exportación actual.
+
+**Pruebas.**
+
+1. Equivalencia: para fixtures de un mapa y multisección (global e
+   independiente), 2D y 3D, con ediciones manuales y con cada modo de soporte,
+   decodificar el NBT exportado de cada sección y compararlo bloque a bloque con
+   la instantánea de esa sección.
+2. Hash estable para la misma entrada y distinto ante un cambio de bloque, altura
+   o soporte.
+3. Hojas con `persistent=true` en `.litematic`, `.nbt` e instantánea.
+4. Buffers transferidos con la longitud exacta.
+5. Rechazo de las combinaciones no admitidas de la sección 10.2 y de secciones
+   fuera de rango.
+6. Golden fixtures: idénticos tras extraer la función compartida. Solo pueden
+   cambiar por el arreglo de hojas, revisando el diff.
+
+**Orden de trabajo.** Cada paso es un cambio independiente con las pruebas en
+verde:
+
+1. Hojas con `persistent=true` en la exportación, actualizando los goldens si
+   corresponde.
+2. Extraer la función compartida sin cambiar la salida: goldens idénticos.
+3. Operación de instantánea del worker con hash y selección de sección.
+4. Pruebas de equivalencia de la lista anterior.
+
+Fuera de la etapa 2: protocolo, coordinador, interfaz y habilitación desde la
+consola (sección 10.1).
+
+Punto de partida verificado el 2026-10-17: 987 pruebas y 617 golden fixtures en
+verde.
 
 ## 13. Referencias consultadas
 
