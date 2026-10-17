@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { useState, useRef, lazy, Suspense } from 'react';
-import { useMapartStore as useMapart } from '../../store/useMapartStore';
+import { useMapartStore as useMapart, useMapartFields } from '../../store/useMapartStore';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { useCanvasActions } from '../../hooks/useCanvasActions';
 import { type useMapartWorker } from '../../hooks/useMapartWorker';
@@ -33,7 +33,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         exportFormat,
         previewSection,
         independentMaps
-    } = useMapart();
+    } = useMapartFields(
+        'uploadedImage', 'setUploadedImage', 'gridDimensions', 'selectedPaletteItems', 'mapartStats', 'buildMode',
+        'heightLimit', 'blockSupport', 'supportBlockId', 'exportMode', 'exportFormat', 'previewSection', 'independentMaps'
+    );
 
     // Use passed worker state
     const {

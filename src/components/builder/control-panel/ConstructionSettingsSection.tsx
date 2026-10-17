@@ -1,5 +1,5 @@
 import { useState, useEffect, useId } from 'react';
-import { useMapartStore as useMapart, type BlockSupport } from '../../../store/useMapartStore';
+import { useMapartFields, type BlockSupport } from '../../../store/useMapartStore';
 import type { BuildMode, ExportFormat, ExportMode } from '../../../types/mapart';
 import { HEIGHT_LIMIT_STYLES, type HeightLimitStyle } from '../../../utils/processing';
 import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
@@ -86,7 +86,11 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         exportFormat, setExportFormat,
         previewSection, setPreviewSection,
         gridDimensions
-    } = useMapart();
+    } = useMapartFields(
+        'buildMode', 'setBuildMode', 'heightLimit', 'setHeightLimit', 'heightLimitStyle', 'setHeightLimitStyle',
+        'blockSupport', 'setBlockSupport', 'supportBlockId', 'setSupportBlockId', 'exportMode', 'setExportMode',
+        'exportFormat', 'setExportFormat', 'previewSection', 'setPreviewSection', 'gridDimensions'
+    );
     const [lastHeightLimit, setLastHeightLimit] = useState(heightLimit > 0 ? heightLimit : DEFAULT_HEIGHT_LIMIT);
     const heightLimitId = useId();
     const blockSupportId = useId();

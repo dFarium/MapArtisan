@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { useMapartStore as useMapart } from '../../../store/useMapartStore';
+import { useMapartFields } from '../../../store/useMapartStore';
 import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
 import { FieldLabel } from '@/components/controls/FieldLabel';
 import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
@@ -53,7 +53,10 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
         usePerceptual, setUsePerceptual,
         paletteVersion, setPaletteVersion,
         previewUrl
-    } = useMapart();
+    } = useMapartFields(
+        'dithering', 'setDithering', 'hybridStrength', 'setHybridStrength', 'usePerceptual', 'setUsePerceptual',
+        'paletteVersion', 'setPaletteVersion', 'previewUrl'
+    );
     const ditheringId = useId();
     const oklabId = useId();
     const versionId = useId();

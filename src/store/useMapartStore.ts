@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type { MapartStats, ManualEdit, BuildMode, ExportMode, ExportFormat, PreviewSection } from '../types/mapart';
 import { DEFAULT_VERSION } from '../data/supportedVersions';
 import { clampGridDimensions, estimateMemoryUsage, type MemoryEstimate } from '../utils/memory';
@@ -351,3 +352,16 @@ export const useMapartStore = create<MapartState>((set) => ({
         };
     })
 }));
+
+/**
+ * Subscribes to only the given fields, so the component re-renders when one
+ * of them changes instead of on every store update (each paint stroke, brush
+ * pick or history step).
+ */
+export function useMapartFields<K extends keyof MapartState>(...keys: K[]): Pick<MapartState, K> {
+    return useMapartStore(useShallow((state) => {
+        const picked = {} as Pick<MapartState, K>;
+        for (const key of keys) picked[key] = state[key];
+        return picked;
+    }));
+}

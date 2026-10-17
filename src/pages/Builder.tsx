@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PaletteSidebar } from '../components/builder/PaletteSidebar';
 import { MainCanvas } from '../components/builder/MainCanvas';
 import { ControlPanel } from '../components/builder/ControlPanel';
 import { MaterialList } from '../components/builder/MaterialList';
 import { useMapartWorker } from '../hooks/useMapartWorker';
-import { useMapartStore as useMapart } from '../store/useMapartStore';
+import { useMapartStore as useMapart, useMapartFields } from '../store/useMapartStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 const Builder: React.FC = () => {
@@ -29,7 +29,12 @@ const Builder: React.FC = () => {
         imageFitMode, resampling, cropSettings, buildMode, selectedPaletteItems, heightLimit, heightLimitStyle, dithering, usePerceptual, hybridStrength,
         setMapartStats, independentMaps, imageSettings, manualEdits, blockSupport, supportBlockId, exportMode, paletteVersion,
         exportFormat
-    } = useMapart();
+    } = useMapartFields(
+        'uploadedImage', 'gridDimensions',
+        'imageFitMode', 'resampling', 'cropSettings', 'buildMode', 'selectedPaletteItems', 'heightLimit', 'heightLimitStyle', 'dithering', 'usePerceptual', 'hybridStrength',
+        'setMapartStats', 'independentMaps', 'imageSettings', 'manualEdits', 'blockSupport', 'supportBlockId', 'exportMode', 'paletteVersion',
+        'exportFormat'
+    );
 
     const workerState = useMapartWorker({
         uploadedImage,
@@ -56,6 +61,9 @@ const Builder: React.FC = () => {
         exportFormat
     });
 
+    // Stable so the memoized ControlPanel skips the re-render on every stroke.
+    const openMaterials = useCallback(() => setIsMaterialListOpen(true), []);
+
     return (
         <div className="h-screen w-full flex text-foreground overflow-hidden relative">
             {/* Sidebar Palette */}
@@ -66,7 +74,7 @@ const Builder: React.FC = () => {
 
             {/* Control Panel (Anchored to the right) */}
             <div className="w-96 h-full bg-card border-l p-4 overflow-y-auto shadow-2xl z-20">
-                <ControlPanel onOpenMaterials={() => setIsMaterialListOpen(true)} />
+                <ControlPanel onOpenMaterials={openMaterials} />
             </div>
 
             {/* Modals */}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import paletteData from '../../data/palette.json';
 import { useMapartStore as useMapart } from '../../store/useMapartStore';
@@ -21,7 +21,8 @@ const IconButton = ({ label, className, ...props }: React.ComponentProps<typeof 
     </Tooltip>
 );
 
-export const PaletteSidebar = () => {
+// Memoized: it has no props, so the Builder re-render on every paint stroke skips it.
+export const PaletteSidebar = memo(function PaletteSidebar() {
     const paletteVersion = useMapart(s => s.paletteVersion);
     const selectedPaletteItems = useMapart(s => s.selectedPaletteItems);
     const setSelectedPaletteItems = useMapart(s => s.setSelectedPaletteItems);
@@ -165,4 +166,4 @@ export const PaletteSidebar = () => {
 
         </div>
     );
-};
+});

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 
 import {
@@ -17,7 +17,7 @@ interface ControlPanelProps {
     onOpenMaterials: () => void;
 }
 
-export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
+export const ControlPanel = memo(function ControlPanel({ onOpenMaterials }: ControlPanelProps) {
 
     const [activeSection, setActiveSection] = useState<string>('image');
 
@@ -83,4 +83,4 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
             </div>
         </aside>
     );
-};
+});

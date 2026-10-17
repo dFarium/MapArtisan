@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { useMapartStore as useMapart, type ImageFitMode } from '../../../store/useMapartStore';
+import { useMapartFields, type ImageFitMode } from '../../../store/useMapartStore';
 import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
 import { FieldLabel } from '@/components/controls/FieldLabel';
 import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
@@ -60,7 +60,11 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
         resampling, setResampling,
         cropSettings, setCropSettings, resetCropSettings,
         imageSettings, setImageSettings
-    } = useMapart();
+    } = useMapartFields(
+        'gridDimensions', 'setGridDimensions', 'memoryEstimate', 'imageFitMode', 'setImageFitMode',
+        'resampling', 'setResampling', 'cropSettings', 'setCropSettings', 'resetCropSettings',
+        'imageSettings', 'setImageSettings'
+    );
     const mapsXId = useId();
     const mapsYId = useId();
 
