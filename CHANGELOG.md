@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-This update builds every 3D column as low as its shading allows, replaces the 3D precision slider with a height limit in blocks, makes Smart V2 the default dithering, and hardens memory use, caching and exports.
+This update builds every 3D column as low as its shading allows, replaces the 3D precision slider with a height limit in blocks, makes Smart V2 the default dithering, rebuilds the interface on shadcn/ui, and hardens memory use, caching and exports.
 
 ### Added
 - **Height Limit**: Cap the 3D build height in blocks. When a column would grow taller, the quantizer picks the closest color with the opposite shade and dithering absorbs the difference. Three styles control how those resets look on flat areas: `Lines`, `Balanced` and `Noise`. Manually painted pixels always take priority over the limit.
@@ -20,6 +20,10 @@ This update builds every 3D column as low as its shading allows, replaces the 3D
 - **Golden Fixtures**: 616 generated cases freeze the processing output across grids, build modes, dithering modes, color spaces, edits, independent maps and height limits.
 
 ### Changed
+- **New Interface**: Every control now uses shadcn/ui components with one color theme, a 12 px minimum text size and the Inter font. Icon buttons show tooltips and can be used from the keyboard, and status colors (success, warning, error) are consistent across the app.
+- **Dialogs Instead of Browser Prompts**: Saving a preset asks for its name in a dialog, and deleting one asks for confirmation. The brush picker and the material list are proper dialogs that close with `Esc` or a click outside.
+- **Grouped Dithering Menu**: Dithering modes are grouped into Smart, Error diffusion and Ordered.
+- **Smoother Painting**: Painting a stroke no longer re-renders the palette and control panel.
 - **Lowest Possible Staircase**: The 3D layout now reaches the theoretical minimum height for every column: its longest run of highlights or shadows, plus one block.
 - **Smart V2 is the Default**: Smart V1 remains available as `Smart V1`.
 - **Smart V2 Strength Scale**: The slider now runs from no dithering at 0% to Floyd-Steinberg at 100%, like Smart V1. Values from 50% up behave exactly as before; below 50% the dithering fades out evenly.
@@ -36,6 +40,9 @@ This update builds every 3D column as low as its shading allows, replaces the 3D
 - **Independent Map Exports**: The last row of every 128-row section is no longer dropped.
 - **Single-File Exports**: The north reference block (noobline) is placed correctly.
 - **Block Picker**: Reads the latest processed result.
+- **Undo/Redo**: Undoing after more than 50 strokes no longer erases the oldest ones, and the Redo button is enabled right after an undo.
+- **Button and Heading Styles**: Leftover global styles from the project template no longer override button padding, heading sizes and link colors.
+- **Screen Readers**: Sliders and icon buttons are announced by name.
 - **Version Changes**: Switching Minecraft versions invalidates colors that are no longer available.
 - **Memory**: Bounded caches, undo deltas, texture LRU, and cleanup of buffers, Blob URLs, timers and WebGL resources on image, grid and palette changes.
 

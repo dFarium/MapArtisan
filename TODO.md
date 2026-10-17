@@ -73,14 +73,14 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
   - [x] Liberar `debounced3DImageData` al salir del modo 3D.
   - [x] Liberar explícitamente el proxy Comlink y anular refs al terminar el worker.
   - [x] Sustituir snapshots completos de undo/redo por deltas con presupuesto de memoria.
-    - Cada entrada ahora es `{ added: Record<number, ManualEdit>, removed: number[] }` en vez de un snapshot completo.
-    - Presupuesto de 2MB por entrada y límite de 50 entradas.
-    - Replay de deltas para reconstruir `manualEdits` en undo/redo.
+    - Cada entrada es `{ before, after }`: el valor de cada píxel que tocó el trazo antes y después (`null` = sin edición). Undo escribe `before` y redo escribe `after`, solo sobre los píxeles de ese paso (2026-10-16; antes era `{ added, removed }` reconstruido desde cero, y al descartar la entrada más vieja se perdían sus ediciones).
+    - Presupuesto de 2MB por entrada y límite de 50 entradas. Un trazo que excede el presupuesto se aplica pero reinicia el historial.
+    - `applyStroke` aplica el trazo y lo registra en un solo `set`; un trazo que no cambia nada no se registra.
   - [x] Implementar caché LRU de texturas 3D con límite de 256 entradas.
     - `imageCache` en `textureAtlas.ts` ahora evicta la entrada más antigua al exceder el límite.
     - Exportar `clearTextureCache()` para limpieza explícita al cambiar imagen, grid o vaciar paleta.
   - [x] Cancelar timers de toast al desmontar.
-    - `ToastProvider` rastrea todos los timers en `useRef<Map>` y los limpia en cleanup.
+    - Desde la etapa 5 del revamp los toasts son de `sonner`, que maneja sus propios timers; `ToastProvider` ya no existe.
   - [x] Revocar `previewUrl` al desmontar el Builder.
     - `useEffect` en `Builder.tsx` revoca el Blob URL al navegar fuera del componente.
   - [x] Garantizar caché `precomputedPackedResults` en export y cálculo de materiales.
@@ -260,7 +260,7 @@ Conteo del 2026-10-16. "Colores" cuenta clases `bg-`/`text-`/`border-`/`ring-`/`
   - `TooltipProvider` envuelve la app en `App.tsx`.
   - ESLint: `react-refresh/only-export-components` desactivada solo en `src/components/ui/**` (los componentes de shadcn exportan sus variantes `cva`).
 - [x] `src/components/controls/PrecisionSlider.tsx` sobre el `Slider` de shadcn: misma API que el viejo salvo `accentColor` (todo pasa a `primary`; quitar esa prop al migrar cada uso). Conserva la rueda del mouse (1 % del rango o un paso, lo que sea mayor), etiqueta + valor + unidad y `onChange` con número. Tests en `controls/__tests__/`.
-  - Pendiente de accesibilidad (etapa 6): el `Slider` de shadcn no deja pasar `aria-label` al thumb, así que el slider no tiene nombre accesible (el `<input type="range">` viejo tampoco lo tenía).
+  - Accesibilidad: el `Slider` de shadcn no dejaba pasar `aria-label` al thumb, así que el slider no tenía nombre accesible (el `<input type="range">` viejo tampoco lo tenía). Resuelto en la etapa 6.
 - [x] `src/components/controls/SegmentedControl.tsx` sobre `ToggleGroup` `single`: no se puede deseleccionar, opciones con `value`, `label`, `icon` y `tooltip` opcionales, y el activo en `primary`. Tests en `controls/__tests__/`. Probado en la app en lugar de ADJUST/CROP (cambio revertido; la migración real es la etapa 2).
 - [x] Polyfill de `ResizeObserver` en `vitest.setup.ts` (lo necesita el `Slider`). `hasPointerCapture`/`scrollIntoView` no hicieron falta todavía; agregarlos si `Select` o `DropdownMenu` los piden en los tests.
 - Los componentes que usen `Tooltip` necesitan `TooltipProvider` en sus tests (en la app ya está en `App.tsx`).
@@ -317,14 +317,31 @@ Notas de la etapa 2:
 - [x] `title=`: de 48 quedan 3 atributos reales, todos en las texturas de `PaletteGroup` (a propósito, por rendimiento: un `Tooltip` de Radix por textura es lo que se quiso evitar). El de la altura en `CanvasStatusBar` pasó a `Tooltip` con foco de teclado; el resto se convirtió en `Tooltip` + `aria-label` durante las etapas 2 a 4.
 - Nota de desarrollo: al agregar una dependencia nueva con `vite` corriendo, el caché de dependencias puede quedar con dos copias de React ("Invalid hook call" en `sonner`). Se resuelve reiniciando con `vite --force`; no afecta al build.
 
-### Etapa 6 — Cierre
+### Etapa 6 — Cierre (hecha 2026-10-16)
 
-- [ ] Buscar y eliminar en todo `src/components` y `src/pages`: `text-[Npx]`, colores `zinc-*`/`blue-*`/… salvo los que representen colores reales de Minecraft, y `<button>` sueltos.
-- [ ] Borrar `src/components/legacy/` (debería quedar vacía al terminar las etapas 2 y 5).
-- [ ] Revisar accesibilidad: foco visible en todos los controles, navegación por teclado en el panel, etiquetas en botones de ícono (`aria-label`).
-- [ ] Capturas antes/después de cada pantalla (Edge headless: `msedge --headless=new --window-size=1600,1000 --screenshot=<archivo> <url>` sobre `vite preview`).
-- [ ] Actualizar README (sección de UI) y CHANGELOG.
-- **Aceptación:** `vitest`, tsc, eslint y build en verde; prueba manual de preview 2D/3D, pintura, materiales y exportación; ninguna regresión de rendimiento en la grilla de paleta ni en el canvas.
+- [x] Barrido final en `src/components` (sin `ui/`), `src/pages` y `App.tsx`. Solo quedan las excepciones documentadas:
+  - `text-[10rem]` en el `404` de `NotFound` (titular gigante, no texto chico).
+  - Colores escritos a mano: acentos de marca del logo (`ControlPanel`) y de `About`, `ring-black/20` en las muestras de `BrushSelector` y `text-white/50` en las coordenadas sobre el mapa.
+  - `<button>` nativos y `title=` solo en `PaletteGroup` (encabezado, "Unselect" y texturas), por rendimiento.
+  - `custom-scrollbar` ya no aparece en ningún archivo.
+- [x] `src/components/legacy/` y `src/context/` borradas (quedaron vacías en la etapa 5).
+- [x] Accesibilidad: ningún control sin nombre accesible (revisado con el árbol de accesibilidad en Edge); foco visible al recorrer con Tab. Los sliders no tenían nombre porque el `Slider` de shadcn no pasa `aria-label` al thumb, que es el que tiene `role="slider"`: se editó `ui/slider.tsx` para pasarlo (única edición a un archivo generado; comentario "Local change" en el archivo; revisarla si se regenera con `shadcn add slider --overwrite`).
+- [~] Capturas antes/después: reemplazadas por la prueba manual del usuario (panel, canvas, editor, paleta, materiales, teclado y páginas, todo validado).
+- [x] README (stack de UI y nota para agregar componentes) y CHANGELOG actualizados.
+- **Aceptación cumplida:** `vitest`, tsc, eslint y build en verde; prueba manual de preview 2D/3D, pintura, materiales y exportación. La grilla de paleta tiene la regresión aceptada en la etapa 4 (~10 ms al expandir ~650 texturas); el canvas quedó más rápido (ver abajo).
+
+Hallazgos de la prueba manual, ya resueltos:
+- Pintar en mapas grandes congelaba el navegador ~5 s después de cada trazo, solo en desarrollo. React 19.2 en dev compara las props que cambian para el panel Performance y recorre los arrays tipados elemento por elemento; `MainCanvas` recibía `packedResults` (un elemento por píxel, 1,6 M en 10×10) en cada resultado. Ahora `useMapartWorker` entrega `PixelBuffers` (`src/hooks/pixelBuffers.ts`), que guarda los arrays en campos privados: el resultado pasó de 5128 ms a 57 ms hasta verse en pantalla. En producción no ocurría.
+- Undo/redo perdía los trazos más viejos después de 50 pasos; el botón Redo quedaba deshabilitado después de deshacer. Ver el historial en "P1 — Memoria y rendimiento".
+- `Builder`, `MainCanvas` y las secciones del panel leían el store completo con `useMapart()`, así que cada trazo re-renderizaba la paleta y el panel. Ahora usan `useMapartFields(...)` (selector superficial por campo) y `PaletteSidebar`/`ControlPanel` están memoizados.
+
+### Pendientes después de la migración
+
+- [ ] Rueda del mouse en el canvas: React registra `onWheel` como pasivo, así que el `preventDefault()` de `useCanvasInteraction` se ignora (aviso en consola) y Ctrl + rueda o el pellizco del trackpad también hacen zoom en toda la página. Registrar un listener nativo con `{ passive: false }` sobre el contenedor.
+- [ ] `<Canvas shadows>` en `Mapart3DPreview` pide `PCFSoftShadowMap`, que three 0.184 marca como obsoleto y reemplaza por `PCFShadowMap`. Usar `shadows="percentage"` (mismo resultado, sin aviso).
+- [ ] Aviso `THREE.Clock … deprecated`: viene de `@react-three/fiber` 9.6.1; se va al actualizar R3F.
+- [ ] Orden de foco: los 61 grupos de la paleta van antes que el canvas y el panel. Evaluar un enlace "saltar al panel".
+- [ ] `primary` tiene poco contraste como texto (~2.3:1); decidir si se aclara antes de usar `text-primary`.
 
 ### Notas para retomar
 

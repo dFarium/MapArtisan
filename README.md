@@ -60,7 +60,7 @@ Supports **Minecraft 1.16.0 through 26.2**:
 - **Manual Painting** — Draw directly on the preview to fix individual pixels
 - **Color/Block Picker** — Pick any color from the preview to use as your brush
 - **Brightness Control** — Adjust the brightness level (light/normal/dark)
-- **Undo/Redo** — Full history support
+- **Undo/Redo** — The last 50 strokes, with `Ctrl+Z` / `Ctrl+Y`
 
 > **Note:** Edits are cleared when processing settings (palette, dithering, build mode, etc.) change.
 
@@ -88,6 +88,7 @@ Supports **Minecraft 1.16.0 through 26.2**:
 | Frontend    | React 19, TypeScript, Vite                       |
 | 3D Engine   | Three.js (@react-three/fiber, @react-three/drei) |
 | Styling     | Tailwind CSS 4                                   |
+| UI          | shadcn/ui on Radix primitives, lucide-react, sonner |
 | State       | Zustand                                          |
 | Concurrency | Web Workers via Comlink                          |
 | Compression | pako, jszip                                      |
@@ -112,6 +113,10 @@ npm run test
 # Run performance benchmarks
 npm run bench
 ```
+
+### UI components
+
+The interface is built with [shadcn/ui](https://ui.shadcn.com) in its `mira` style, always in dark mode. Generated components live in `src/components/ui` and are added with `pnpm exec shadcn add <component>`. App-specific controls built on them (sliders, segmented controls, toolbar buttons) live in `src/components/controls`. Colors come from the theme tokens in `src/index.css`.
 
 ### Diagnostics
 
