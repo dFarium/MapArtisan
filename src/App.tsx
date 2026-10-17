@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { ToastProvider } from './components/ui/Toast';
+import { ToastProvider } from '@/components/legacy/Toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Builder = lazy(() => import('./pages/Builder'));
 const About = lazy(() => import('./pages/About'));
@@ -24,7 +25,7 @@ const NotFound = () => (
       <p className="text-zinc-500 mb-10 max-w-sm">The page you're looking for doesn't exist or has been moved.</p>
       <Link
         to="/"
-        className="group inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white !text-white rounded-xl transition-all duration-300 font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 hover:scale-105"
+        className="group inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-xl transition-all duration-300 font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 hover:scale-105"
       >
         <span>←</span> Back to MapArtisan
       </Link>
@@ -35,15 +36,17 @@ const NotFound = () => (
 function App() {
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Builder />} />
-            <Route path="/about" element={<About />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Builder />} />
+              <Route path="/about" element={<About />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
     </ToastProvider>
   );
 }

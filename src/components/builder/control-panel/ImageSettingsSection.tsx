@@ -1,11 +1,11 @@
 import { useMapartStore as useMapart } from '../../../store/useMapartStore';
-import { CollapsibleSection } from '../../ui/CollapsibleSection';
-import { PrecisionSlider } from '../../ui/PrecisionSlider';
+import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
+import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
 import { Crop, Grid3x3, ImageIcon, Maximize, RefreshCw, Sparkles } from 'lucide-react';
-import { Label } from '../../ui/Label';
-import { Input } from '../../ui/Input';
-import { Button } from '../../ui/Button';
-import { cn } from '../../../utils/cn';
+import { Label } from '@/components/legacy/Label';
+import { Input } from '@/components/legacy/Input';
+import { Button } from '@/components/legacy/Button';
+import { cn } from '@/lib/utils';
 import { MAX_MAPS_TOTAL } from '../../../utils/memory';
 
 interface SectionProps {

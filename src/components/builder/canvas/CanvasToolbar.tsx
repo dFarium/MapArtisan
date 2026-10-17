@@ -1,6 +1,6 @@
 import { ZoomIn, ZoomOut, Download, ImageDown, Box, Image as ImageIcon, Trash2 } from 'lucide-react';
 
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import { PixelEditor } from '../PixelEditor';
 
 interface CanvasToolbarProps {
@@ -66,7 +66,7 @@ export const CanvasToolbar = ({
                     <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
                         <button
                             onClick={() => setShowOriginal(!showOriginal)}
-                            className={clsx("p-2 rounded transition-colors flex justify-center", showOriginal ? "bg-zinc-700 text-white ring-1 ring-zinc-500" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200")}
+                            className={cn("p-2 rounded transition-colors flex justify-center", showOriginal ? "bg-zinc-700 text-white ring-1 ring-zinc-500" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200")}
                             title="Toggle Original Image"
                         >
                             <ImageIcon size={16} />
@@ -74,7 +74,7 @@ export const CanvasToolbar = ({
                         <button
                             onClick={onToggle3D}
                             disabled={isPainting}
-                            className={clsx(
+                            className={cn(
                                 "p-2 rounded transition-colors flex justify-center",
                                 is3DMode ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200",
                                 isPainting && "opacity-50 cursor-not-allowed text-zinc-600"
@@ -90,7 +90,7 @@ export const CanvasToolbar = ({
                         <button
                             onClick={onDownloadPreview}
                             disabled={!canDownloadPreview}
-                            className={clsx(
+                            className={cn(
                                 "p-2 rounded transition-colors flex justify-center",
                                 canDownloadPreview ? "hover:bg-blue-900/50 hover:text-blue-400 text-zinc-400 hover:text-zinc-200" : "text-zinc-700 cursor-not-allowed"
                             )}
@@ -102,7 +102,7 @@ export const CanvasToolbar = ({
                         <button
                             onClick={onExport}
                             disabled={!canExport || isExporting}
-                            className={clsx(
+                            className={cn(
                                 "p-2 rounded transition-colors relative flex items-center justify-center",
                                 (canExport && !isExporting)
                                     ? "bg-green-500/10 text-green-400 ring-1 ring-green-500/50 hover:bg-green-500/20 hover:text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.1)]"

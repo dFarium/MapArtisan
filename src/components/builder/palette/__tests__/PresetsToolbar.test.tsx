@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { PresetsToolbar } from '../PresetsToolbar';
-import { ToastProvider } from '../../../ui/Toast';
+import { ToastProvider } from '@/components/legacy/Toast';
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <ToastProvider>{children}</ToastProvider>

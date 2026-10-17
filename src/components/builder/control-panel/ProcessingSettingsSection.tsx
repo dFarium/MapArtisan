@@ -1,12 +1,12 @@
 
 import { useMapartStore as useMapart } from '../../../store/useMapartStore';
-import { CollapsibleSection } from '../../ui/CollapsibleSection';
-import { PrecisionSlider } from '../../ui/PrecisionSlider';
+import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
+import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
 import { Zap, Droplets, Sparkles, Eye } from 'lucide-react';
-import { Checkbox } from '../../ui/Checkbox';
-import { Label } from '../../ui/Label';
-import { Select } from '../../ui/Select';
-import { Button } from '../../ui/Button';
+import { Checkbox } from '@/components/legacy/Checkbox';
+import { Label } from '@/components/legacy/Label';
+import { Select } from '@/components/legacy/Select';
+import { Button } from '@/components/legacy/Button';
 import { isDitheringMode, suggestDitheringMode } from '../../../utils/processing';
 import { SUPPORTED_VERSIONS } from '../../../data/supportedVersions';
 

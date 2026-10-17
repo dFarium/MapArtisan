@@ -175,6 +175,163 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
     - 2048×1024 (16×8, 128 mapas): 308.7 ms
     - 512×512 en 2D: 112.8 ms
 
+## P1 — Revamp de UI con shadcn/ui
+
+Objetivo: controles consistentes, una escala tipográfica legible y colores por tokens en lugar de clases `zinc-*`/`blue-*` escritas a mano. Modo oscuro forzado, sin modo claro.
+
+### Decisiones tomadas
+
+- Preset `b1a1cZZmi` ([abrir en shadcn/create](https://ui.shadcn.com/create?preset=b1a1cZZmi&base=radix)): estilo `mira`, base color `mist`, tema y gráficos `blue`, íconos `lucide`, fuente `inter` (títulos `inherit`), radio `default`, menús `subtle`/`default`.
+- Primitivas Radix (`radix-ui`). Componentes copiados en `src/components/ui` mediante el CLI.
+- Un solo acento primario (azul). Los colores verde, morado y cian que hoy marcan secciones (crop, límite de altura, sliders) pasan a `primary`; los colores quedan reservados para estados (error, advertencia, éxito).
+- Modo oscuro: `class="dark"` en `<html>` de `index.html`. Los tokens claros de `:root` se conservan solo porque es la estructura estándar de shadcn; nunca se aplican.
+- El canvas, el editor de píxeles, la vista 3D y la grilla de texturas de la paleta siguen siendo componentes propios; solo adoptan tokens de color.
+
+### Hecho (2026-10-16)
+
+- [x] Alias de imports `@/` → `src/` en `tsconfig.json`, `tsconfig.app.json`, `vite.config.ts` y `vitest.config.ts`.
+- [x] `pnpm dlx shadcn@latest init --preset b1a1cZZmi --base radix --no-monorepo`: `components.json`, `src/lib/utils.ts`, tokens en `src/index.css`, dependencias `radix-ui`, `class-variance-authority`, `tw-animate-css`, `@fontsource-variable/inter`, `shadcn` (CSS) y `cn` (paquete oficial de shadcn que reemplaza clsx + tailwind-merge).
+- [x] Modo oscuro forzado con `class="dark"` en `<html>`; suite, tsc, eslint y build en verde; captura sin cambios visuales.
+
+### Inventario de partida
+
+Conteo del 2026-10-16. "Colores" cuenta clases `bg-`/`text-`/`border-`/`ring-`/`from-`/`to-`/`shadow-`… con `zinc`, `blue`, `emerald`, `purple`, `cyan`, `red`, `green`, `amber`, `white`, `black` y similares. Ninguno de estos colores representa un color real de Minecraft: todos son de interfaz.
+
+**Componentes de `builder/` y páginas** (rutas relativas a `src/components/` salvo `App.tsx` y `pages/`):
+
+| Archivo | `<button>` | Colores | `text-[Npx]` | `title=` | Etapa | Notas |
+|---|---|---|---|---|---|---|
+| `builder/PixelEditor.tsx` | 11 | 60 | 3 | 12 | 3 | Herramientas del editor |
+| `builder/canvas/CanvasToolbar.tsx` | 7 | 55 | 1 | 7 | 3 | Toolbar principal; importa `clsx` directo; tiene test |
+| `builder/MaterialList.tsx` | 3 | 55 | 0 | 0 | 4 | Modal hecho a mano (`fixed inset-0`) → `Dialog` |
+| `builder/control-panel/ConstructionSettingsSection.tsx` | 5 | 54 | 10 | 1 | 2 | 2 `<input type="radio">`; 2 grupos segmentados |
+| `builder/control-panel/ImageSettingsSection.tsx` | 2 | 48 | 1 | 5 | 2 | 2 grupos segmentados, 7 sliders |
+| `builder/palette/PresetsToolbar.tsx` | 7 | 34 | 0 | 1 | 4 | Tiene test |
+| `builder/palette/PaletteGroup.tsx` | 2 | 24 | 0 | 4 | 4 | Tiene test |
+| `builder/BrushSelector.tsx` | 2 | 21 | 1 | 1 | 3 | Modal hecho a mano con `createPortal` → `Dialog` |
+| `builder/PaletteSidebar.tsx` | 2 | 16 | 0 | 0 | 4 | Buscador propio |
+| `builder/canvas/CanvasStatusBar.tsx` | 0 | 15 | 0 | 1 | 3 | Importa `clsx` directo |
+| `builder/ControlPanel.tsx` | 1 | 13 | 0 | 2 | 2 | Encabezado y botón de copiar configuración |
+| `builder/canvas/ImageUploader.tsx` | 0 | 12 | 0 | 0 | 3 | Importa `twMerge` directo |
+| `builder/control-panel/ProcessingSettingsSection.tsx` | 0 | 11 | 0 | 2 | 2 | Usa `Select`, `Checkbox` y `PrecisionSlider` viejos |
+| `builder/MainCanvas.tsx` | 0 | 10 | 3 | 0 | 3 | |
+| `builder/canvas/InteractionHints.tsx` | 0 | 10 | 0 | 0 | 3 | |
+| `builder/3d/Mapart3DPreview.tsx` | 0 | 8 | 0 | 0 | 3 | Overlay de carga y controles sobre el canvas 3D; tiene tests de memoria y profiling |
+| `pages/About.tsx` | 0 | 64 | 0 | 9 | 5 | |
+| `App.tsx` | 0 | 16 | 0 | 0 | 5 | Fallback de `Suspense` (spinner) y `NotFound` |
+| `pages/Builder.tsx` | 0 | 3 | 0 | 0 | 3 | Contenedor del layout |
+
+**Componentes viejos** (hoy en `src/components/legacy/`; al hacer el inventario estaban en `src/components/ui`):
+
+| Archivo | Usado por | Reemplazo |
+|---|---|---|
+| `Button.tsx` | Construction, Image, Processing | `button` de shadcn |
+| `Input.tsx` | Construction, Image | `input` |
+| `Label.tsx` | Construction, Image, Processing | `label` |
+| `Select.tsx` (`<select>` nativo) | Construction, Processing | `select` |
+| `Checkbox.tsx` (`<input type="checkbox">`) | Processing | `switch` (OKLab) o `checkbox` |
+| `PrecisionSlider.tsx` (`<input type="range">`) | Construction, Image, Processing | Reimplementar sobre `slider` |
+| `CollapsibleSection.tsx` | Construction, Image, Processing | Reimplementar sobre `collapsible` |
+| `Toast.tsx` (+ `ToastContext`) | `App.tsx`, `PresetsToolbar.test.tsx` | `sonner` |
+| `Card.tsx`, `PaletteGroup.tsx`, `PaletteSearch.tsx` | Nadie | Borrar (código muerto) |
+
+**Totales:** 42 `<button>` sueltos en `builder/` (49 contando los de `ui/`) contra 6 usos de `Button`; 77 `text-xs`, 19 `text-[10px]`, 1 `text-[9px]`, 1 `text-[11px]`; 48 `title=`.
+
+**Diálogos nativos:** `prompt('Enter a name for this preset:')` y `confirm('Delete this preset?')` en `src/utils/usePalettePresets.ts`.
+
+**Código muerto:** `src/components/ui/PaletteGroup.tsx`, `src/components/ui/Card.tsx`, `src/components/ui/PaletteSearch.tsx` (sin imports) y `src/App.css` (no se importa).
+
+**Tests de UI que habrá que actualizar:** `CanvasToolbar.test.tsx`, `PresetsToolbar.test.tsx`, `PaletteGroup.test.tsx` y los dos de `Mapart3DPreview` (solo si cambia el overlay).
+
+### Etapa 1 — Fundación
+
+- [x] Unificar `cn`: los 8 imports de `src/utils/cn.ts` y los usos directos de `clsx` (`CanvasStatusBar`, `CanvasToolbar`) y `twMerge` (`ImageUploader`) pasan a `@/lib/utils`. Se borró `src/utils/cn.ts` y se quitaron `clsx` y `tailwind-merge` de `package.json` (`clsx` sigue instalado como dependencia de `class-variance-authority`).
+- [x] Limpiar `src/index.css`: se quitaron de `:root` `font-family`, `line-height`, `font-weight`, `color` y `background-color`, y las reglas globales de `a`, `h1` y `button` de la plantilla de Vite. Esas reglas no estaban en ninguna capa (`@layer`), así que pisaban todas las utilidades de Tailwind: cada `<button>` tenía `padding: 0.6em 1.2em` y fondo `#1a1a1a` sin importar sus clases, y los `<h1>`/`<a>` ignoraban sus tamaños y colores. Efectos visibles: el estado activo de los selectores segmentados (ADJUST/SMOOTH) ahora se ve en azul; los botones usan el padding de sus clases; la fuente pasa a ser Inter Variable (antes caía en la fuente del sistema); el `404` y el título de About usan su tamaño real (`text-[10rem]`, `md:text-8xl`; revisar About en la etapa 5). Se importó `@fontsource-variable/inter/wght-italic.css` porque con `font-synthesis: none` el logo y "PARAMETERS" perdían la itálica. Se quitó el `!text-white` de `NotFound`, que solo existía para ganarle a la regla de `a`.
+- [x] Borrar el código muerto listado arriba.
+- [x] Mover los componentes viejos de `src/components/ui` a `src/components/legacy/` (imports con `@/components/legacy/...`). En Windows `Button.tsx` y `button.tsx` son el mismo archivo, así que el CLI de shadcn los habría pisado; ahora `ui/` contiene solo componentes de shadcn.
+- [x] Definir la escala tipográfica y de controles. Se adopta la densidad del estilo `mira` tal como la genera el CLI (decidido 2026-10-16), sin editar los archivos de `ui/` para que `shadcn apply` siga siendo seguro:
+  - Controles (botones, inputs, selects, toggles, labels): `text-xs` (12 px), altura `h-7` (tamaño `default`). `size="sm"` (`h-6`) solo donde el espacio lo exija; `size="lg"` (`h-8`) para acciones principales como Exportar.
+  - Botones de ícono: `size="icon"` (`size-7`).
+  - Texto secundario y ayudas: `text-xs text-muted-foreground`.
+  - Mínimo 12 px en todo el código propio: eliminar `text-[9px]`, `text-[10px]` y `text-[11px]`. No usar `size="xs"` / `size="icon-xs"` de `Button` ni `size="sm"` de `Toggle` (10 px). `Badge` trae 10 px por defecto: usarlo con `className="text-xs"`.
+  - Títulos de sección: `text-xs font-medium uppercase tracking-wide text-muted-foreground`, en un solo componente.
+- [x] Agregar componentes base con el CLI: `button`, `toggle-group` (+ `toggle`), `select`, `slider`, `switch`, `checkbox`, `radio-group`, `input`, `label`, `tooltip`, `collapsible`, `separator`, `scroll-area`, `sonner`, `dialog`, `alert-dialog`, `dropdown-menu`, `badge`.
+  - `sonner.tsx` usa `theme="dark"` fijo en lugar de `next-themes` (dependencia quitada).
+  - `TooltipProvider` envuelve la app en `App.tsx`.
+  - ESLint: `react-refresh/only-export-components` desactivada solo en `src/components/ui/**` (los componentes de shadcn exportan sus variantes `cva`).
+- [x] `src/components/controls/PrecisionSlider.tsx` sobre el `Slider` de shadcn: misma API que el viejo salvo `accentColor` (todo pasa a `primary`; quitar esa prop al migrar cada uso). Conserva la rueda del mouse (1 % del rango o un paso, lo que sea mayor), etiqueta + valor + unidad y `onChange` con número. Tests en `controls/__tests__/`.
+  - Pendiente de accesibilidad (etapa 6): el `Slider` de shadcn no deja pasar `aria-label` al thumb, así que el slider no tiene nombre accesible (el `<input type="range">` viejo tampoco lo tenía).
+- [x] `src/components/controls/SegmentedControl.tsx` sobre `ToggleGroup` `single`: no se puede deseleccionar, opciones con `value`, `label`, `icon` y `tooltip` opcionales, y el activo en `primary`. Tests en `controls/__tests__/`. Probado en la app en lugar de ADJUST/CROP (cambio revertido; la migración real es la etapa 2).
+- [x] Polyfill de `ResizeObserver` en `vitest.setup.ts` (lo necesita el `Slider`). `hasPointerCapture`/`scrollIntoView` no hicieron falta todavía; agregarlos si `Select` o `DropdownMenu` los piden en los tests.
+- Los componentes que usen `Tooltip` necesitan `TooltipProvider` en sus tests (en la app ya está en `App.tsx`).
+- **Aceptación:** la app se ve igual o mejor que antes, sin textos bajo 12 px en los componentes base, y la suite pasa.
+
+### Etapa 2 — Panel de control
+
+- [ ] `ControlPanel.tsx`: encabezado y botón de copiar configuración con `Button` de ícono + `Tooltip`.
+- [ ] `CollapsibleSection` sobre `Collapsible` de shadcn, conservando el modo controlado (`isOpen`/`onToggle`).
+- [ ] `ImageSettingsSection`:
+  - [ ] Maps X/Y con `Input` numérico + `Label`.
+  - [ ] Estimación de memoria con tokens (`muted`, colores de estado para el riesgo).
+  - [ ] ADJUST/CROP y SMOOTH/SHARP con `SegmentedControl`; la ayuda bajo SMOOTH/SHARP en `text-xs text-muted-foreground`.
+  - [ ] Sliders de crop y de color con el nuevo `PrecisionSlider`; botón de reset con `Button` de ícono + `Tooltip`.
+- [ ] `ProcessingSettingsSection`:
+  - [ ] Dithering con `Select` de shadcn (agrupar: Smart V2/V1, difusión clásica, Bayer, sin dithering).
+  - [ ] Botón Auto como `Button` `variant="ghost"` `size="sm"`.
+  - [ ] Toggle OKLab con `Switch`.
+  - [ ] Slider de fuerza y texto de ayuda.
+- [ ] `ConstructionSettingsSection`:
+  - [ ] Build Mode (hoy radios hechos a mano) con `SegmentedControl` o `RadioGroup`.
+  - [ ] "Limit build height" con `Switch`; slider de bloques; estilos Lines/Balanced/Noise con `SegmentedControl` y ayuda.
+  - [ ] Block Support con `Select`; Support Block ID con `Input` + `Button`.
+  - [ ] File Format y File Layout con `SegmentedControl`.
+  - [ ] 3D Preview Area con `Select`.
+- **Aceptación:** ningún `<button>`, `<select>`, `<input type="range|checkbox|radio">` suelto en `control-panel/`; cero `text-[Npx]`; cero `zinc-*`/`blue-*`/`emerald-*`/`purple-*`/`cyan-*` en esos archivos.
+
+### Etapa 3 — Canvas, toolbar y barra de estado
+
+- [ ] `CanvasToolbar`: botones de ícono con `Tooltip`, separadores con `Separator`, modo 2D/3D con `SegmentedControl`, exportar como `Button` primario con estado de carga. Actualizar `CanvasToolbar.test.tsx`.
+- [ ] `CanvasStatusBar`: tokens (`bg-popover`, `border`, `text-muted-foreground`); altura en rojo con `text-destructive`; quitar `clsx` directo.
+- [ ] `ImageUploader` e `InteractionHints`: tokens y escala.
+- [ ] `MainCanvas.tsx`: los 3 `text-[Npx]` y colores restantes.
+- [ ] `Mapart3DPreview` (overlay de carga y controles) y `pages/Builder.tsx`: tokens.
+- [ ] `PixelEditor` y `BrushSelector`: herramientas con `ToggleGroup`, acciones con `Button`, colores por tokens (el editor en sí sigue siendo propio).
+- **Aceptación:** mismos criterios que la etapa 2 en `canvas/`, `PixelEditor.tsx` y `BrushSelector.tsx`.
+
+### Etapa 4 — Paleta y materiales
+
+- [ ] `PaletteSidebar`: buscador con `Input` + ícono, lista con `ScrollArea`, botón de colapsar con `Tooltip`.
+- [ ] `PresetsToolbar`: acciones con `Button`; menús con `DropdownMenu` si aplica. Actualizar `PresetsToolbar.test.tsx`.
+- [ ] `PaletteGroup` (builder): cabecera y selector de bloque con tokens; mantener el rendimiento de la grilla de texturas (no envolver cada textura en componentes Radix). Actualizar `PaletteGroup.test.tsx`.
+- [ ] `MaterialList`: tabla o lista con tokens, `Badge` para cantidades, acciones con `Button`.
+- **Aceptación:** mismos criterios; abrir y filtrar una paleta completa no se vuelve más lento (medir antes y después).
+
+### Etapa 5 — Notificaciones, diálogos y páginas
+
+- [ ] Reemplazar `ui/Toast.tsx` + `ToastContext` por `sonner` manteniendo la API `showToast(message, type, duration)` para no tocar a los llamadores; luego evaluar llamar `toast()` directo.
+- [ ] Reemplazar los diálogos nativos de `src/utils/usePalettePresets.ts`: `confirm('Delete this preset?')` por `AlertDialog` y `prompt('Enter a name for this preset:')` por un `Dialog` con `Input`.
+- [ ] Modales hechos a mano a `Dialog`: `BrushSelector` (portal propio) y `MaterialList` (`fixed inset-0`). Si conviene, adelantarlos a las etapas 3 y 4 junto con el resto de cada archivo.
+- [ ] `pages/About.tsx` y `NotFound` (definido dentro de `src/App.tsx`): tokens y escala.
+- [ ] Revisar los 48 atributos `title=` y convertir en `Tooltip` los que describen controles importantes.
+
+### Etapa 6 — Cierre
+
+- [ ] Buscar y eliminar en todo `src/components` y `src/pages`: `text-[Npx]`, colores `zinc-*`/`blue-*`/… salvo los que representen colores reales de Minecraft, y `<button>` sueltos.
+- [ ] Borrar `src/components/legacy/` (debería quedar vacía al terminar las etapas 2 y 5).
+- [ ] Revisar accesibilidad: foco visible en todos los controles, navegación por teclado en el panel, etiquetas en botones de ícono (`aria-label`).
+- [ ] Capturas antes/después de cada pantalla (Edge headless: `msedge --headless=new --window-size=1600,1000 --screenshot=<archivo> <url>` sobre `vite preview`).
+- [ ] Actualizar README (sección de UI) y CHANGELOG.
+- **Aceptación:** `vitest`, tsc, eslint y build en verde; prueba manual de preview 2D/3D, pintura, materiales y exportación; ninguna regresión de rendimiento en la grilla de paleta ni en el canvas.
+
+### Notas para retomar
+
+- Comando para agregar componentes: `pnpm exec shadcn add <componente>` (usa la versión local del paquete `shadcn`).
+- Los componentes generados importan `cn` desde el paquete `cn`; el código propio lo importa desde `@/lib/utils`, que lo reexporta. Son la misma función.
+- Si se mueve la carpeta del proyecto, los symlinks de `node_modules` de pnpm quedan apuntando a la ruta vieja: borrar `node_modules` y correr `pnpm install`.
+- `components.json` usa `@/components/ui` para los componentes y `@/lib/utils` para `cn`.
+- Cambiar el preset más adelante: `pnpm dlx shadcn@latest apply <código>`; ver el actual con `pnpm dlx shadcn@latest preset resolve`.
+- Los tokens oscuros están en el bloque `.dark` de `src/index.css`; para ajustar un color, editar ahí.
+
 ## Archivado — Motor Rust/WASM (retirado 2026-10-16)
 
 El motor Rust/WASM (`rust/processing-core`, `rust/processing-wasm`, `src/wasm/`, `WasmEngine`) se retiró de la aplicación. Su último estado queda en el tag local `rust-engine-final` (commit `6f168ac`), con paridad exacta frente a TypeScript en los 616 fixtures dorados, incluido el límite de altura.

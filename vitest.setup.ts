@@ -6,3 +6,12 @@ const canvas = createCanvas(1, 1);
 const ctx = canvas.getContext('2d');
 global.ImageData = ctx.createImageData(1, 1).constructor as unknown as typeof ImageData;
 
+// jsdom lacks ResizeObserver, which Radix uses to measure sliders and popovers.
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+    window.ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    };
+}
+

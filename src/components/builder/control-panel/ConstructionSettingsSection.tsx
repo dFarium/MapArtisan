@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useMapartStore as useMapart, type BlockSupport } from '../../../store/useMapartStore';
 import type { BuildMode } from '../../../types/mapart';
 import { HEIGHT_LIMIT_STYLES, type HeightLimitStyle } from '../../../utils/processing';
-import { CollapsibleSection } from '../../ui/CollapsibleSection';
-import { PrecisionSlider } from '../../ui/PrecisionSlider';
+import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
+import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
 import { Hammer, Layers, Box } from 'lucide-react';
-import { Label } from '../../ui/Label';
-import { Select } from '../../ui/Select';
-import { Button } from '../../ui/Button';
-import { Input } from '../../ui/Input';
-import { cn } from '../../../utils/cn';
+import { Label } from '@/components/legacy/Label';
+import { Select } from '@/components/legacy/Select';
+import { Button } from '@/components/legacy/Button';
+import { Input } from '@/components/legacy/Input';
+import { cn } from '@/lib/utils';
 
 interface SectionProps {
     isOpen?: boolean;

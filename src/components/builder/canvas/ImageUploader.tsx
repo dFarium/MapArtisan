@@ -1,7 +1,7 @@
 import { Upload } from 'lucide-react';
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 
 interface ImageUploaderProps {
     onUpload: (file: File) => void;
@@ -31,7 +31,7 @@ export const ImageUploader = ({ onUpload, gridDimensions, mapartResolution }: Im
         <div className="flex-1 flex items-center justify-center p-8">
             <div
                 {...getRootProps()}
-                className={twMerge(
+                className={cn(
                     "w-full max-w-2xl aspect-square max-h-[600px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all",
                     isDragActive
                         ? "border-blue-500 bg-blue-500/10 scale-[1.02]"

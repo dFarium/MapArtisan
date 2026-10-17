@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
-import { ToastContext, type Toast } from '../../context/ToastContext';
+import { ToastContext, type Toast } from '@/context/ToastContext';
 
 
 export const ToastProvider = ({ children }: { children: ReactNode }) => {

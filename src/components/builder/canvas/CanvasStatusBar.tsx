@@ -1,4 +1,4 @@
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import type { GridDimensions } from '../../../store/useMapartStore';
 import type { MapartStats } from '../../../types/mapart';
 
@@ -55,7 +55,7 @@ export const CanvasStatusBar = ({ mapartResolution, gridDimensions, mapartStats,
                     <div className="flex items-center gap-2">
                         <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Height</span>
                         <span
-                            className={clsx("font-mono font-bold text-xs", overLimit ? "text-red-400" : "text-emerald-400")}
+                            className={cn("font-mono font-bold text-xs", overLimit ? "text-red-400" : "text-emerald-400")}
                             title={heightLimit > 0 && height > heightLimit
                                 ? "Manual edits push this column over the height limit"
                                 : "Tallest column, including its north reference block"}
