@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { PresetsToolbar } from '../PresetsToolbar';
-import { ToastProvider } from '@/components/legacy/Toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
-    <ToastProvider>{children}</ToastProvider>
+    <TooltipProvider>{children}</TooltipProvider>
 );
 
 describe('PresetsToolbar', () => {

@@ -17,7 +17,7 @@ describe('PrecisionSlider', () => {
                 {...props}
             />
         );
-        return { onChange, slider: screen.getByRole('slider') };
+        return { onChange, slider: screen.getByRole('slider', { name: 'Saturation' }) };
     };
 
     it('shows the label, value and unit', () => {

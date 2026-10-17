@@ -48,10 +48,8 @@ describe('usePalettePresets', () => {
     it('should save a new preset', () => {
         const { result } = renderHook(() => usePalettePresets(mockSelection, setSelectedPaletteItems));
 
-        vi.spyOn(window, 'prompt').mockReturnValue('My Preset');
-
         act(() => {
-            result.current.saveCurrentAsPreset();
+            result.current.saveCurrentAsPreset('  My Preset  ');
         });
 
         expect(result.current.customPresets).toHaveLength(1);
@@ -60,13 +58,21 @@ describe('usePalettePresets', () => {
         expect(localStorage.getItem('mapart_custom_presets')).toContain('My Preset');
     });
 
+    it('should ignore a blank preset name', () => {
+        const { result } = renderHook(() => usePalettePresets(mockSelection, setSelectedPaletteItems));
+
+        act(() => {
+            result.current.saveCurrentAsPreset('   ');
+        });
+
+        expect(result.current.customPresets).toEqual([]);
+    });
+
     it('should delete a preset', () => {
         // Setup initial state with one preset
         localStorage.setItem('mapart_custom_presets', JSON.stringify([{ name: 'Test', selection: mockSelection }]));
 
         const { result } = renderHook(() => usePalettePresets(mockSelection, setSelectedPaletteItems));
-
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
 
         act(() => {
             result.current.deletePreset(0);

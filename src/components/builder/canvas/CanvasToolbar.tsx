@@ -1,6 +1,7 @@
-import { ZoomIn, ZoomOut, Download, ImageDown, Box, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Download, ImageDown, Box, Image as ImageIcon, Trash2, Loader2 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
+import { ToolbarButton } from '@/components/controls/ToolbarButton';
+import { Separator } from '@/components/ui/separator';
 import { PixelEditor } from '../PixelEditor';
 
 interface CanvasToolbarProps {
@@ -22,6 +23,8 @@ interface CanvasToolbarProps {
     exportFormat: 'litematic' | 'nbt';
 }
 
+const panelClass = 'flex w-11 flex-col items-center gap-1 rounded-lg border bg-popover p-1.5 shadow-lg';
+
 export const CanvasToolbar = ({
     scale,
     setScale,
@@ -42,100 +45,80 @@ export const CanvasToolbar = ({
     return (
         <>
             {/* LEFT SIDEBAR - Pixel Editor */}
-            <div className="absolute top-1/2 left-4 -translate-y-1/2 z-20 flex flex-col gap-4">
-                <div className="flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg">
+            <div className="absolute top-1/2 left-4 -translate-y-1/2 z-20">
+                <div className={panelClass}>
                     <PixelEditor disabled={is3DMode} />
                 </div>
             </div>
 
             {/* RIGHT SIDEBAR - Basic Controls */}
-            <div className="absolute top-1/2 right-4 -translate-y-1/2 z-20 flex flex-col gap-4">
-                <div className="flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg">
-                    {/* Zoom Controls */}
-                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
-                        <button onClick={() => setScale(s => Math.min(5, s + 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors flex justify-center" title="Zoom In">
-                            <ZoomIn size={16} />
-                        </button>
-                        <span className="text-[10px] w-8 text-center font-mono text-zinc-500 py-1 border-y border-zinc-800/50">{Math.round(scale * 100)}%</span>
-                        <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors flex justify-center" title="Zoom Out">
-                            <ZoomOut size={16} />
-                        </button>
-                    </div>
+            <div className="absolute top-1/2 right-4 -translate-y-1/2 z-20">
+                <div className={panelClass}>
+                    <ToolbarButton label="Zoom In" tooltipSide="left" onClick={() => setScale(s => Math.min(5, s + 0.1))}>
+                        <ZoomIn />
+                    </ToolbarButton>
+                    <span className="py-0.5 text-center font-mono text-xs text-muted-foreground">{Math.round(scale * 100)}%</span>
+                    <ToolbarButton label="Zoom Out" tooltipSide="left" onClick={() => setScale(s => Math.max(0.1, s - 0.1))}>
+                        <ZoomOut />
+                    </ToolbarButton>
 
-                    {/* View Controls */}
-                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
-                        <button
-                            onClick={() => setShowOriginal(!showOriginal)}
-                            className={cn("p-2 rounded transition-colors flex justify-center", showOriginal ? "bg-zinc-700 text-white ring-1 ring-zinc-500" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200")}
-                            title="Toggle Original Image"
-                        >
-                            <ImageIcon size={16} />
-                        </button>
-                        <button
-                            onClick={onToggle3D}
-                            disabled={isPainting}
-                            className={cn(
-                                "p-2 rounded transition-colors flex justify-center",
-                                is3DMode ? "bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200",
-                                isPainting && "opacity-50 cursor-not-allowed text-zinc-600"
-                            )}
-                            title={isPainting ? "Close Pixel Editor first" : "Toggle 3D View"}
-                        >
-                            <Box size={16} />
-                        </button>
-                    </div>
+                    <Separator className="my-1" />
 
-                    {/* Actions */}
-                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1">
-                        <button
-                            onClick={onDownloadPreview}
-                            disabled={!canDownloadPreview}
-                            className={cn(
-                                "p-2 rounded transition-colors flex justify-center",
-                                canDownloadPreview ? "hover:bg-blue-900/50 hover:text-blue-400 text-zinc-400 hover:text-zinc-200" : "text-zinc-700 cursor-not-allowed"
-                            )}
-                            title="Download Preview as PNG"
-                        >
-                            <ImageDown size={16} />
-                        </button>
+                    <ToolbarButton
+                        label="Toggle Original Image"
+                        tooltipSide="left"
+                        pressed={showOriginal}
+                        onClick={() => setShowOriginal(!showOriginal)}
+                    >
+                        <ImageIcon />
+                    </ToolbarButton>
+                    <ToolbarButton
+                        label="Toggle 3D View"
+                        tooltip={isPainting ? "Close Pixel Editor first" : undefined}
+                        tooltipSide="left"
+                        pressed={is3DMode}
+                        onClick={onToggle3D}
+                        disabled={isPainting}
+                    >
+                        <Box />
+                    </ToolbarButton>
 
-                        <button
-                            onClick={onExport}
-                            disabled={!canExport || isExporting}
-                            className={cn(
-                                "p-2 rounded transition-colors relative flex items-center justify-center",
-                                (canExport && !isExporting)
-                                    ? "bg-green-500/10 text-green-400 ring-1 ring-green-500/50 hover:bg-green-500/20 hover:text-green-300 shadow-[0_0_10px_rgba(34,197,94,0.1)]"
-                                    : "text-zinc-700 cursor-not-allowed"
-                            )}
-                            title={exportFormat === 'nbt' ? "Download Vanilla NBT Schematic" : "Download Litematica Schematic"}
-                        >
-                            {isExporting ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-500 border-t-transparent"></div>
-                            ) : (
-                                <Download size={16} />
-                            )}
-                        </button>
-                    </div>
+                    <Separator className="my-1" />
 
-                    {/* Discard Button (Moved to bottom of Right Sidebar) */}
-                    <div className="flex flex-col items-center bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 mt-2 pt-2 border-t border-zinc-800">
-                        <button
-                            onClick={onClearImage}
-                            className="p-2 bg-zinc-900 border border-red-500/20 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded shadow-sm transition-colors flex items-center justify-center"
-                            title="Discard Image"
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
+                    <ToolbarButton
+                        label="Download Preview as PNG"
+                        tooltipSide="left"
+                        onClick={onDownloadPreview}
+                        disabled={!canDownloadPreview}
+                    >
+                        <ImageDown />
+                    </ToolbarButton>
+                    <ToolbarButton
+                        label={exportFormat === 'nbt' ? "Download Vanilla NBT Schematic" : "Download Litematica Schematic"}
+                        tooltipSide="left"
+                        variant="default"
+                        onClick={onExport}
+                        disabled={!canExport || isExporting}
+                        aria-busy={isExporting}
+                    >
+                        {isExporting ? <Loader2 className="animate-spin" /> : <Download />}
+                    </ToolbarButton>
 
+                    <Separator className="my-1" />
+
+                    <ToolbarButton label="Discard Image" tooltipSide="left" variant="destructive" onClick={onClearImage}>
+                        <Trash2 />
+                    </ToolbarButton>
                 </div>
             </div>
 
             {isProcessing && (
-                <div className="absolute top-20 right-4 z-30 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-500/30 flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-500 border-t-transparent"></div>
-                    <span className="text-yellow-500 text-xs font-medium">Processing...</span>
+                <div
+                    role="status"
+                    className="absolute top-20 right-4 z-30 flex items-center gap-2 rounded-full border border-warning/30 bg-popover/90 px-3 py-1.5 shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-2 duration-200"
+                >
+                    <Loader2 className="size-3 animate-spin text-warning" />
+                    <span className="text-xs font-medium text-warning">Processing...</span>
                 </div>
             )}
         </>

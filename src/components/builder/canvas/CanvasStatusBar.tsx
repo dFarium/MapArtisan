@@ -1,4 +1,6 @@
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { GridDimensions } from '../../../store/useMapartStore';
 import type { MapartStats } from '../../../types/mapart';
 
@@ -29,39 +31,46 @@ export const CanvasStatusBar = ({ mapartResolution, gridDimensions, mapartStats,
     const overLimit = height > 384 || (heightLimit > 0 && height > heightLimit);
 
     return (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-zinc-900/90 backdrop-blur-md px-4 py-2 rounded-full border border-zinc-700 text-xs text-zinc-400 flex items-center gap-4 shadow-xl whitespace-nowrap">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-popover/90 backdrop-blur-md px-4 py-2 rounded-full border text-xs text-muted-foreground flex items-center gap-4 shadow-xl whitespace-nowrap">
             <div className="flex items-center gap-2">
-                <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Target</span>
-                <span className="text-zinc-200 font-mono font-bold text-xs">{mapartResolution.width} × {mapartResolution.height}</span>
+                <span className="font-bold uppercase tracking-wider">Target</span>
+                <span className="text-foreground font-mono font-bold">{mapartResolution.width} × {mapartResolution.height}</span>
             </div>
 
-            <div className="w-px h-3 bg-zinc-700" />
+            <Separator orientation="vertical" className="h-3" />
 
             <div className="flex items-center gap-2">
-                <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Aspect</span>
-                <span className="text-zinc-300 font-mono text-xs">{(mapartResolution.width / mapartResolution.height).toFixed(2)}</span>
+                <span className="font-bold uppercase tracking-wider">Aspect</span>
+                <span className="text-foreground font-mono">{(mapartResolution.width / mapartResolution.height).toFixed(2)}</span>
             </div>
 
-            <div className="w-px h-3 bg-zinc-700" />
+            <Separator orientation="vertical" className="h-3" />
 
             <div className="flex items-center gap-2">
-                <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Grid</span>
-                <span className="text-zinc-300 font-mono text-xs">{gridDimensions.x} × {gridDimensions.y}</span>
+                <span className="font-bold uppercase tracking-wider">Grid</span>
+                <span className="text-foreground font-mono">{gridDimensions.x} × {gridDimensions.y}</span>
             </div>
 
             {mapartStats && (
                 <>
-                    <div className="w-px h-3 bg-zinc-700" />
+                    <Separator orientation="vertical" className="h-3" />
                     <div className="flex items-center gap-2">
-                        <span className="text-zinc-500 font-bold uppercase tracking-wider text-xs">Height</span>
-                        <span
-                            className={cn("font-mono font-bold text-xs", overLimit ? "text-red-400" : "text-emerald-400")}
-                            title={heightLimit > 0 && height > heightLimit
-                                ? "Manual edits push this column over the height limit"
-                                : "Tallest column, including its north reference block"}
-                        >
-                            {height}{heightLimit > 0 ? ` / ${heightLimit}` : ''} blocks
-                        </span>
+                        <span className="font-bold uppercase tracking-wider">Height</span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span
+                                    tabIndex={0}
+                                    className={cn("rounded-sm font-mono font-bold outline-none focus-visible:ring-2 focus-visible:ring-ring/30", overLimit ? "text-destructive" : "text-success")}
+                                >
+                                    {height}{heightLimit > 0 ? ` / ${heightLimit}` : ''} blocks
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                                {heightLimit > 0 && height > heightLimit
+                                    ? "Manual edits push this column over the height limit"
+                                    : "Tallest column, including its north reference block"}
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 </>
             )}

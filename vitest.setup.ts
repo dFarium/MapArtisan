@@ -15,3 +15,11 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
     };
 }
 
+// Radix Select scrolls the selected item into view and captures the pointer;
+// jsdom implements neither.
+if (typeof Element !== 'undefined') {
+    Element.prototype.scrollIntoView ??= function () {};
+    Element.prototype.hasPointerCapture ??= function () { return false; };
+    Element.prototype.releasePointerCapture ??= function () {};
+}
+

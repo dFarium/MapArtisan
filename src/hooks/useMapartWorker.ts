@@ -8,11 +8,12 @@ import { useProcessingPipeline } from './useProcessingPipeline';
 import { useExportPipeline } from './useExportPipeline';
 import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
+import { PixelBuffers } from './pixelBuffers';
 import type { ProcessingParams, ProcessingResult } from './types';
 import type { ResamplingMode } from '../utils/processing';
 import { clearTextureCache } from '../components/builder/3d/textureAtlas';
 import { SOFT_LIMIT_MAPS } from '../utils/memory';
-import { useToast } from '../context/ToastContext';
+import { showToast } from '@/lib/toast';
 
 export interface UseMapartWorkerProps extends ProcessingParams {
     uploadedImage: File | null;
@@ -70,7 +71,6 @@ export const useMapartWorker = ({
     exportFormat,
 }: UseMapartWorkerProps) => {
     const { workerApiRef, isProcessingRef, workerImageVersionRef } = useWorkerManager();
-    const { showToast } = useToast();
     const warnedRef = useRef(false);
 
     const {
@@ -141,6 +141,11 @@ export const useMapartWorker = ({
         onStatsUpdate: handleStatsUpdate,
     });
 
+    const pixelBuffers = useMemo(
+        () => (packedResults ? new PixelBuffers(packedResults, heightPath) : null),
+        [packedResults, heightPath]
+    );
+
     const hasSelection = useMemo(
         () => Object.values(selectedPaletteItems).some(value => value !== null),
         [selectedPaletteItems]
@@ -158,7 +163,7 @@ export const useMapartWorker = ({
         } else if (totalMaps <= SOFT_LIMIT_MAPS) {
             warnedRef.current = false;
         }
-    }, [gridDimensions.x, gridDimensions.y, showToast]);
+    }, [gridDimensions.x, gridDimensions.y]);
 
     // A new source identity or resolution invalidates every result derived from
     // the previous image immediately, before the next decode/process completes.
@@ -237,8 +242,7 @@ export const useMapartWorker = ({
         isExporting,
         sourcePreviewImageData,
         previewImageData,
-        packedResults,
-        heightPath,
+        pixelBuffers,
         mapartResolution,
         exportMapart,
         calculateMaterials,

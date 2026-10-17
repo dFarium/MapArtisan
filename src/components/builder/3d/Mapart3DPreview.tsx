@@ -2,7 +2,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid } from '@react-three/drei';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
-import { Move, ZoomIn, Rotate3D, type LucideIcon } from 'lucide-react';
+import { Move, ZoomIn, Rotate3D } from 'lucide-react';
+import { HintBar, type Hint } from '../canvas/HintBar';
 import type { Build3DGeometryProps } from '../../../utils/geometry/build3DGeometry';
 import { getNextInstanceCapacity } from './instanceCapacity';
 import paletteData from '../../../data/palette.json';
@@ -10,6 +11,7 @@ import { type PaletteData, type PreviewSection } from '../../../types/mapart';
 import { getValidColors } from '../../../utils/processing';
 import { useMapartStore } from '../../../store/useMapartStore';
 import { LatestWinsQueue } from '../../../hooks/latestWinsQueue';
+import type { PixelBuffers } from '../../../hooks/pixelBuffers';
 import { loadTextureAtlas } from './textureAtlas';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,9 +30,8 @@ interface WorkerGeometry {
 
 interface Mapart3DPreviewProps {
     imageData: ImageData | null;
-    packedResults?: Uint32Array | null;
-    /** Precomputed column-major height path from processMapart, passed straight to the worker */
-    heightPath?: Int32Array | null;
+    /** Packed pixels and precomputed height path, passed straight to the worker */
+    pixelBuffers?: PixelBuffers | null;
     stats?: { minHeight: number; maxHeight: number };
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
@@ -41,21 +42,11 @@ interface Mapart3DPreviewProps {
     build3DGeometryAsync: (props: Build3DGeometryProps) => Promise<WorkerGeometry | null>;
 }
 
-interface HintItemProps {
-    icon: LucideIcon;
-    label: string;
-    bind: string;
-}
-
-// ── Small UI components ───────────────────────────────────────────────────────
-
-const HintItem = ({ icon: Icon, label, bind }: HintItemProps) => (
-    <div className="flex items-center gap-1.5">
-        <Icon size={14} className="text-zinc-400" />
-        <span className="text-zinc-300">{label}:</span>
-        <span className="text-white font-semibold">{bind}</span>
-    </div>
-);
+const PREVIEW_HINTS: Hint[] = [
+    { icon: Rotate3D, label: 'Rotate', bind: 'LMB' },
+    { icon: Move, label: 'Pan', bind: 'RMB' },
+    { icon: ZoomIn, label: 'Zoom', bind: 'Wheel' },
+];
 
 const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
     if (node?.material) {
@@ -74,8 +65,7 @@ const applyGridOffset = (factor: number) => (node: THREE.Mesh) => {
 
 export const Mapart3DPreview = ({
     imageData,
-    packedResults,
-    heightPath,
+    pixelBuffers,
     blockSupport,
     supportBlockId,
     exportMode,
@@ -86,7 +76,7 @@ export const Mapart3DPreview = ({
     if (!imageData) return null;
 
     return (
-        <div className="w-full h-full bg-zinc-900 relative">
+        <div className="w-full h-full bg-card relative">
             <Canvas
                 shadows
                 dpr={[1, 1.5]}
@@ -105,8 +95,7 @@ export const Mapart3DPreview = ({
 
                 <MapartMesh
                     imageData={imageData}
-                    packedResults={packedResults}
-                    heightPath={heightPath}
+                    pixelBuffers={pixelBuffers}
                     blockSupport={blockSupport}
                     supportBlockId={supportBlockId}
                     exportMode={exportMode}
@@ -146,15 +135,7 @@ export const Mapart3DPreview = ({
                 />
             </Canvas>
 
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-xs px-3 py-2 rounded-full backdrop-blur-md pointer-events-none select-none z-30 font-sans tracking-wide transition-all duration-300 border border-white/10 shadow-xl">
-                <div className="flex items-center gap-4">
-                    <HintItem icon={Rotate3D} label="Rotate" bind="LMB" />
-                    <div className="w-px h-3 bg-white/20" />
-                    <HintItem icon={Move} label="Pan" bind="RMB" />
-                    <div className="w-px h-3 bg-white/20" />
-                    <HintItem icon={ZoomIn} label="Zoom" bind="Wheel" />
-                </div>
-            </div>
+            <HintBar hints={PREVIEW_HINTS} />
         </div>
     );
 };
@@ -163,8 +144,7 @@ export const Mapart3DPreview = ({
 
 const MapartMesh = ({
     imageData,
-    packedResults,
-    heightPath,
+    pixelBuffers,
     blockSupport,
     supportBlockId,
     exportMode,
@@ -173,8 +153,7 @@ const MapartMesh = ({
     build3DGeometryAsync,
 }: {
     imageData: ImageData;
-    packedResults?: Uint32Array | null;
-    heightPath?: Int32Array | null;
+    pixelBuffers?: PixelBuffers | null;
     blockSupport: 'all' | 'needed' | 'gravity';
     supportBlockId?: string;
     exportMode?: 'full' | 'sections';
@@ -233,7 +212,7 @@ const MapartMesh = ({
 
             const result = await build3DGeometryAsync({
                 imageData,
-                packedResults: packedResults ?? new Uint32Array(0),
+                packedResults: pixelBuffers?.packedResults ?? new Uint32Array(0),
                 blockSupport,
                 supportColor,
                 exportMode,
@@ -241,7 +220,7 @@ const MapartMesh = ({
                 previewSection,
                 candidateBlocks,
                 supportBlockId,
-                precomputedHeightPath: heightPath ?? null,
+                precomputedHeightPath: pixelBuffers?.heightPath ?? null,
             });
 
             if (!active || reqId !== requestIdRef.current) return;
@@ -252,7 +231,7 @@ const MapartMesh = ({
             active = false;
         };
     }, [
-        imageData, packedResults, heightPath, blockSupport, supportColor,
+        imageData, pixelBuffers, blockSupport, supportColor,
         exportMode, independentMaps, previewSection,
         candidateBlocks, supportBlockId, build3DGeometryAsync, geometryQueue
     ]);

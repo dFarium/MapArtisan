@@ -7,6 +7,19 @@ import { usePalettePresets } from '../../utils/usePalettePresets';
 import { PresetsToolbar } from './palette/PresetsToolbar';
 import { PaletteGroup } from './palette/PaletteGroup';
 import { filterPaletteByVersion } from '../../utils/filterPaletteByVersion';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Input } from '@/components/ui/input';
+
+const IconButton = ({ label, className, ...props }: React.ComponentProps<typeof Button> & { label: string }) => (
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={label} className={cn('text-muted-foreground', className)} {...props} />
+        </TooltipTrigger>
+        <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+);
 
 export const PaletteSidebar = () => {
     const paletteVersion = useMapart(s => s.paletteVersion);
@@ -81,32 +94,26 @@ export const PaletteSidebar = () => {
 
     return (
         <div
-            className="h-full bg-zinc-900 border-r border-zinc-700 flex flex-col relative transition-all duration-75 select-none"
+            className="h-full bg-card border-r flex flex-col relative transition-all duration-75 select-none"
             style={{ width: isOpen ? 350 : 'auto' }}
         >
             {/* Toggle Button (Collapsed) */}
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="p-4 hover:bg-zinc-800 text-zinc-400 transition-colors"
-                >
-                    <ChevronRight size={20} />
-                </button>
+                <IconButton label="Expand palette" onClick={() => setIsOpen(true)} className="m-2">
+                    <ChevronRight />
+                </IconButton>
             )}
 
             {/* Header */}
             {isOpen && (
-                <div className="p-4 border-b border-zinc-800 flex flex-col gap-3">
+                <div className="p-4 border-b flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold text-zinc-100 flex items-center gap-2">
-                            Palette <span className="text-xs font-normal text-zinc-500">v{paletteVersion}</span>
+                        <h2 className="font-semibold text-foreground flex items-center gap-2">
+                            Palette <span className="text-xs font-normal text-muted-foreground">v{paletteVersion}</span>
                         </h2>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="p-1 hover:bg-zinc-800 rounded text-zinc-400"
-                        >
-                            <ChevronLeft size={18} />
-                        </button>
+                        <IconButton label="Collapse palette" onClick={() => setIsOpen(false)}>
+                            <ChevronLeft />
+                        </IconButton>
                     </div>
 
                     {/* Presets Toolbar */}
@@ -117,13 +124,14 @@ export const PaletteSidebar = () => {
 
                     {/* Search */}
                     <div className="relative">
-                        <Search className="absolute left-2 top-2.5 text-zinc-500" size={14} />
-                        <input
-                            type="text"
+                        <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="search"
+                            aria-label="Search blocks"
                             placeholder="Search blocks..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded px-8 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-500 placeholder:text-zinc-600"
+                            className="h-8 pl-7"
                         />
                     </div>
                 </div>
@@ -131,23 +139,27 @@ export const PaletteSidebar = () => {
 
             {/* Content List */}
             {isOpen && (
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                    {filteredPalette.map((color) => (
-                        <PaletteGroup
-                            key={color.colorID}
-                            color={color}
-                            isExpanded={!!allExpandedGroups[color.colorID]}
-                            selectedBlock={selectedPaletteItems[color.colorID]}
-                            onToggleGroup={toggleGroup}
-                            onToggleBlock={toggleBlockSelection}
-                        />
-                    ))}
+                // Plain overflow instead of ScrollArea: a search can expand every group
+                // (hundreds of textures) and this list is kept as light as possible.
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                    <div className="p-2 space-y-1">
+                        {filteredPalette.map((color) => (
+                            <PaletteGroup
+                                key={color.colorID}
+                                color={color}
+                                isExpanded={!!allExpandedGroups[color.colorID]}
+                                selectedBlock={selectedPaletteItems[color.colorID]}
+                                onToggleGroup={toggleGroup}
+                                onToggleBlock={toggleBlockSelection}
+                            />
+                        ))}
 
-                    {filteredPalette.length === 0 && (
-                        <div className="text-center p-8 text-zinc-500 text-sm">
-                            No blocks found matching "{searchQuery}"
-                        </div>
-                    )}
+                        {filteredPalette.length === 0 && (
+                            <div className="text-center p-8 text-muted-foreground text-sm">
+                                No blocks found matching "{searchQuery}"
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

@@ -38,11 +38,13 @@ export function SegmentedControl<T extends string>({
             className={cn('w-full rounded-lg border bg-muted/40 p-0.5', className)}
         >
             {options.map((option) => {
+                // Style the active item by aria-checked too: a TooltipTrigger wrapper
+                // overwrites data-state with the tooltip's open/closed state.
                 const item = (
                     <ToggleGroupItem
                         key={option.value}
                         value={option.value}
-                        className="flex-1 uppercase text-muted-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                        className="flex-1 uppercase text-muted-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground aria-checked:bg-primary aria-checked:text-primary-foreground"
                     >
                         {option.icon}
                         {option.label}

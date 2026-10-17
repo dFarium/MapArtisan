@@ -40,6 +40,7 @@ export const PrecisionSlider: React.FC<PrecisionSliderProps> = ({
                 <span className="font-mono tabular-nums">{value}{unit}</span>
             </div>
             <Slider
+                aria-label={label}
                 value={[value]}
                 min={min}
                 max={max}

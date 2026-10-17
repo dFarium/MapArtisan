@@ -34,25 +34,25 @@ export const ImageUploader = ({ onUpload, gridDimensions, mapartResolution }: Im
                 className={cn(
                     "w-full max-w-2xl aspect-square max-h-[600px] border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all",
                     isDragActive
-                        ? "border-blue-500 bg-blue-500/10 scale-[1.02]"
-                        : "border-zinc-600 hover:border-zinc-500 hover:bg-zinc-700/30"
+                        ? "border-primary bg-primary/10 scale-[1.02]"
+                        : "border-border hover:border-ring hover:bg-accent/30"
                 )}
             >
                 <input {...getInputProps()} />
-                <div className="bg-zinc-700/50 p-6 rounded-full mb-6">
-                    <Upload className="w-12 h-12 text-zinc-400" />
+                <div className="bg-accent p-6 rounded-full mb-6">
+                    <Upload className="size-12 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-medium text-zinc-200 mb-2">
+                <h3 className="text-xl font-medium text-foreground mb-2">
                     {isDragActive ? "Drop image here" : "Upload Image"}
                 </h3>
-                <p className="text-zinc-400 text-sm max-w-xs text-center">
+                <p className="text-muted-foreground text-sm max-w-xs text-center">
                     Drag & drop or click to select.
                     <br />
                     <span className="opacity-70 mt-2 block">Supports PNG, JPG, WEBP</span>
                 </p>
-                <div className="mt-4 text-xs text-zinc-500">
-                    Current grid: <span className="text-zinc-300 font-mono">{gridDimensions.x} × {gridDimensions.y}</span> =
-                    <span className="text-zinc-300 font-mono ml-1">{mapartResolution.width} × {mapartResolution.height}</span> px
+                <div className="mt-4 text-xs text-muted-foreground">
+                    Current grid: <span className="text-foreground font-mono">{gridDimensions.x} × {gridDimensions.y}</span> =
+                    <span className="text-foreground font-mono ml-1">{mapartResolution.width} × {mapartResolution.height}</span> px
                 </div>
             </div>
         </div>

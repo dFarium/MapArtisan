@@ -266,53 +266,56 @@ Conteo del 2026-10-16. "Colores" cuenta clases `bg-`/`text-`/`border-`/`ring-`/`
 - Los componentes que usen `Tooltip` necesitan `TooltipProvider` en sus tests (en la app ya está en `App.tsx`).
 - **Aceptación:** la app se ve igual o mejor que antes, sin textos bajo 12 px en los componentes base, y la suite pasa.
 
-### Etapa 2 — Panel de control
+### Etapa 2 — Panel de control (hecha 2026-10-16)
 
-- [ ] `ControlPanel.tsx`: encabezado y botón de copiar configuración con `Button` de ícono + `Tooltip`.
-- [ ] `CollapsibleSection` sobre `Collapsible` de shadcn, conservando el modo controlado (`isOpen`/`onToggle`).
-- [ ] `ImageSettingsSection`:
-  - [ ] Maps X/Y con `Input` numérico + `Label`.
-  - [ ] Estimación de memoria con tokens (`muted`, colores de estado para el riesgo).
-  - [ ] ADJUST/CROP y SMOOTH/SHARP con `SegmentedControl`; la ayuda bajo SMOOTH/SHARP en `text-xs text-muted-foreground`.
-  - [ ] Sliders de crop y de color con el nuevo `PrecisionSlider`; botón de reset con `Button` de ícono + `Tooltip`.
-- [ ] `ProcessingSettingsSection`:
-  - [ ] Dithering con `Select` de shadcn (agrupar: Smart V2/V1, difusión clásica, Bayer, sin dithering).
-  - [ ] Botón Auto como `Button` `variant="ghost"` `size="sm"`.
-  - [ ] Toggle OKLab con `Switch`.
-  - [ ] Slider de fuerza y texto de ayuda.
-- [ ] `ConstructionSettingsSection`:
-  - [ ] Build Mode (hoy radios hechos a mano) con `SegmentedControl` o `RadioGroup`.
-  - [ ] "Limit build height" con `Switch`; slider de bloques; estilos Lines/Balanced/Noise con `SegmentedControl` y ayuda.
-  - [ ] Block Support con `Select`; Support Block ID con `Input` + `Button`.
-  - [ ] File Format y File Layout con `SegmentedControl`.
-  - [ ] 3D Preview Area con `Select`.
-- **Aceptación:** ningún `<button>`, `<select>`, `<input type="range|checkbox|radio">` suelto en `control-panel/`; cero `text-[Npx]`; cero `zinc-*`/`blue-*`/`emerald-*`/`purple-*`/`cyan-*` en esos archivos.
+- [x] Tests de comportamiento antes de migrar: `control-panel/__tests__/` (una suite por sección + `helpers.tsx`) y `builder/__tests__/ControlPanel.test.tsx`. Encuentran los controles por lo que ve el usuario (texto, rueda del mouse, select nativo o de Radix), así que pasaron igual contra la versión vieja y contra la nueva (23 tests).
+- [x] `ControlPanel.tsx`: About y Material List con `Button` de ícono + `Tooltip` + `aria-label`. El logo conserva sus colores de marca (azul/verde) a propósito.
+- [x] `controls/CollapsibleSection.tsx` sobre `Collapsible`, con modo controlado (`isOpen`/`onToggle`).
+- [x] `controls/FieldLabel.tsx`: título de campo único (`Label` + ícono opcional, mayúsculas, `text-muted-foreground`). Los inputs y selects quedan asociados a su etiqueta con `htmlFor`/`useId`.
+- [x] `ImageSettingsSection`: Maps X/Y con `Input`; memoria con tokens de estado; ADJUST/CROP y SMOOTH/SHARP con `SegmentedControl` (las descripciones de SMOOTH/SHARP pasan de `title` a `Tooltip`); sliders con el `PrecisionSlider` nuevo; resets con `Button` de ícono + `Tooltip`. Precision Crop deja el verde.
+- [x] `ProcessingSettingsSection`: dithering con `Select` agrupado (Smart, Error diffusion, Ordered, y Disabled aparte); Auto con `Button` ghost + `Tooltip`; OKLab con `Switch`; versión con `Select`. El slider de fuerza deja el cian.
+- [x] `ConstructionSettingsSection`: Build Mode, estilos de límite de altura, File Format y File Layout con `SegmentedControl`; "Limit build height" con `Switch`; Block Support y 3D Preview Area con `Select`; Support Block ID con `Input` + `Button`. El slider de altura deja el morado.
+- [x] Tokens nuevos `success` y `warning` en `index.css` (`:root`, `.dark` y `@theme inline`) para colores de estado. Riesgo de memoria: low → `success`, medium y high → `warning`, critical → `destructive` (antes high era naranja).
+- [x] Polyfills de `scrollIntoView`, `hasPointerCapture` y `releasePointerCapture` en `vitest.setup.ts` (los pide el `Select` de Radix).
+- [x] Borrados de `legacy/`: `Button`, `Checkbox`, `Input`, `Label`, `Select`, `PrecisionSlider`, `CollapsibleSection`. Solo queda `Toast` (etapa 5).
+- **Aceptación cumplida:** en `control-panel/` no hay `<button>`, `<select>` ni inputs range/checkbox/radio sueltos, ni `text-[Npx]`, ni colores escritos a mano. En `ControlPanel.tsx` solo quedan los colores del logo.
 
-### Etapa 3 — Canvas, toolbar y barra de estado
+Notas de la etapa 2:
+- `SegmentedControl` marca el activo con `aria-checked` además de `data-[state=on]`: cuando una opción tiene `tooltip`, el `TooltipTrigger` pisa `data-state` con el estado del tooltip y el activo dejaba de verse.
+- `custom-scrollbar` no está definida en ningún CSS (clase muerta). Se quitó de `ControlPanel`; sigue en `MaterialList`, `PaletteSidebar`, `About` y `pages/Builder`. Reemplazar por `ScrollArea` o quitarla al migrar cada uno.
+- `primary` en modo oscuro (`oklch(0.424 0.199 265.6)`) tiene poco contraste como color de texto sobre el fondo (~2.3:1). Sirve como fondo de botones y estados activos; no usar `text-primary` para texto hasta decidir si se aclara.
 
-- [ ] `CanvasToolbar`: botones de ícono con `Tooltip`, separadores con `Separator`, modo 2D/3D con `SegmentedControl`, exportar como `Button` primario con estado de carga. Actualizar `CanvasToolbar.test.tsx`.
-- [ ] `CanvasStatusBar`: tokens (`bg-popover`, `border`, `text-muted-foreground`); altura en rojo con `text-destructive`; quitar `clsx` directo.
-- [ ] `ImageUploader` e `InteractionHints`: tokens y escala.
-- [ ] `MainCanvas.tsx`: los 3 `text-[Npx]` y colores restantes.
-- [ ] `Mapart3DPreview` (overlay de carga y controles) y `pages/Builder.tsx`: tokens.
-- [ ] `PixelEditor` y `BrushSelector`: herramientas con `ToggleGroup`, acciones con `Button`, colores por tokens (el editor en sí sigue siendo propio).
-- **Aceptación:** mismos criterios que la etapa 2 en `canvas/`, `PixelEditor.tsx` y `BrushSelector.tsx`.
+### Etapa 3 — Canvas, toolbar y barra de estado (hecha 2026-10-16)
 
-### Etapa 4 — Paleta y materiales
+- [x] `controls/ToolbarButton.tsx`: botón de ícono para las barras flotantes, con `Tooltip`, `aria-label` y estado `pressed` (`aria-pressed`, fondo `primary`). El tooltip se engancha a un `span` que envuelve al botón para que siga apareciendo cuando el botón está deshabilitado (p. ej. "Close Pixel Editor first").
+- [x] `CanvasToolbar`: todos los botones con `ToolbarButton`, grupos separados con `Separator`, exportar como `Button` primario con spinner y `aria-busy`, descartar con la variante `destructive`. El indicador "Processing..." usa `warning` y `role="status"`. El modo 2D/3D quedó como botón presionable y no como `SegmentedControl`: en una barra vertical de íconos un toggle ocupa menos y se lee igual. `CanvasToolbar.test.tsx` actualizado (roles en vez de `title`) y ampliado con estados presionados, deshabilitados y de exportación.
+- [x] `PixelEditor`: herramientas, brillo, deshacer/rehacer, limpiar y cerrar con `ToolbarButton`; el selector de pincel pasó de `div` clickeable a `Button` (accesible con teclado). Tests nuevos en `builder/__tests__/PixelEditor.test.tsx` (8).
+- [x] `BrushSelector` pasa a `Dialog` (se va el portal propio y el manejo manual de Esc y del fondo). Las muestras de color siguen pintadas con el color real del mapa, ahora como `Button` con `aria-label` y `aria-pressed`.
+- [x] `HintBar` compartido (`canvas/HintBar.tsx`) para la píldora de atajos de `InteractionHints` y de `Mapart3DPreview`, que estaba duplicada.
+- [x] `CanvasStatusBar`, `ImageUploader`, `MainCanvas`, `Mapart3DPreview` y `pages/Builder.tsx` con tokens (`popover`, `card`, `muted`, `border`, `success`, `destructive`). Los `text-[10px]` pasan a `text-xs`. `custom-scrollbar` quitada de `pages/Builder.tsx`.
+- **Aceptación cumplida**, con dos excepciones a propósito: las coordenadas de sección sobre el mapa (`text-white/50` con sombra, porque van encima de la imagen) y el anillo `ring-black/20` de las muestras de color en `BrushSelector`.
+- Probado en la app con Edge controlado por CDP (script en el scratchpad de la sesión): carga de imagen, editor abierto, diálogo de pincel y modo 3D. El preview del mapart y la vista 3D no se pudieron ver porque un perfil nuevo no tiene bloques elegidos en la paleta; queda para la prueba de la etapa 4.
 
-- [ ] `PaletteSidebar`: buscador con `Input` + ícono, lista con `ScrollArea`, botón de colapsar con `Tooltip`.
-- [ ] `PresetsToolbar`: acciones con `Button`; menús con `DropdownMenu` si aplica. Actualizar `PresetsToolbar.test.tsx`.
-- [ ] `PaletteGroup` (builder): cabecera y selector de bloque con tokens; mantener el rendimiento de la grilla de texturas (no envolver cada textura en componentes Radix). Actualizar `PaletteGroup.test.tsx`.
-- [ ] `MaterialList`: tabla o lista con tokens, `Badge` para cantidades, acciones con `Button`.
-- **Aceptación:** mismos criterios; abrir y filtrar una paleta completa no se vuelve más lento (medir antes y después).
+### Etapa 4 — Paleta y materiales (hecha 2026-10-16)
 
-### Etapa 5 — Notificaciones, diálogos y páginas
+- [x] `PaletteSidebar`: buscador con `Input` + ícono y `aria-label`; colapsar/expandir con `Button` de ícono + `Tooltip`; tokens. La lista sigue siendo un `div` con `overflow-y-auto` (no `ScrollArea`, para mantenerla liviana; ver rendimiento abajo). `custom-scrollbar` quitada.
+- [x] `PresetsToolbar`: abrir/cerrar con `Collapsible`; presets con `Button` `secondary`; Reset `destructive`; borrar preset con `Button` de ícono + `Tooltip`. Adelantado de la etapa 5: guardar abre un `Dialog` con `Input` y borrar pide confirmación con `AlertDialog`. `usePalettePresets` ya no llama a `prompt()`/`confirm()`: `saveCurrentAsPreset(name)` recibe el nombre (recorta espacios, ignora vacíos) y `deletePreset(index)` borra directo.
+- [x] `PaletteGroup`: tokens. El encabezado pasó de `div` clickeable a `<button>` con `aria-expanded`; las texturas tienen `aria-pressed`. Encabezado y texturas son `<button>` nativos con clases precalculadas, a propósito (ver rendimiento). Las losas y alfombras siguen con `object-cover`, como se veían antes (el código viejo tenía `object-cover` y `object-contain` juntos y ganaba `object-cover`).
+- [x] `MaterialList` pasa a `Dialog` (adelantado de la etapa 5); vista Total/Reusable con `SegmentedControl`; shulkers con `Badge`; la textura que falla muestra el ícono `Box` con estado de React en vez de inyectar SVG con `innerHTML`.
+- [x] Tests: `PresetsToolbar.test.tsx` con `TooltipProvider`; `usePalettePresets.test.tsx` adaptado a la nueva API y con un caso para nombres vacíos.
+- [x] Probado en la app (Edge por CDP): aplicar "All Colors", preview del mapart, guardar y borrar un preset con los diálogos, lista de materiales.
+- **Rendimiento (aceptado 2026-10-16):** con la paleta completa, buscar "a" (expande ~650 texturas) cuesta ~10 ms más de hilo principal que antes: ~86 ms contra ~76 ms (~13 %), medido con build de producción, Edge headless y corridas alternadas. Script y layout no cambiaron; la diferencia está en recálculo de estilos y pintado. Aplicar un preset y limpiar la búsqueda quedaron igual. La primera versión migrada costaba más (~+25 ms); se recuperó usando `<button>` nativos en encabezados y texturas, sin `ScrollArea` y sin `cn()` por textura. Si hiciera falta más, la solución de fondo es virtualizar la lista.
+- **Aceptación cumplida** salvo los `<button>` nativos de `PaletteGroup`, que quedan por rendimiento.
 
-- [ ] Reemplazar `ui/Toast.tsx` + `ToastContext` por `sonner` manteniendo la API `showToast(message, type, duration)` para no tocar a los llamadores; luego evaluar llamar `toast()` directo.
-- [ ] Reemplazar los diálogos nativos de `src/utils/usePalettePresets.ts`: `confirm('Delete this preset?')` por `AlertDialog` y `prompt('Enter a name for this preset:')` por un `Dialog` con `Input`.
-- [ ] Modales hechos a mano a `Dialog`: `BrushSelector` (portal propio) y `MaterialList` (`fixed inset-0`). Si conviene, adelantarlos a las etapas 3 y 4 junto con el resto de cada archivo.
-- [ ] `pages/About.tsx` y `NotFound` (definido dentro de `src/App.tsx`): tokens y escala.
-- [ ] Revisar los 48 atributos `title=` y convertir en `Tooltip` los que describen controles importantes.
+### Etapa 5 — Notificaciones, diálogos y páginas (hecha 2026-10-16)
+
+- [x] `ui/Toast.tsx` + `ToastContext` reemplazados por `sonner`. Con solo dos llamadores (`PresetsToolbar` y `useMapartWorker`), en vez de mantener un contexto se dejó una función de módulo `showToast(message, type, duration)` en `src/lib/toast.ts` que llama a `toast[type]()`; no necesita provider y es estable (sale de las dependencias de los efectos). `<Toaster position="bottom-right" />` se monta una vez en `App.tsx`. Se borraron `components/legacy/Toast.tsx` y `context/ToastContext.tsx`, con lo que `legacy/` y `context/` quedaron vacías.
+- [x] Diálogos nativos de `usePalettePresets` reemplazados por `Dialog` y `AlertDialog` (hecho en la etapa 4).
+- [x] Modales hechos a mano a `Dialog`: `BrushSelector` (etapa 3) y `MaterialList` (etapa 4).
+- [x] `pages/About.tsx`: superficies, bordes y texto con tokens; enlaces con forma de botón como `Button asChild`; `custom-scrollbar` quitada. Se conservan a propósito los acentos de marca decorativos: degradado del logo y del titular, colores de los íconos de cada feature y el corazón del pie. El titular pasa a `text-4xl md:text-6xl` (con `md:text-8xl` quedaba en 96 px; hasta la etapa 1 la regla global de `h1` lo dejaba en ~51 px).
+- [x] `NotFound` y el spinner de carga (`App.tsx`): tokens, `Button asChild` y `Loader2`.
+- [x] `title=`: de 48 quedan 3 atributos reales, todos en las texturas de `PaletteGroup` (a propósito, por rendimiento: un `Tooltip` de Radix por textura es lo que se quiso evitar). El de la altura en `CanvasStatusBar` pasó a `Tooltip` con foco de teclado; el resto se convirtió en `Tooltip` + `aria-label` durante las etapas 2 a 4.
+- Nota de desarrollo: al agregar una dependencia nueva con `vite` corriendo, el caché de dependencias puede quedar con dos copias de React ("Invalid hook call" en `sonner`). Se resuelve reiniciando con `vite --force`; no afecta al build.
 
 ### Etapa 6 — Cierre
 

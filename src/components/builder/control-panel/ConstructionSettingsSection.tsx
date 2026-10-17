@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { useMapartStore as useMapart, type BlockSupport } from '../../../store/useMapartStore';
-import type { BuildMode } from '../../../types/mapart';
+import type { BuildMode, ExportFormat, ExportMode } from '../../../types/mapart';
 import { HEIGHT_LIMIT_STYLES, type HeightLimitStyle } from '../../../utils/processing';
-import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
-import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
+import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
+import { FieldLabel } from '@/components/controls/FieldLabel';
+import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
+import { SegmentedControl, type SegmentedOption } from '@/components/controls/SegmentedControl';
 import { Hammer, Layers, Box } from 'lucide-react';
-import { Label } from '@/components/legacy/Label';
-import { Select } from '@/components/legacy/Select';
-import { Button } from '@/components/legacy/Button';
-import { Input } from '@/components/legacy/Input';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SectionProps {
     isOpen?: boolean;
@@ -24,30 +25,49 @@ const HEIGHT_LIMIT_STYLE_INFO: Record<HeightLimitStyle, { label: string; hint: s
     noise: { label: 'Noise', hint: 'Resets scatter at random: no lines, slightly more grain.' },
 };
 
+const BUILD_MODE_OPTIONS: SegmentedOption<BuildMode>[] = [
+    { value: '2d', label: '2D' },
+    { value: '3d_valley', label: '3D Valley' },
+];
+
+const HEIGHT_LIMIT_STYLE_OPTIONS: SegmentedOption<HeightLimitStyle>[] = HEIGHT_LIMIT_STYLES.map((style) => ({
+    value: style,
+    label: HEIGHT_LIMIT_STYLE_INFO[style].label,
+}));
+
+const EXPORT_FORMAT_OPTIONS: SegmentedOption<ExportFormat>[] = [
+    { value: 'litematic', label: 'Litematica' },
+    { value: 'nbt', label: 'Vanilla NBT' },
+];
+
+const EXPORT_MODE_OPTIONS: SegmentedOption<ExportMode>[] = [
+    { value: 'full', label: 'Single File' },
+    { value: 'sections', label: 'Multiple Files' },
+];
+
+const hintClass = 'px-1 text-xs text-muted-foreground';
+
 interface SupportBlockIdEditorProps {
+    id: string;
     supportBlockId: string;
     onApply: (supportBlockId: string) => void;
 }
 
-const SupportBlockIdEditor = ({ supportBlockId, onApply }: SupportBlockIdEditorProps) => {
+const SupportBlockIdEditor = ({ id, supportBlockId, onApply }: SupportBlockIdEditorProps) => {
     const [localSupportId, setLocalSupportId] = useState(supportBlockId);
 
     return (
         <div className="flex gap-2">
             <Input
+                id={id}
                 value={localSupportId}
                 onChange={(e) => setLocalSupportId(e.target.value)}
-                className="h-8 text-xs font-mono"
+                className="font-mono"
                 placeholder="minecraft:cobblestone"
             />
             <Button
-                size="sm"
                 onClick={() => onApply(localSupportId)}
                 disabled={localSupportId === supportBlockId}
-                className={cn(
-                    "h-8 px-3 text-xs",
-                    localSupportId !== supportBlockId ? "bg-blue-600 hover:bg-blue-500 text-white" : "bg-zinc-800 text-zinc-500"
-                )}
             >
                 Apply
             </Button>
@@ -68,6 +88,10 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
         gridDimensions
     } = useMapart();
     const [lastHeightLimit, setLastHeightLimit] = useState(heightLimit > 0 ? heightLimit : DEFAULT_HEIGHT_LIMIT);
+    const heightLimitId = useId();
+    const blockSupportId = useId();
+    const supportBlockInputId = useId();
+    const previewSectionId = useId();
 
     const changeHeightLimit = (value: number) => {
         setLastHeightLimit(value);
@@ -91,46 +115,27 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
     return (
         <CollapsibleSection
             title="3. Construction Model"
-            icon={<Hammer size={16} />}
+            icon={<Hammer />}
             defaultOpen={false}
             isOpen={isOpen}
             onToggle={onToggle}
         >
             {/* Build Mode */}
             <div className="space-y-2">
-                <Label icon={<Layers size={14} />} className="text-xs">Build Mode</Label>
-                <div className="flex flex-col gap-1">
-                    {(['2d', '3d_valley'] as BuildMode[]).map((mode) => (
-                        <label key={mode} className={cn(
-                            "flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all",
-                            buildMode === mode
-                                ? "bg-blue-600/10 border-blue-600 text-blue-100 ring-1 ring-blue-600/50"
-                                : "bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-700"
-                        )}>
-                            <input
-                                type="radio"
-                                name="buildMode"
-                                checked={buildMode === mode}
-                                onChange={() => setBuildMode(mode)}
-                                className="w-3 h-3 accent-blue-500"
-                            />
-                            <span className="capitalize text-xs font-bold tracking-wide">{mode.replace(/_/g, ' ')}</span>
-                        </label>
-                    ))}
-                </div>
+                <FieldLabel icon={<Layers />}>Build Mode</FieldLabel>
+                <SegmentedControl aria-label="Build mode" value={buildMode} onValueChange={setBuildMode} options={BUILD_MODE_OPTIONS} />
 
                 {/* Height Limit - Only for 3D modes */}
                 {buildMode === '3d_valley' && (
-                    <div className="mt-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50 space-y-2">
-                        <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
-                            <input
-                                type="checkbox"
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-2">
+                        <div className="flex items-center justify-between">
+                            <FieldLabel htmlFor={heightLimitId}>Limit build height</FieldLabel>
+                            <Switch
+                                id={heightLimitId}
                                 checked={heightLimit > 0}
-                                onChange={(e) => setHeightLimit(e.target.checked ? lastHeightLimit : 0)}
-                                className="w-3 h-3 accent-purple-500"
+                                onCheckedChange={(checked) => setHeightLimit(checked ? lastHeightLimit : 0)}
                             />
-                            <span className="font-bold tracking-wide">Limit build height</span>
-                        </label>
+                        </div>
                         {heightLimit > 0 ? (
                             <>
                                 <PrecisionSlider
@@ -141,29 +146,19 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
                                     step={1}
                                     unit=" blocks"
                                     onChange={changeHeightLimit}
-                                    accentColor="accent-purple-500"
                                 />
-                                <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-                                    {HEIGHT_LIMIT_STYLES.map((style) => (
-                                        <button
-                                            key={style}
-                                            onClick={() => setHeightLimitStyle(style)}
-                                            className={cn(
-                                                "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
-                                                heightLimitStyle === style ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                                            )}
-                                            type="button"
-                                        >
-                                            {HEIGHT_LIMIT_STYLE_INFO[style].label}
-                                        </button>
-                                    ))}
-                                </div>
-                                <p className="text-[10px] text-zinc-500 px-1">
+                                <SegmentedControl
+                                    aria-label="Height limit style"
+                                    value={heightLimitStyle}
+                                    onValueChange={setHeightLimitStyle}
+                                    options={HEIGHT_LIMIT_STYLE_OPTIONS}
+                                />
+                                <p className={hintClass}>
                                     {HEIGHT_LIMIT_STYLE_INFO[heightLimitStyle].hint}
                                 </p>
                             </>
                         ) : (
-                            <p className="text-[10px] text-zinc-500 px-1">
+                            <p className={hintClass}>
                                 Full color accuracy. Columns grow as tall as the image needs.
                             </p>
                         )}
@@ -173,24 +168,26 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
 
             {/* Block Support */}
             <div className="space-y-2">
-                <Label icon={<Box size={14} />} className="text-xs">Block Support</Label>
-                <Select
-                    value={blockSupport}
-                    onChange={(e) => setBlockSupport(e.target.value as BlockSupport)}
-                    className="h-8 text-xs"
-                >
-                    <option value="all">Include Physical Support</option>
-                    <option value="needed">No Support (Floating)</option>
-                    <option value="gravity">Support Where Needed</option>
+                <FieldLabel htmlFor={blockSupportId} icon={<Box />}>Block Support</FieldLabel>
+                <Select value={blockSupport} onValueChange={(value) => setBlockSupport(value as BlockSupport)}>
+                    <SelectTrigger id={blockSupportId} className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Include Physical Support</SelectItem>
+                        <SelectItem value="needed">No Support (Floating)</SelectItem>
+                        <SelectItem value="gravity">Support Where Needed</SelectItem>
+                    </SelectContent>
                 </Select>
             </div>
 
             {/* Support Block ID */}
             {blockSupport !== 'needed' && (
-                <div className="space-y-2 pt-1 border-t border-zinc-800/50">
-                    <Label className="text-xs">Support Block ID</Label>
+                <div className="space-y-2 border-t pt-2">
+                    <FieldLabel htmlFor={supportBlockInputId}>Support Block ID</FieldLabel>
                     <SupportBlockIdEditor
                         key={supportBlockId}
+                        id={supportBlockInputId}
                         supportBlockId={supportBlockId}
                         onApply={setSupportBlockId}
                     />
@@ -198,31 +195,10 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
             )}
 
             {/* File Format */}
-            <div className="space-y-2 pt-1 border-t border-zinc-800/50">
-                <Label className="text-xs">File Format</Label>
-                <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-                    <button
-                        onClick={() => setExportFormat('litematic')}
-                        className={cn(
-                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                            exportFormat === 'litematic' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                        )}
-                        type="button"
-                    >
-                        LITEMATICA
-                    </button>
-                    <button
-                        onClick={() => setExportFormat('nbt')}
-                        className={cn(
-                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                            exportFormat === 'nbt' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                        )}
-                        type="button"
-                    >
-                        VANILLA NBT
-                    </button>
-                </div>
-                <p className="text-[10px] text-zinc-500 px-1">
+            <div className="space-y-2 border-t pt-2">
+                <FieldLabel>File Format</FieldLabel>
+                <SegmentedControl aria-label="File format" value={exportFormat} onValueChange={setExportFormat} options={EXPORT_FORMAT_OPTIONS} />
+                <p className={hintClass}>
                     {exportFormat === 'litematic'
                         ? "Export as .litematic for Litematica mod."
                         : "Export as .nbt for Vanilla Minecraft Structure Blocks."}
@@ -230,31 +206,10 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
             </div>
 
             {/* Export Mode */}
-            <div className="space-y-2 pt-1 border-t border-zinc-800/50">
-                <Label className="text-xs">File Layout</Label>
-                <div className="flex gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
-                    <button
-                        onClick={() => setExportMode('full')}
-                        className={cn(
-                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                            exportMode === 'full' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                        )}
-                        type="button"
-                    >
-                        SINGLE FILE
-                    </button>
-                    <button
-                        onClick={() => setExportMode('sections')}
-                        className={cn(
-                            "flex-1 px-2 py-1 text-[10px] font-bold rounded-md transition-all",
-                            exportMode === 'sections' ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-                        )}
-                        type="button"
-                    >
-                        MULTIPLE FILES
-                    </button>
-                </div>
-                <p className="text-[10px] text-zinc-500 px-1">
+            <div className="space-y-2 border-t pt-2">
+                <FieldLabel>File Layout</FieldLabel>
+                <SegmentedControl aria-label="File layout" value={exportMode} onValueChange={setExportMode} options={EXPORT_MODE_OPTIONS} />
+                <p className={hintClass}>
                     {exportMode === 'full'
                         ? `Export the entire project as one large ${exportFormat === 'nbt' ? 'NBT structure' : 'litematic'} file.`
                         : "Split into 128x128 sections (recommended for large maps) packed in a ZIP file."}
@@ -262,43 +217,42 @@ export const ConstructionSettingsSection = ({ isOpen, onToggle }: SectionProps) 
             </div>
 
             {/* 3D Preview Section */}
-            <div className="space-y-2 pt-1 border-t border-zinc-800/50">
+            <div className="space-y-2 border-t pt-2">
                 <div className="flex items-center justify-between">
-                    <Label className="text-xs">3D Preview Area</Label>
+                    <FieldLabel htmlFor={previewSectionId}>3D Preview Area</FieldLabel>
                     {exportMode === 'sections' && (
-                        <span className="text-[10px] text-blue-400 font-medium">Section view required</span>
+                        <span className="text-xs text-muted-foreground">Section view required</span>
                     )}
                 </div>
-                <div className="flex flex-col gap-2">
-                    <Select
-                        value={previewSection ? `${previewSection.x},${previewSection.y}` : 'all'}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === 'all') {
-                                setPreviewSection(null);
-                            } else {
-                                const [x, y] = val.split(',').map(Number);
-                                setPreviewSection({ x, y });
-                            }
-                        }}
-                        className="h-8 text-xs font-medium"
-                        disabled={exportMode === 'full'}
-                    >
+                <Select
+                    value={previewSection ? `${previewSection.x},${previewSection.y}` : 'all'}
+                    onValueChange={(val) => {
+                        if (val === 'all') {
+                            setPreviewSection(null);
+                        } else {
+                            const [x, y] = val.split(',').map(Number);
+                            setPreviewSection({ x, y });
+                        }
+                    }}
+                    disabled={exportMode === 'full'}
+                >
+                    <SelectTrigger id={previewSectionId} className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
                         {exportMode === 'full' ? (
-                            <option value="all">Show Entire Map Art</option>
+                            <SelectItem value="all">Show Entire Map Art</SelectItem>
                         ) : (
-                            <>
-                                {Array.from({ length: gridDimensions.y }).map((_, y) => (
-                                    Array.from({ length: gridDimensions.x }).map((_, x) => (
-                                        <option key={`${x}_${y}`} value={`${x},${y}`}>
-                                            Section {x}, {y}
-                                        </option>
-                                    ))
-                                ))}
-                            </>
+                            Array.from({ length: gridDimensions.y }).map((_, y) => (
+                                Array.from({ length: gridDimensions.x }).map((_, x) => (
+                                    <SelectItem key={`${x}_${y}`} value={`${x},${y}`}>
+                                        Section {x}, {y}
+                                    </SelectItem>
+                                ))
+                            ))
                         )}
-                    </Select>
-                </div>
+                    </SelectContent>
+                </Select>
             </div>
         </CollapsibleSection>
     );

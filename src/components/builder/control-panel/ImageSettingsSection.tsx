@@ -1,17 +1,57 @@
-import { useMapartStore as useMapart } from '../../../store/useMapartStore';
-import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
-import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
+import { useId } from 'react';
+import { useMapartStore as useMapart, type ImageFitMode } from '../../../store/useMapartStore';
+import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
+import { FieldLabel } from '@/components/controls/FieldLabel';
+import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
+import { SegmentedControl, type SegmentedOption } from '@/components/controls/SegmentedControl';
 import { Crop, Grid3x3, ImageIcon, Maximize, RefreshCw, Sparkles } from 'lucide-react';
-import { Label } from '@/components/legacy/Label';
-import { Input } from '@/components/legacy/Input';
-import { Button } from '@/components/legacy/Button';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { MAX_MAPS_TOTAL } from '../../../utils/memory';
+import type { ResamplingMode } from '../../../utils/processing';
 
 interface SectionProps {
     isOpen?: boolean;
     onToggle?: () => void;
 }
+
+const RISK_TEXT = {
+    low: 'text-success',
+    medium: 'text-warning',
+    high: 'text-warning',
+    critical: 'text-destructive',
+} as const;
+
+const RISK_BAR = {
+    low: 'bg-success',
+    medium: 'bg-warning',
+    high: 'bg-warning',
+    critical: 'bg-destructive',
+} as const;
+
+const FIT_OPTIONS: SegmentedOption<ImageFitMode>[] = [
+    { value: 'adjust', label: 'Adjust', icon: <Maximize /> },
+    { value: 'crop', label: 'Crop', icon: <Crop /> },
+];
+
+const RESAMPLING_OPTIONS: SegmentedOption<ResamplingMode>[] = [
+    { value: 'smooth', label: 'Smooth', icon: <Sparkles />, tooltip: 'Average every source pixel a block covers. Best for photos and art.' },
+    { value: 'sharp', label: 'Sharp', icon: <Grid3x3 />, tooltip: 'Take the nearest source pixel. Keeps hard edges in pixel art.' },
+];
+
+const ResetButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
+    <Tooltip>
+        <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label={label} onClick={onClick}>
+                <RefreshCw />
+            </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+);
 
 export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
@@ -21,27 +61,13 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
         cropSettings, setCropSettings, resetCropSettings,
         imageSettings, setImageSettings
     } = useMapart();
-
-    const riskColor = memoryEstimate.riskLevel === 'low'
-        ? 'text-emerald-400'
-        : memoryEstimate.riskLevel === 'medium'
-            ? 'text-amber-400'
-            : memoryEstimate.riskLevel === 'high'
-                ? 'text-orange-400'
-                : 'text-red-400';
-
-    const barColor = memoryEstimate.riskLevel === 'low'
-        ? 'bg-emerald-500'
-        : memoryEstimate.riskLevel === 'medium'
-            ? 'bg-amber-500'
-            : memoryEstimate.riskLevel === 'high'
-                ? 'bg-orange-500'
-                : 'bg-red-500';
+    const mapsXId = useId();
+    const mapsYId = useId();
 
     return (
         <CollapsibleSection
             title="1. Image & Layout"
-            icon={<ImageIcon size={16} />}
+            icon={<ImageIcon />}
             defaultOpen={true}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -49,135 +75,87 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
             {/* Resolution / Grid */}
             <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs text-zinc-600 font-semibold uppercase">Maps X</span>
+                    <div className="flex flex-col gap-1.5">
+                        <FieldLabel htmlFor={mapsXId}>Maps X</FieldLabel>
                         <Input
+                            id={mapsXId}
                             type="number" min="1" max={MAX_MAPS_TOTAL}
                             value={gridDimensions.x}
                             onChange={(e) => setGridDimensions({ ...gridDimensions, x: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="font-mono h-8 text-xs"
+                            className="font-mono"
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs text-zinc-600 font-semibold uppercase">Maps Y</span>
+                    <div className="flex flex-col gap-1.5">
+                        <FieldLabel htmlFor={mapsYId}>Maps Y</FieldLabel>
                         <Input
+                            id={mapsYId}
                             type="number" min="1" max={MAX_MAPS_TOTAL}
                             value={gridDimensions.y}
                             onChange={(e) => setGridDimensions({ ...gridDimensions, y: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="font-mono h-8 text-xs"
+                            className="font-mono"
                         />
                     </div>
                 </div>
 
                 {/* Memory Estimate */}
-                <div className="p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50 space-y-1.5">
+                <div className="space-y-1.5 rounded-lg border bg-muted/30 p-2">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs text-zinc-500 font-semibold uppercase">Memory Estimate</span>
-                        <span className={`text-xs font-mono font-bold ${riskColor}`}>
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Memory Estimate</span>
+                        <span className={cn('font-mono text-xs font-bold', RISK_TEXT[memoryEstimate.riskLevel])}>
                             ~{memoryEstimate.estimatedMB} MB
                         </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-zinc-500">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{memoryEstimate.width} × {memoryEstimate.height} px</span>
                         <span>{memoryEstimate.totalMaps} / {MAX_MAPS_TOTAL} maps</span>
                     </div>
-                    <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                         <div
-                            className={`h-full rounded-full transition-all duration-200 ${barColor}`}
+                            className={cn('h-full rounded-full transition-all duration-200', RISK_BAR[memoryEstimate.riskLevel])}
                             style={{ width: `${memoryEstimate.usagePercent}%` }}
                         />
                     </div>
                     {memoryEstimate.exceedsSoftLimit && (
-                        <span className="text-xs text-amber-400/80">
+                        <p className="text-xs text-warning">
                             ⚠ High memory usage — may slow down your browser
-                        </span>
+                        </p>
                     )}
                 </div>
             </div>
 
-            <div className="h-px bg-zinc-800/50 -mx-1" />
+            <Separator />
 
             {/* Fit & Crop */}
             <div className="space-y-2">
-                <Label icon={<Crop size={14} />} className="text-xs mb-1">Image Fit</Label>
-
-                <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
-                    <Button
-                        variant={imageFitMode === 'adjust' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setImageFitMode('adjust')}
-                        className={cn("flex-1 text-xs h-7 font-bold gap-2", imageFitMode !== 'adjust' && "text-zinc-500 hover:text-zinc-300")}
-                    >
-                        <Maximize size={12} /> ADJUST
-                    </Button>
-                    <Button
-                        variant={imageFitMode === 'crop' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setImageFitMode('crop')}
-                        className={cn("flex-1 text-xs h-7 font-bold gap-2", imageFitMode === 'crop' && "bg-emerald-600 hover:bg-emerald-700", imageFitMode !== 'crop' && "text-zinc-500 hover:text-zinc-300")}
-                    >
-                        <Crop size={12} /> CROP
-                    </Button>
-                </div>
-
-                <div className="flex gap-2 p-1 bg-zinc-950 rounded-lg border border-zinc-800">
-                    <Button
-                        variant={resampling === 'smooth' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setResampling('smooth')}
-                        className={cn("flex-1 text-xs h-7 font-bold gap-2", resampling !== 'smooth' && "text-zinc-500 hover:text-zinc-300")}
-                        title="Average every source pixel a block covers. Best for photos and art."
-                    >
-                        <Sparkles size={12} /> SMOOTH
-                    </Button>
-                    <Button
-                        variant={resampling === 'sharp' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setResampling('sharp')}
-                        className={cn("flex-1 text-xs h-7 font-bold gap-2", resampling !== 'sharp' && "text-zinc-500 hover:text-zinc-300")}
-                        title="Take the nearest source pixel. Keeps hard edges in pixel art."
-                    >
-                        <Grid3x3 size={12} /> SHARP
-                    </Button>
-                </div>
-                <p className="text-[10px] text-zinc-500 px-1">
+                <FieldLabel icon={<Crop />}>Image Fit</FieldLabel>
+                <SegmentedControl aria-label="Image fit" value={imageFitMode} onValueChange={setImageFitMode} options={FIT_OPTIONS} />
+                <SegmentedControl aria-label="Resampling" value={resampling} onValueChange={setResampling} options={RESAMPLING_OPTIONS} />
+                <p className="px-1 text-xs text-muted-foreground">
                     {resampling === 'smooth'
                         ? 'Smooth: averages each block\'s area. Best for photos and art.'
                         : 'Sharp: nearest pixel. For pixel art that does not line up with the map grid.'}
                 </p>
 
                 {imageFitMode === 'crop' && (
-                    <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-2">
                         <div className="flex items-center justify-between">
-                            <span className="text-xs text-emerald-500 font-black tracking-widest uppercase">Precision Crop</span>
-                            <button
-                                onClick={resetCropSettings}
-                                className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
-                                title={`Reset Crop`}
-                            >
-                                <RefreshCw size={14} />
-                            </button>
+                            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Precision Crop</span>
+                            <ResetButton label="Reset Crop" onClick={resetCropSettings} />
                         </div>
-                        <PrecisionSlider label="Zoom" value={cropSettings.zoom} min={1} max={8} step={0.01} unit="x" onChange={(zoom) => setCropSettings({ zoom })} accentColor="accent-emerald-500" />
-                        <PrecisionSlider label="X" value={cropSettings.offsetX} min={-1} max={1} step={0.01} unit="%" onChange={(offsetX) => setCropSettings({ offsetX })} accentColor="accent-emerald-500" />
-                        <PrecisionSlider label="Y" value={cropSettings.offsetY} min={-1} max={1} step={0.01} unit="%" onChange={(offsetY) => setCropSettings({ offsetY })} accentColor="accent-emerald-500" />
+                        <PrecisionSlider label="Zoom" value={cropSettings.zoom} min={1} max={8} step={0.01} unit="x" onChange={(zoom) => setCropSettings({ zoom })} />
+                        <PrecisionSlider label="X" value={cropSettings.offsetX} min={-1} max={1} step={0.01} unit="%" onChange={(offsetX) => setCropSettings({ offsetX })} />
+                        <PrecisionSlider label="Y" value={cropSettings.offsetY} min={-1} max={1} step={0.01} unit="%" onChange={(offsetY) => setCropSettings({ offsetY })} />
                     </div>
                 )}
             </div>
 
-            <div className="h-px bg-zinc-800/50 -mx-1" />
+            <Separator />
 
             {/* Color Grading */}
-            <div className="space-y-2 p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-2">
                 <div className="flex items-center justify-between">
-                    <Label className="mb-0 text-xs text-zinc-400">Color Adjustments</Label>
-                    <button
-                        onClick={() => setImageSettings({ saturation: 100, brightness: 0, contrast: 0 })}
-                        className="p-1.5 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50"
-                        title={`Reset Adjustments`}
-                    >
-                        <RefreshCw size={14} />
-                    </button>
+                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Color Adjustments</span>
+                    <ResetButton label="Reset Adjustments" onClick={() => setImageSettings({ saturation: 100, brightness: 0, contrast: 0 })} />
                 </div>
                 <PrecisionSlider label="Saturation" value={imageSettings.saturation} min={0} max={200} step={1} unit="%" onChange={(saturation) => setImageSettings({ saturation })} />
                 <PrecisionSlider label="Brightness" value={imageSettings.brightness} min={-100} max={100} step={1} onChange={(brightness) => setImageSettings({ brightness })} />

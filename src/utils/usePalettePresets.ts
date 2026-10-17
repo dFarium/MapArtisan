@@ -42,14 +42,13 @@ export const usePalettePresets = (
         localStorage.setItem('mapart_custom_presets', JSON.stringify(presets));
     };
 
-    const saveCurrentAsPreset = () => {
-        const name = prompt('Enter a name for this preset:');
-        if (!name) return;
-        saveCustomPresets([...customPresets, { name, selection: { ...selectedPaletteItems } }]);
+    const saveCurrentAsPreset = (name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        saveCustomPresets([...customPresets, { name: trimmed, selection: { ...selectedPaletteItems } }]);
     };
 
     const deletePreset = (index: number) => {
-        if (!confirm('Delete this preset?')) return;
         saveCustomPresets(customPresets.filter((_, i) => i !== index));
     };
 

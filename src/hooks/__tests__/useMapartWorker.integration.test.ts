@@ -4,8 +4,8 @@ import { useMapartWorker } from '../useMapartWorker';
 import type { UseMapartWorkerProps } from '../useMapartWorker';
 import { wrap } from 'comlink';
 
-vi.mock('../../context/ToastContext', () => ({
-  useToast: () => ({ showToast: vi.fn() }),
+vi.mock('@/lib/toast', () => ({
+  showToast: vi.fn(),
 }));
 
 // Mock del Worker
@@ -134,8 +134,7 @@ describe('useMapartWorker E2E', () => {
       expect(result.current.isProcessing).toBe(false);
       expect(result.current.isExporting).toBe(false);
       expect(result.current.previewImageData).toBeNull();
-      expect(result.current.packedResults).toBeNull();
-      expect(result.current.heightPath).toBeNull();
+      expect(result.current.pixelBuffers).toBeNull();
     });
 
     it('calcula mapartResolution correctamente', () => {

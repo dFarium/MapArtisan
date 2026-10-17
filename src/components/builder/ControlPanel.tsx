@@ -5,8 +5,9 @@ import {
     Settings2,
     ClipboardList,
     Info,
-
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ImageSettingsSection } from './control-panel/ImageSettingsSection';
 import { ProcessingSettingsSection } from './control-panel/ProcessingSettingsSection';
 import { ConstructionSettingsSection } from './control-panel/ConstructionSettingsSection';
@@ -29,40 +30,41 @@ export const ControlPanel = ({ onOpenMaterials }: ControlPanelProps) => {
             {/* Branding */}
             <div className="mb-6">
                 <div className="flex items-center justify-between">
+                    {/* Brand colors, intentionally outside the theme tokens. */}
                     <h1 className="text-3xl font-black italic tracking-tight text-blue-400 mb-1">
                         MapAr<span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">tisan</span>
                     </h1>
-                    <Link
-                        to="/about"
-                        className="p-1.5 hover:bg-blue-500/10 text-zinc-500 hover:text-blue-400 rounded transition-colors mb-1"
-                        title="About"
-                    >
-                        <Info size={20} />
-                    </Link>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon-lg" asChild>
+                                <Link to="/about" aria-label="About">
+                                    <Info />
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>About</TooltipContent>
+                    </Tooltip>
                 </div>
-                <p className="text-xs text-zinc-500 font-medium tracking-wide">MINECRAFT MAP ART TOOL</p>
+                <p className="text-xs text-muted-foreground font-medium tracking-wide">MINECRAFT MAP ART TOOL</p>
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-2">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-zinc-100 italic">
-                    <Settings2 size={22} className="text-blue-500" />
+            <div className="flex items-center justify-between border-b pb-4 mb-2">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-foreground italic">
+                    <Settings2 className="size-5.5 text-primary" />
                     PARAMETERS
                 </h2>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={onOpenMaterials}
-                        className="p-1.5 hover:bg-emerald-500/10 text-zinc-500 hover:text-emerald-400 rounded transition-colors"
-                        title="Material List"
-                        type="button"
-                    >
-                        <ClipboardList size={20} />
-                    </button>
-
-                </div>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon-lg" onClick={onOpenMaterials} aria-label="Material List">
+                            <ClipboardList />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Material List</TooltipContent>
+                </Tooltip>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                 <ImageSettingsSection
                     isOpen={activeSection === 'image'}
                     onToggle={() => handleToggle('image')}

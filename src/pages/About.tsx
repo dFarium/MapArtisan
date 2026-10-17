@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import {
     Paintbrush,
     Box,
@@ -29,25 +30,25 @@ const Github = ({ size = 20 }: { size?: number }) => (
 
 const About: React.FC = () => {
     return (
-        <div className="min-h-screen bg-zinc-900 text-zinc-100 selection:bg-blue-500/30 overflow-y-auto custom-scrollbar">
+        <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-y-auto">
             {/* Navigation */}
-            <nav className="fixed top-0 w-full bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 z-50">
+            <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link to="/" className="flex items-center gap-2 group">
+                            {/* Brand colors, intentionally outside the theme tokens. */}
                             <span className="text-2xl font-black italic tracking-tight text-blue-400">
                                 MapAr<span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">tisan</span>
                             </span>
                         </Link>
                     </div>
 
-                    <Link
-                        to="/"
-                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-900 border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800 transition-all text-sm font-medium"
-                    >
-                        <ArrowLeft size={16} />
-                        Back to Builder
-                    </Link>
+                    <Button variant="outline" size="lg" asChild className="rounded-full px-4 text-sm">
+                        <Link to="/">
+                            <ArrowLeft />
+                            Back to Builder
+                        </Link>
+                    </Button>
                 </div>
             </nav>
 
@@ -56,14 +57,14 @@ const About: React.FC = () => {
 
                 {/* Background Image with Fade */}
                 <div className="absolute inset-0 z-0 select-none">
-                    <div className="absolute inset-0 bg-zinc-900" />
+                    <div className="absolute inset-0 bg-background" />
                     <img
                         src="/img/hero-showcase.webp"
                         alt="Background"
                         className="w-full h-full object-cover object-top opacity-40 [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,transparent_100%)]"
                     />
                     {/* Additional bottom gradient for smoother transition */}
-                    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-900 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
                 </div>
 
 
@@ -71,37 +72,33 @@ const About: React.FC = () => {
 
 
                 <div className="max-w-4xl mx-auto relative z-10 text-center mt-32">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider mb-8 mx-auto shadow-lg backdrop-blur-md">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-popover/90 border border-primary/40 text-foreground text-xs font-bold uppercase tracking-wider mb-8 mx-auto shadow-lg backdrop-blur-md">
                         <Zap size={12} className="fill-current" />
                         A Powerful Map Art Tool Suite
                     </div>
 
-                    <h1 className="text-5xl md:text-8xl font-black tracking-tight mb-8 bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent drop-shadow-2xl">
+                    <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-8 bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text text-transparent drop-shadow-2xl">
                         Create Amazing <br />
                         <span className="bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">Minecraft Map Art</span>
                     </h1>
 
-                    <p className="text-xl md:text-2xl text-zinc-300 mb-12 leading-relaxed max-w-2xl mx-auto drop-shadow-lg">
+                    <p className="text-xl md:text-2xl text-foreground/80 mb-12 leading-relaxed max-w-2xl mx-auto drop-shadow-lg">
                         A powerful web-based tool for creating Minecraft Map Art. Convert any image into schematics with 3D preview, custom palettes, Litematica export, and survival-friendly features.
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                        <Link
-                            to="/"
-                            className="px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 !text-white font-bold text-lg transition-all hover:scale-105 shadow-xl shadow-blue-500/20 flex items-center gap-2"
-                        >
-                            <Paintbrush className="fill-white/20" />
-                            Start Creating Now
-                        </Link>
-                        <a
-                            href="https://github.com/dFarium/MapArtisan"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-8 py-4 rounded-xl bg-zinc-900/80 border border-zinc-700 hover:bg-zinc-800/80 !text-zinc-200 font-medium text-lg transition-all flex items-center gap-2 backdrop-blur-sm"
-                        >
-                            <Github size={20} />
-                            View on GitHub
-                        </a>
+                        <Button asChild className="h-14 gap-2 rounded-xl px-8 text-lg font-bold shadow-xl shadow-primary/20 transition-transform hover:scale-105 [&_svg:not([class*='size-'])]:size-5">
+                            <Link to="/">
+                                <Paintbrush />
+                                Start Creating Now
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild className="h-14 gap-2 rounded-xl bg-popover/80 px-8 text-lg backdrop-blur-sm">
+                            <a href="https://github.com/dFarium/MapArtisan" target="_blank" rel="noopener noreferrer">
+                                <Github size={20} />
+                                View on GitHub
+                            </a>
+                        </Button>
                     </div>
                 </div>
             </section>
@@ -111,8 +108,8 @@ const About: React.FC = () => {
             <section className="py-20 px-6 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto relative z-10">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-white to-zinc-500 pb-2">Everything you need.</h2>
-                        <p className="text-zinc-400 mt-4 text-lg">Powerful features for both casual builders and technical players.</p>
+                        <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground pb-2">Everything you need.</h2>
+                        <p className="text-muted-foreground mt-4 text-lg">Powerful features for both casual builders and technical players.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -180,19 +177,19 @@ const About: React.FC = () => {
             </section>
 
             {/* Footer */}
-            <footer className="py-12 px-6 border-t border-zinc-800 bg-zinc-900/50">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-zinc-500 text-sm">
+            <footer className="py-12 px-6 border-t bg-card/50">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-muted-foreground text-sm">
                     <div className="flex items-center gap-2">
                         <span>© {new Date().getFullYear()} MapArtisan</span>
                         <span>•</span>
-                        <span>Created by <a href="https://dfarium.com" className="hover:text-blue-400 transition-colors">dFarium</a></span>
+                        <span>Created by <a href="https://dfarium.com" className="hover:text-foreground transition-colors">dFarium</a></span>
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <a href="https://github.com/dFarium/MapArtisan" className="hover:text-zinc-300 transition-colors flex items-center gap-1.5">
+                        <a href="https://github.com/dFarium/MapArtisan" className="hover:text-foreground transition-colors flex items-center gap-1.5">
                             <Github size={16} /> GitHub
                         </a>
-                        <span className="flex items-center gap-1.5 text-zinc-600">
+                        <span className="flex items-center gap-1.5">
                             Made with <Heart size={14} className="fill-rose-500 text-rose-500" /> for the Minecraft community
                         </span>
                     </div>
@@ -203,21 +200,21 @@ const About: React.FC = () => {
 };
 
 const FeatureCard = ({ icon, title, description, image }: { icon: React.ReactNode, title: string, description: string, image?: string }) => (
-    <div className="p-6 rounded-2xl bg-zinc-800/40 border border-zinc-700/50 hover:border-zinc-600/50 transition-colors group flex flex-col h-full">
+    <div className="p-6 rounded-2xl bg-card border hover:border-ring/50 transition-colors group flex flex-col h-full">
         <div className="flex items-start justify-between mb-4">
-            <div className="p-3 bg-zinc-800/60 rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
+            <div className="p-3 bg-muted rounded-xl w-fit group-hover:scale-110 transition-transform duration-300">
                 {icon}
             </div>
         </div>
 
-        <h3 className="text-xl font-bold mb-2 text-zinc-100">{title}</h3>
-        <p className="text-zinc-400 leading-relaxed text-sm mb-4 flex-1">
+        <h3 className="text-xl font-bold mb-2 text-foreground">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed text-sm mb-4 flex-1">
             {description}
         </p>
 
         {image && (
-            <div className="mt-auto rounded-lg overflow-hidden border border-zinc-700/50 group-hover:border-zinc-600/50 transition-colors relative">
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-50"></div>
+            <div className="mt-auto rounded-lg overflow-hidden border group-hover:border-ring/50 transition-colors relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent opacity-50"></div>
                 <img src={image} alt={title} className="w-full aspect-[4/3] object-cover" />
             </div>
         )}
@@ -227,13 +224,13 @@ const FeatureCard = ({ icon, title, description, image }: { icon: React.ReactNod
 const Step = ({ number, title, description, isLast = false }: { number: string, title: string, description: string, isLast?: boolean }) => (
     <div className="relative pl-16 pb-12 last:pb-0">
         {!isLast && (
-            <div className="absolute left-[19px] top-4 bottom-0 w-0.5 bg-zinc-800" />
+            <div className="absolute left-[19px] top-4 bottom-0 w-0.5 bg-border" />
         )}
-        <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-zinc-800/60 border border-zinc-600 flex items-center justify-center font-bold text-blue-400 shadow-[0_0_0_4px_rgb(24,24,27)] z-10">
+        <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-muted border flex items-center justify-center font-bold text-foreground ring-4 ring-background z-10">
             {number}
         </div>
-        <h3 className="text-xl font-bold mb-2 text-zinc-100">{title}</h3>
-        <p className="text-zinc-400 leading-relaxed">
+        <h3 className="text-xl font-bold mb-2 text-foreground">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">
             {description}
         </p>
     </div>

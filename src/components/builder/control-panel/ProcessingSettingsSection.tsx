@@ -1,19 +1,50 @@
-
+import { useId } from 'react';
 import { useMapartStore as useMapart } from '../../../store/useMapartStore';
-import { CollapsibleSection } from '@/components/legacy/CollapsibleSection';
-import { PrecisionSlider } from '@/components/legacy/PrecisionSlider';
+import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
+import { FieldLabel } from '@/components/controls/FieldLabel';
+import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
 import { Zap, Droplets, Sparkles, Eye } from 'lucide-react';
-import { Checkbox } from '@/components/legacy/Checkbox';
-import { Label } from '@/components/legacy/Label';
-import { Select } from '@/components/legacy/Select';
-import { Button } from '@/components/legacy/Button';
-import { isDitheringMode, suggestDitheringMode } from '../../../utils/processing';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import {
+    Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { isDitheringMode, suggestDitheringMode, type DitheringMode } from '../../../utils/processing';
 import { SUPPORTED_VERSIONS } from '../../../data/supportedVersions';
 
 interface SectionProps {
     isOpen?: boolean;
     onToggle?: () => void;
 }
+
+const DITHERING_GROUPS: { label: string; options: { value: DitheringMode; label: string }[] }[] = [
+    {
+        label: 'Smart',
+        options: [
+            { value: 'hybrid-v2', label: 'Smart V2 (Adaptive Hybrid)' },
+            { value: 'hybrid', label: 'Smart V1 (Hybrid)' },
+        ],
+    },
+    {
+        label: 'Error diffusion',
+        options: [
+            { value: 'floyd-steinberg', label: 'Standard (Floyd-Steinberg)' },
+            { value: 'adaptive', label: 'Smooth (Adaptive F-S)' },
+            { value: 'atkinson', label: 'High Contrast (Atkinson)' },
+            { value: 'stucki', label: 'Soft Detail (Stucki)' },
+            { value: 'burkes', label: 'Balanced (Burkes)' },
+            { value: 'sierra-lite', label: 'Fast (Sierra-Lite)' },
+        ],
+    },
+    {
+        label: 'Ordered',
+        options: [
+            { value: 'ordered', label: 'Retro 4x4 (Bayer)' },
+            { value: 'ordered-8x8', label: 'Retro 8x8 (Bayer)' },
+        ],
+    },
+];
 
 export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
     const {
@@ -23,6 +54,9 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
         paletteVersion, setPaletteVersion,
         previewUrl
     } = useMapart();
+    const ditheringId = useId();
+    const oklabId = useId();
+    const versionId = useId();
 
     const handleAutoDetect = () => {
         if (!previewUrl) return;
@@ -56,7 +90,7 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
     return (
         <CollapsibleSection
             title="2. Color Processing"
-            icon={<Zap size={16} />}
+            icon={<Zap />}
             defaultOpen={true}
             isOpen={isOpen}
             onToggle={onToggle}
@@ -64,44 +98,51 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             {/* Dithering */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                    <Label icon={<Droplets size={14} />} className="text-xs">Dithering</Label>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleAutoDetect}
-                        disabled={!previewUrl}
-                        className="h-5 text-xs uppercase font-bold text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
-                        title="Auto-detect best settings based on image"
-                    >
-                        <Sparkles size={10} className="mr-1" /> Auto
-                    </Button>
+                    <FieldLabel htmlFor={ditheringId} icon={<Droplets />}>Dithering</FieldLabel>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleAutoDetect}
+                                disabled={!previewUrl}
+                                className="uppercase"
+                            >
+                                <Sparkles /> Auto
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Auto-detect best settings based on image</TooltipContent>
+                    </Tooltip>
                 </div>
                 <Select
                     value={dithering}
-                    onChange={(e) => {
-                        if (isDitheringMode(e.target.value)) {
-                            setDithering(e.target.value);
+                    onValueChange={(value) => {
+                        if (isDitheringMode(value)) {
+                            setDithering(value);
                         }
                     }}
-                    className="h-8 text-xs"
                 >
-                    <option value="hybrid-v2">Smart V2 (Adaptive Hybrid)</option>
-                    <option value="hybrid">Smart V1 (Hybrid)</option>
-                    <option value="floyd-steinberg">Standard (Floyd-Steinberg)</option>
-                    <option value="ordered">Retro 4x4 (Bayer)</option>
-                    <option value="ordered-8x8">Retro 8x8 (Bayer)</option>
-                    <option value="adaptive">Smooth (Adaptive F-S)</option>
-                    <option value="atkinson">High Contrast (Atkinson)</option>
-                    <option value="stucki">Soft Detail (Stucki)</option>
-                    <option value="burkes">Balanced (Burkes)</option>
-                    <option value="sierra-lite">Fast (Sierra-Lite)</option>
-                    <option value="none">Disabled (No Dithering)</option>
+                    <SelectTrigger id={ditheringId} className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {DITHERING_GROUPS.map((group) => (
+                            <SelectGroup key={group.label}>
+                                <SelectLabel>{group.label}</SelectLabel>
+                                {group.options.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        ))}
+                        <SelectSeparator />
+                        <SelectItem value="none">Disabled (No Dithering)</SelectItem>
+                    </SelectContent>
                 </Select>
             </div>
 
             {/* Hybrid Strength Slider */}
             {(dithering === 'hybrid' || dithering === 'hybrid-v2') && (
-                <div className="p-2 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                <div className="space-y-2 rounded-lg border bg-muted/30 p-2">
                     <PrecisionSlider
                         label={dithering === 'hybrid-v2' ? "Strength" : "Hybrid Strength"}
                         value={hybridStrength}
@@ -110,9 +151,8 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
                         step={1}
                         unit="%"
                         onChange={setHybridStrength}
-                        accentColor="accent-cyan-500"
                     />
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="text-xs text-muted-foreground">
                         {dithering === 'hybrid-v2'
                             ? "0% = No dithering, 50% = Adaptive, 100% = Floyd-Steinberg"
                             : "0% = Aggressive noise reduction, 100% = More detail"}
@@ -121,29 +161,32 @@ export const ProcessingSettingsSection = ({ isOpen, onToggle }: SectionProps) =>
             )}
 
             {/* OKLab Toggle */}
-            <div className="space-y-1 p-2 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
+            <div className="space-y-1 rounded-lg border bg-muted/30 p-2">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-bold uppercase">OKLab Color Space</span>
-                    <Checkbox
+                    <FieldLabel htmlFor={oklabId}>OKLab Color Space</FieldLabel>
+                    <Switch
+                        id={oklabId}
                         checked={usePerceptual}
                         onCheckedChange={setUsePerceptual}
                     />
                 </div>
-                <p className="text-xs text-zinc-500 font-medium">
+                <p className="text-xs text-muted-foreground">
                     {usePerceptual ? "Perceptually uniform · OKLab (Recommended)" : "Faster RGB Distance"}
                 </p>
             </div>
 
             {/* Game Version */}
-            <div className="space-y-3">
-                <Label icon={<Eye size={14} />}>Minecraft Version</Label>
-                <Select
-                    value={paletteVersion}
-                    onChange={(e) => setPaletteVersion(e.target.value)}
-                >
-                    {SUPPORTED_VERSIONS.map(v => (
-                        <option key={v.value} value={v.value}>{v.label}</option>
-                    ))}
+            <div className="space-y-2">
+                <FieldLabel htmlFor={versionId} icon={<Eye />}>Minecraft Version</FieldLabel>
+                <Select value={paletteVersion} onValueChange={setPaletteVersion}>
+                    <SelectTrigger id={versionId} className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {SUPPORTED_VERSIONS.map(v => (
+                            <SelectItem key={v.value} value={v.value}>{v.label}</SelectItem>
+                        ))}
+                    </SelectContent>
                 </Select>
             </div>
         </CollapsibleSection>

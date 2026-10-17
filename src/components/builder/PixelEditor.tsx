@@ -6,6 +6,10 @@ import paletteData from '../../data/palette.json';
 import type { PaletteColor } from '../../types/palette';
 import { BrushSelector } from './BrushSelector';
 import { useState, memo } from 'react';
+import { ToolbarButton } from '@/components/controls/ToolbarButton';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PixelEditorProps {
     disabled?: boolean;
@@ -13,15 +17,16 @@ interface PixelEditorProps {
 
 // Memoize the open button to prevent unnecessary re-renders
 const OpenButton = memo(({ onClick, disabled }: { onClick: () => void, disabled?: boolean }) => (
-    <button
+    <ToolbarButton
+        label="Open Pixel Editor (B)"
+        tooltip={disabled ? "Not available in 3D Mode" : undefined}
         onClick={onClick}
         disabled={disabled}
-        className="flex flex-col items-center justify-center gap-1 p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        title={disabled ? "Not available in 3D Mode" : "Open Pixel Editor (B)"}
+        className="h-auto flex-col gap-1 py-2 text-xs [&_svg:not([class*='size-'])]:size-4.5"
     >
-        <Paintbrush size={18} />
+        <Paintbrush />
         <span>Editor</span>
-    </button>
+    </ToolbarButton>
 ));
 
 export const PixelEditor = ({ disabled }: PixelEditorProps) => {
@@ -43,6 +48,8 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
     const [isBrushSelectorOpen, setIsBrushSelectorOpen] = useState(false);
 
     const editCount = Object.keys(manualEdits).length;
+    const brightnessDisabled = buildMode === '2d';
+    const brushLabel = `Change Brush: ${brushBlock ? brushBlock.blockId.replace('minecraft:', '') : 'Select Block'} (${brushBlock ? brushBlock.brightness : 'None'})`;
 
     const updateBrightness = (brightness: BrightnessLevel) => {
         if (!brushBlock) return;
@@ -69,59 +76,61 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
     // Render both states but hide/show based on isPainting
     return (
         <>
-            {/* Closed state - Open Button */}
             {/* Closed state - Open Button & optional Clear Edits shortcut */}
             {!isPainting && (
-                <div className="flex flex-col gap-1.5 w-full">
+                <div className="flex w-full flex-col gap-1.5">
                     <OpenButton onClick={() => setIsPainting(true)} disabled={disabled} />
                     {editCount > 0 && (
-                        <button
+                        <ToolbarButton
+                            label={`Clear all ${editCount} manual edits`}
+                            variant="destructive"
                             onClick={clearManualEdits}
-                            className="flex flex-col items-center justify-center gap-1 p-2 bg-zinc-900 hover:bg-red-500/10 text-red-500 hover:text-red-400 border border-red-500/10 hover:border-red-500/30 rounded text-[10px] font-medium transition-all shadow-sm duration-200"
-                            title={`Clear all ${editCount} manual edits`}
+                            className="h-auto flex-col gap-1 py-2 text-xs"
                         >
-                            <Trash2 size={15} />
-                            <span className="text-[9px] uppercase tracking-wider">Clear</span>
-                        </button>
+                            <Trash2 />
+                            <span>Clear</span>
+                        </ToolbarButton>
                     )}
                 </div>
             )}
 
             {/* Open state - Full Editor (always mounted when isPainting, hidden otherwise) */}
             <div
-                className={`flex flex-col items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5 shadow-lg w-full ${isPainting ? 'animate-in fade-in slide-in-from-left-2' : 'hidden'
-                    }`}
+                className={`flex w-full flex-col items-center gap-1 ${isPainting ? 'animate-in fade-in slide-in-from-left-2' : 'hidden'}`}
             >
                 {/* Current Brush Display */}
-                <div
-                    className="flex flex-col items-center gap-1 p-1 border-b border-zinc-800 cursor-pointer hover:bg-zinc-800/50 rounded transition-colors w-full"
-                    onClick={() => setIsBrushSelectorOpen(true)}
-                    title={`Change Brush: ${brushBlock ? brushBlock.blockId.replace('minecraft:', '') : 'Select Block'} (${brushBlock ? brushBlock.brightness : 'None'})`}
-                >
-                    <div className="w-8 h-8 rounded border border-zinc-700 bg-zinc-800 overflow-hidden relative shadow-inner shrink-0">
-                        {brushBlock ? (
-                            <>
-                                <div
-                                    className="w-full h-full"
-                                    style={{
-                                        backgroundColor: `rgb(${brushBlock.rgb.r}, ${brushBlock.rgb.g}, ${brushBlock.rgb.b})`
-                                    }}
-                                />
-                                {/* Texture overlay (subtle) */}
-                                <img
-                                    src={getTextureUrl(brushBlock.blockId)}
-                                    className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-overlay"
-                                    alt="Brush Texture"
-                                />
-                            </>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                <span className="text-[10px]">?</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            aria-label={brushLabel}
+                            onClick={() => setIsBrushSelectorOpen(true)}
+                            className="h-auto w-full p-1"
+                        >
+                            <span className="relative size-8 shrink-0 overflow-hidden rounded-md border bg-muted shadow-inner">
+                                {brushBlock ? (
+                                    <>
+                                        <span
+                                            className="block size-full"
+                                            style={{
+                                                backgroundColor: `rgb(${brushBlock.rgb.r}, ${brushBlock.rgb.g}, ${brushBlock.rgb.b})`
+                                            }}
+                                        />
+                                        {/* Texture overlay (subtle) */}
+                                        <img
+                                            src={getTextureUrl(brushBlock.blockId)}
+                                            className="absolute inset-0 size-full object-cover opacity-20 mix-blend-overlay"
+                                            alt=""
+                                        />
+                                    </>
+                                ) : (
+                                    <span className="flex size-full items-center justify-center text-xs text-muted-foreground">?</span>
+                                )}
+                            </span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{brushLabel}</TooltipContent>
+                </Tooltip>
 
                 <BrushSelector
                     isOpen={isBrushSelectorOpen}
@@ -129,110 +138,82 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                 />
 
                 {/* Brightness Controls */}
-                {
-                    brushBlock && (
-                        <div className="flex flex-col items-center gap-1 p-1 bg-zinc-950 rounded-lg border border-zinc-800 w-full">
-                            <button
-                                onClick={() => updateBrightness('low')}
-                                disabled={buildMode === '2d'}
-                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'low'
-                                    ? 'bg-zinc-800 text-blue-400'
-                                    : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
-                                    }`}
-                                title={buildMode === '2d' ? "Not available in 2D mode" : "Dark (Depth)"}
-                            >
-                                <Moon size={14} />
-                            </button>
-                            <button
-                                onClick={() => updateBrightness('normal')}
-                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'normal'
-                                    ? 'bg-zinc-800 text-zinc-100'
-                                    : 'text-zinc-500 hover:text-zinc-300'
-                                    }`}
-                                title="Normal (Flat)"
-                            >
-                                <Minus size={14} />
-                            </button>
-                            <button
-                                onClick={() => updateBrightness('high')}
-                                disabled={buildMode === '2d'}
-                                className={`w-full p-1.5 rounded flex items-center justify-center transition-colors ${brushBlock.brightness === 'high'
-                                    ? 'bg-zinc-800 text-amber-400'
-                                    : (buildMode === '2d' ? 'text-zinc-700 cursor-not-allowed' : 'text-zinc-500 hover:text-zinc-300')
-                                    }`}
-                                title={buildMode === '2d' ? "Not available in 2D mode" : "Light (Peak)"}
-                            >
-                                <Sun size={14} />
-                            </button>
-                        </div>
-                    )
-                }
+                {brushBlock && (
+                    <>
+                        <Separator className="my-1" />
+                        <ToolbarButton
+                            label="Dark (Depth)"
+                            tooltip={brightnessDisabled ? "Not available in 2D mode" : undefined}
+                            pressed={brushBlock.brightness === 'low'}
+                            onClick={() => updateBrightness('low')}
+                            disabled={brightnessDisabled}
+                        >
+                            <Moon />
+                        </ToolbarButton>
+                        <ToolbarButton
+                            label="Normal (Flat)"
+                            pressed={brushBlock.brightness === 'normal'}
+                            onClick={() => updateBrightness('normal')}
+                        >
+                            <Minus />
+                        </ToolbarButton>
+                        <ToolbarButton
+                            label="Light (Peak)"
+                            tooltip={brightnessDisabled ? "Not available in 2D mode" : undefined}
+                            pressed={brushBlock.brightness === 'high'}
+                            onClick={() => updateBrightness('high')}
+                            disabled={brightnessDisabled}
+                        >
+                            <Sun />
+                        </ToolbarButton>
+                    </>
+                )}
 
+                <Separator className="my-1" />
 
                 {/* Tools */}
-                <div className="flex flex-col bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 w-full">
-                    <button
-                        onClick={() => {
-                            setIsPicking(false);
-                            setIsPainting(true);
-                        }}
-                        className={`flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors w-full ${(isPainting && !isPicking)
-                            ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
-                            : 'text-zinc-400 hover:bg-zinc-800'
-                            }`}
-                        title="Paint Brush (B)"
-                    >
-                        <Paintbrush size={16} />
-                    </button>
-                    <button
-                        onClick={() => setIsPicking(!isPicking)}
-                        className={`flex items-center justify-center p-2 rounded gap-2 text-xs font-medium transition-colors w-full ${isPicking
-                            ? 'bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/50'
-                            : 'text-zinc-400 hover:bg-zinc-800'
-                            }`}
-                        title="Color Picker (I)"
-                    >
-                        <Pipette size={16} />
-                    </button>
-                </div>
+                <ToolbarButton
+                    label="Paint Brush (B)"
+                    pressed={isPainting && !isPicking}
+                    onClick={() => {
+                        setIsPicking(false);
+                        setIsPainting(true);
+                    }}
+                >
+                    <Paintbrush />
+                </ToolbarButton>
+                <ToolbarButton
+                    label="Color Picker (I)"
+                    pressed={isPicking}
+                    onClick={() => setIsPicking(!isPicking)}
+                >
+                    <Pipette />
+                </ToolbarButton>
 
-                {/* Clear Edits */}
-                <div className="flex flex-col bg-zinc-900/50 p-1 rounded-lg border border-zinc-800 gap-1 w-full">
-                    <button
-                        onClick={undo}
-                        disabled={historyIndex <= 0}
-                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
-                        title="Undo (Ctrl+Z)"
-                    >
-                        <Undo2 size={16} />
-                    </button>
-                    <button
-                        onClick={redo}
-                        disabled={historyIndex >= history.length - 1}
-                        className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent w-full flex justify-center"
-                        title="Redo (Ctrl+Y)"
-                    >
-                        <Redo2 size={16} />
-                    </button>
-                    <div className='h-px w-5 bg-zinc-800 my-0.5 self-center' />
-                    <button
-                        onClick={clearManualEdits}
-                        disabled={editCount === 0}
-                        className="p-2 hover:bg-red-500/10 text-zinc-400 hover:text-red-400 rounded transition-colors disabled:opacity-50 w-full flex justify-center"
-                        title={`Clear all ${editCount} manual edits`}
-                    >
-                        <Trash2 size={16} />
-                    </button>
-                </div>
+                <Separator className="my-1" />
+
+                {/* History */}
+                <ToolbarButton label="Undo (Ctrl+Z)" onClick={undo} disabled={historyIndex <= 0}>
+                    <Undo2 />
+                </ToolbarButton>
+                <ToolbarButton label="Redo (Ctrl+Y)" onClick={redo} disabled={historyIndex >= history.length - 1}>
+                    <Redo2 />
+                </ToolbarButton>
+                <ToolbarButton
+                    label={`Clear all ${editCount} manual edits`}
+                    onClick={clearManualEdits}
+                    disabled={editCount === 0}
+                    className="hover:bg-destructive/10 hover:text-destructive"
+                >
+                    <Trash2 />
+                </ToolbarButton>
+
+                <Separator className="my-1" />
 
                 {/* Close / Done */}
-                <button
-                    onClick={() => setIsPainting(false)}
-                    className="p-2 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded transition-colors w-full flex justify-center"
-                    title="Close Editor (Esc)"
-                >
-                    <X size={16} />
-                </button>
+                <ToolbarButton label="Close Editor (Esc)" onClick={() => setIsPainting(false)}>
+                    <X />
+                </ToolbarButton>
             </div>
         </>
     );

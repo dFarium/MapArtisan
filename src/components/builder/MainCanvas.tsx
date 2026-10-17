@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useState, useRef, lazy, Suspense } from 'react';
 import { useMapartStore as useMapart } from '../../store/useMapartStore';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
@@ -39,8 +40,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         isProcessing,
         sourcePreviewImageData,
         previewImageData: workerImageData,
-        packedResults,
-        heightPath,
+        pixelBuffers,
         mapartResolution,
         isExporting,
         exportMapart,
@@ -105,7 +105,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
     return (
         <main
-            className="flex-1 h-full relative bg-zinc-800 overflow-hidden flex flex-col"
+            className="flex-1 h-full relative bg-muted overflow-hidden flex flex-col"
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleMouseUp}
             onContextMenu={handleContextMenu}
@@ -141,10 +141,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                     {is3DMode ? (
                         <div className="flex-1 relative z-10 w-full h-full">
                             <Suspense fallback={
-                                <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                                <div className="w-full h-full bg-card flex items-center justify-center">
                                     <div className="flex flex-col items-center gap-3">
-                                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                                        <span className="text-zinc-400 text-sm font-medium">Loading 3D Engine...</span>
+                                        <Loader2 className="size-8 animate-spin text-primary" />
+                                        <span className="text-muted-foreground text-sm font-medium">Loading 3D Engine...</span>
                                     </div>
                                 </div>
                             }>
@@ -156,8 +156,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                     independentMaps={independentMaps}
                                     previewSection={previewSection || undefined}
                                     stats={mapartStats || undefined}
-                                    packedResults={packedResults || undefined}
-                                    heightPath={heightPath || undefined}
+                                    pixelBuffers={pixelBuffers}
                                     build3DGeometryAsync={build3DGeometryAsync}
                                 />
                             </Suspense>
@@ -166,7 +165,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                         /* Canvas Area */
                         <div
                             ref={containerRef}
-                            className="flex-1 overflow-hidden cursor-move bg-zinc-800 bg-[radial-gradient(#333_1px,transparent_1px)] bg-size-[20px_20px]"
+                            className="flex-1 overflow-hidden cursor-move bg-muted bg-[radial-gradient(var(--border)_1px,transparent_1px)] bg-size-[20px_20px]"
                             onWheel={handleWheel}
                             onMouseDown={handleCanvasMouseDown}
                         >
@@ -182,10 +181,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                 {/* Original Image */}
                                 {showOriginal && sourcePreviewImageData && (
                                     <div className="relative">
-                                        <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Original</div>
+                                        <div className="absolute -top-6 left-0 text-xs uppercase tracking-wider text-muted-foreground font-semibold">Original</div>
                                         <ImageDataCanvas
                                             imageData={sourcePreviewImageData}
-                                            className="max-w-none pointer-events-none select-none ring-1 ring-zinc-600 rendering-pixelated"
+                                            className="max-w-none pointer-events-none select-none ring-1 ring-border rendering-pixelated"
                                             style={{
                                                 width: mapartResolution.width,
                                                 height: mapartResolution.height,
@@ -215,10 +214,10 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                             />
                                         </div>
 
-                                        <div className="absolute -top-6 left-0 text-[10px] uppercase tracking-wider text-green-500 font-semibold">Map Art Preview</div>
+                                        <div className="absolute -top-6 left-0 text-xs uppercase tracking-wider text-success font-semibold">Map Art Preview</div>
                                         <ImageDataCanvas
                                             imageData={workerImageData}
-                                            className="max-w-none pointer-events-none select-none ring-1 ring-green-600/50 rendering-pixelated"
+                                            className="max-w-none pointer-events-none select-none ring-1 ring-success/50 rendering-pixelated"
                                             style={{
                                                 width: mapartResolution.width,
                                                 height: mapartResolution.height,
@@ -251,7 +250,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                                                     Array.from({ length: gridDimensions.x }).map((_, x) => (
                                                         <div
                                                             key={`${x}-${y}`}
-                                                            className="absolute text-[10px] font-mono font-bold text-white/50 select-none flex items-start justify-start p-1"
+                                                            className="absolute text-xs font-mono font-bold text-white/50 select-none flex items-start justify-start p-1"
                                                             style={{
                                                                 left: x * 128,
                                                                 top: y * 128,
