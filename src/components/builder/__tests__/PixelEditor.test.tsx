@@ -68,6 +68,20 @@ describe('PixelEditor', () => {
         expect(screen.getByRole('button', { name: /redo/i }).hasAttribute('disabled')).toBe(true);
     });
 
+    it('enables redo after an undo', () => {
+        store().setIsPainting(true);
+        store().applyStroke({ 0: { blockId: 'minecraft:grass_block', brightness: 'normal', rgb: grass.brightnessValues.normal } });
+        renderPanel(<PixelEditor />);
+        const [undo] = screen.getAllByRole('button', { name: /undo/i });
+        const [redo] = screen.getAllByRole('button', { name: /redo/i });
+        expect(redo.hasAttribute('disabled')).toBe(true);
+
+        fireEvent.click(undo);
+        expect(store().manualEdits).toEqual({});
+        expect(undo.hasAttribute('disabled')).toBe(true);
+        expect(redo.hasAttribute('disabled')).toBe(false);
+    });
+
     it('closes the editor', () => {
         store().setIsPainting(true);
         renderPanel(<PixelEditor />);

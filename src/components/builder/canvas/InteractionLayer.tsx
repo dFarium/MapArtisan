@@ -15,8 +15,7 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
     const setIsPicking = useMapart(s => s.setIsPicking);
     const brushBlock = useMapart(s => s.brushBlock);
     const setBrushBlock = useMapart(s => s.setBrushBlock);
-    const applyBatchEdits = useMapart(s => s.applyBatchEdits);
-    const addToHistory = useMapart(s => s.addToHistory);
+    const applyStroke = useMapart(s => s.applyStroke);
 
     const [hoveredPixel, setHoveredPixel] = useState<{ x: number, y: number } | null>(null);
 
@@ -104,10 +103,7 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
         const hasPendingDeletions = pendingDeletionsRef.current.size > 0;
 
         if (hasPendingEdits || hasPendingDeletions) {
-            const edits = { ...pendingEditsRef.current };
-            const deletions = Array.from(pendingDeletionsRef.current);
-            applyBatchEdits(edits, deletions);
-            addToHistory(edits, deletions);
+            applyStroke({ ...pendingEditsRef.current }, Array.from(pendingDeletionsRef.current));
         }
 
         // Reset pending state
@@ -116,7 +112,7 @@ export const InteractionLayer = ({ width, height, scale, onPickBlock }: Interact
         clearStrokePreview();
         isStrokingRef.current = false;
         lastPaintedPixelRef.current = null;
-    }, [applyBatchEdits, addToHistory, clearStrokePreview]);
+    }, [applyStroke, clearStrokePreview]);
 
     const handleMouseDown = async (e: React.MouseEvent<HTMLDivElement>) => {
         if (!isPainting && !isPicking) return;

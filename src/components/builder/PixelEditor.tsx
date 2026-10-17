@@ -196,7 +196,7 @@ export const PixelEditor = ({ disabled }: PixelEditorProps) => {
                 <ToolbarButton label="Undo (Ctrl+Z)" onClick={undo} disabled={historyIndex <= 0}>
                     <Undo2 />
                 </ToolbarButton>
-                <ToolbarButton label="Redo (Ctrl+Y)" onClick={redo} disabled={historyIndex >= history.length - 1}>
+                <ToolbarButton label="Redo (Ctrl+Y)" onClick={redo} disabled={historyIndex >= history.length}>
                     <Redo2 />
                 </ToolbarButton>
                 <ToolbarButton

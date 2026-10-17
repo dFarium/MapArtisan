@@ -11,14 +11,14 @@ export type BlockSupport = 'all' | 'needed' | 'gravity';
 export type ImageFitMode = 'adjust' | 'crop';
 
 /**
- * Delta entry for undo/redo history.
- * Stores only the changes made in a single stroke instead of a full snapshot.
+ * Delta entry for undo/redo history: every pixel one stroke changed, with its
+ * value before and after the stroke (null = no edit). Undo writes `before` and
+ * redo writes `after`, so a step only touches its own pixels and dropping the
+ * oldest entry leaves the others intact.
  */
 export interface HistoryDelta {
-    /** Edits that were added or modified in this step */
-    added: Record<number, ManualEdit>;
-    /** Indices of edits that were removed in this step */
-    removed: number[];
+    before: Record<number, ManualEdit | null>;
+    after: Record<number, ManualEdit | null>;
 }
 
 /** Maximum number of history entries to keep */
@@ -26,29 +26,30 @@ const MAX_HISTORY_ENTRIES = 50;
 /** Approximate memory budget per history entry in bytes (soft limit) */
 const MAX_BYTES_PER_ENTRY = 2 * 1024 * 1024; // 2MB
 
+function estimateEditSize(edit: ManualEdit | null): number {
+    if (!edit) return 4;
+    return (edit.blockId?.length ?? 0) * 2 + 16 + (edit.brightness?.length ?? 0) * 2 + 12;
+}
+
 /** Estimate memory usage of a delta entry */
 function estimateDeltaSize(delta: HistoryDelta): number {
     let size = 0;
-    for (const edit of Object.values(delta.added)) {
-        size += (edit.blockId?.length ?? 0) * 2 + 16 + (edit.brightness?.length ?? 0) * 2 + 12;
-    }
-    size += delta.removed.length * 4;
+    for (const edit of Object.values(delta.before)) size += estimateEditSize(edit);
+    for (const edit of Object.values(delta.after)) size += estimateEditSize(edit);
     return size;
 }
 
-/** Replay deltas from the beginning up to (but not including) targetIndex */
-function replayDeltas(deltas: HistoryDelta[], targetIndex: number): Record<number, ManualEdit> {
-    const state: Record<number, ManualEdit> = {};
-    for (let i = 0; i < targetIndex; i++) {
-        const delta = deltas[i];
-        for (const idx of delta.removed) {
-            delete state[idx];
-        }
-        for (const [idx, edit] of Object.entries(delta.added)) {
-            state[Number(idx)] = edit as ManualEdit;
-        }
+/** Returns a copy of `edits` with each pixel of `values` written; null deletes it. */
+function writeEdits(
+    edits: Record<number, ManualEdit>,
+    values: Record<number, ManualEdit | null>
+): Record<number, ManualEdit> {
+    const next = { ...edits };
+    for (const [key, edit] of Object.entries(values)) {
+        if (edit) next[Number(key)] = edit;
+        else delete next[Number(key)];
     }
-    return state;
+    return next;
 }
 
 /**
@@ -170,13 +171,13 @@ export interface MapartState {
     setMapartStats: (stats: MapartStats | null) => void;
     setIndependentMaps: (value: boolean) => void;
     setManualEdit: (index: number, data: ManualEdit) => void;
-    applyBatchEdits: (edits: Record<number, ManualEdit>, deletions?: number[]) => void;
+    /** Applies one paint stroke and records it as a single undo step. */
+    applyStroke: (edits: Record<number, ManualEdit>, deletions?: number[]) => void;
     deleteManualEdit: (index: number) => void;
     clearManualEdits: () => void;
     setIsPainting: (isPainting: boolean) => void;
     setIsPicking: (isPicking: boolean) => void;
     setBrushBlock: (block: ManualEdit | null) => void;
-    addToHistory: (edits: Record<number, ManualEdit>, deletions?: number[]) => void;
     undo: () => void;
     redo: () => void;
 }
@@ -299,14 +300,30 @@ export const useMapartStore = create<MapartState>((set) => ({
     setManualEdit: (index, data) => set((state) => ({
         manualEdits: { ...state.manualEdits, [index]: data }
     })),
-    applyBatchEdits: (edits, deletions) => set((state) => {
-        const newEdits = { ...state.manualEdits, ...edits };
-        if (deletions) {
-            for (const index of deletions) {
-                delete newEdits[index];
-            }
+    applyStroke: (edits, deletions = []) => set((state) => {
+        const before: Record<number, ManualEdit | null> = {};
+        const after: Record<number, ManualEdit | null> = {};
+        const record = (index: number, value: ManualEdit | null) => {
+            const previous = state.manualEdits[index] ?? null;
+            if (previous === value) return;
+            before[index] = previous;
+            after[index] = value;
+        };
+        for (const [key, edit] of Object.entries(edits)) record(Number(key), edit);
+        for (const index of deletions) record(index, null);
+
+        if (Object.keys(after).length === 0) return {};
+
+        const manualEdits = writeEdits(state.manualEdits, after);
+        const delta: HistoryDelta = { before, after };
+        if (estimateDeltaSize(delta) > MAX_BYTES_PER_ENTRY) {
+            // Too large to keep. Undoing an older step could then restore
+            // pixels this stroke painted over, so the history starts over.
+            return { manualEdits, history: [], historyIndex: 0 };
         }
-        return { manualEdits: newEdits };
+
+        const history = [...state.history.slice(0, state.historyIndex), delta].slice(-MAX_HISTORY_ENTRIES);
+        return { manualEdits, history, historyIndex: history.length };
     }),
     deleteManualEdit: (index) => set((state) => {
         const newEdits = { ...state.manualEdits };
@@ -318,51 +335,19 @@ export const useMapartStore = create<MapartState>((set) => ({
     setIsPicking: (isPicking) => set({ isPicking }),
     setBrushBlock: (block) => set({ brushBlock: block }),
 
-    addToHistory: (edits, deletions) => set((state) => {
-        const delta: HistoryDelta = {
-            added: edits,
-            removed: deletions ?? [],
-        };
-
-        const size = estimateDeltaSize(delta);
-        if (size > MAX_BYTES_PER_ENTRY) {
-            // Skip storing this entry if it exceeds memory budget
-            return {};
-        }
-
-        const newHistory = state.history.slice(0, state.historyIndex);
-        newHistory.push(delta);
-
-        // Enforce entry limit
-        while (newHistory.length > MAX_HISTORY_ENTRIES) {
-            newHistory.shift();
-        }
-
-        return {
-            history: newHistory,
-            historyIndex: newHistory.length
-        };
-    }),
     undo: () => set((state) => {
-        if (state.historyIndex > 0) {
-            const newIndex = state.historyIndex - 1;
-            const manualEdits = replayDeltas(state.history, newIndex);
-            return {
-                manualEdits,
-                historyIndex: newIndex
-            };
-        }
-        return {};
+        if (state.historyIndex === 0) return {};
+        const historyIndex = state.historyIndex - 1;
+        return {
+            manualEdits: writeEdits(state.manualEdits, state.history[historyIndex].before),
+            historyIndex
+        };
     }),
     redo: () => set((state) => {
-        if (state.historyIndex < state.history.length) {
-            const newIndex = state.historyIndex + 1;
-            const manualEdits = replayDeltas(state.history, newIndex);
-            return {
-                manualEdits,
-                historyIndex: newIndex
-            };
-        }
-        return {};
+        if (state.historyIndex >= state.history.length) return {};
+        return {
+            manualEdits: writeEdits(state.manualEdits, state.history[state.historyIndex].after),
+            historyIndex: state.historyIndex + 1
+        };
     })
 }));
