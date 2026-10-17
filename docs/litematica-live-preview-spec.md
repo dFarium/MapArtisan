@@ -3,8 +3,8 @@
 Fecha: 2026-10-16 (actualizado 2026-10-17 con la revisión del código de Litematica)  
 Estado: propuesta para revisión; implementación no iniciada.  
 Dependencia arquitectónica: Litematica obligatoria.  
-Decisión provisional: mantener Litematica como motor de pegado mediante una tarea
-propia (sección 5.2); confirmar con la prueba técnica de la etapa 1.
+Decisión: mantener Litematica como motor de pegado mediante una tarea propia
+(sección 5.2), confirmada por la etapa 1 el 2026-10-17 (sección 5.4).
 
 ## 1. Objetivo
 
@@ -126,7 +126,10 @@ prueba en el juego. Versiones revisadas:
 
 - Rama `26.3` de `sakura-ryoko/litematica`: `0.29.2-sakura.1`, sin publicar,
   con MaLiLib `0.30.2`. Commit `64e7459` del 2026-10-12.
-- Última publicación: tag `26.3-0.29.0`, comparado con la rama en las clases clave.
+- Tag `26.3-0.29.0`, comparado con la rama en las clases clave.
+- Versión fijada: `0.29.1` (publicada el 2026-09-27 en el Maven de sakura-ryoko y
+  en Modrinth, sin tag en Git) con MaLiLib `0.30.2`. Está entre las dos versiones
+  revisadas. MaLiLib `0.30.2` declara `breaks` con Litematica anterior a `0.29.1`.
 - Licencia LGPLv3: un mod independiente puede enlazar y heredar de sus clases.
 
 No existe una API pública para crear y pegar esquemas. La interfaz
@@ -145,7 +148,7 @@ Estado de cada punto según el código:
 | 4 | Terminación y fallo | `pastePlacementToWorld` devuelve `void` y no expone la tarea. Si la tarea se crea directamente, `TaskBase.setCompletionListener` notifica `onTaskCompleted` o `onTaskAborted` en el hilo del cliente. Un fallo por chunk **no** se notifica: si `placeToWorldWithinChunk` devuelve `false`, el chunk queda pendiente y se reintenta en cada tick indefinidamente. |
 | 5 | Reemplazo y aire | Solo con `ReplaceBehavior.ALL`. El valor por defecto de `pasteReplaceBehavior` es `NONE`, que omite toda posición ya ocupada. Con `ALL`, el aire del contenedor se escribe; `structure_void` se omite. El pegado recorre el volumen completo del esquema. |
 | 6 | `changedBlocksOnly` | Se ignora en la ruta directa de singleplayer; solo lo usa el pegado por comandos. Escribir el mismo estado que ya existe no produce cambios en el chunk. |
-| 7 | Pegado único y cambio de mundo | El puente puede conservar la referencia a su tarea y consultar `TaskScheduler.getAllTasks()`. Defecto detectado: al cambiar de mundo, `DataManager.clear()` limpia solo el scheduler del cliente, y `runTasks()` no ejecuta nada mientras `player == null`. Una tarea del servidor interrumpida no avisa y podría reanudarse en el mundo siguiente con referencias antiguas. |
+| 7 | Pegado único y cambio de mundo | El puente puede conservar la referencia a su tarea y consultar `TaskScheduler.getAllTasks()`. Defecto detectado: al cambiar de mundo, `DataManager.clear()` limpia solo el scheduler del cliente, y `runTasks()` no ejecuta nada mientras `player == null`. Una tarea del servidor interrumpida no avisa y podría reanudarse en el mundo siguiente con referencias antiguas. Confirmado en el juego (2026-10-17): además, `removeTask` solo busca en `tasks`, no en `tasksToAdd`, así que una tarea programada justo antes de pausar o salir no se retira. Y `Minecraft.disconnect()` llama a `dropAllTasks()`, por lo que el aviso de aborto que Litematica entrega con `Minecraft.execute` se pierde. La tarea propia usa un flag de cancelación respetado por `shouldRemove()` y el puente informa el aborto por salida del mundo sin esperar a Litematica. |
 | 8 | Sin alterar configuración global | `pastePlacementToWorld` usa el rango de capas global, y el constructor de la tarea lee `pasteReplaceBehavior` y `pasteLayerBehavior`. Una tarea propia puede pasar `ReplaceBehavior.ALL` y `PasteLayerBehavior.ALL` sin modificar la configuración. Efectos secundarios: `addSchematicPlacement` selecciona la colocación si no había otra seleccionada, y la tarea estándar muestra mensajes en el action bar al terminar. |
 
 Comportamiento útil confirmado: la ruta directa llama a
@@ -158,9 +161,11 @@ Condiciones del entorno de las que depende el pegado, sin producir error:
 `TaskPasteSchematicPerChunkBase.canProcessChunk` espera hasta que el chunk exista
 en el mundo del esquema, no haya reconstrucciones pendientes para él y los chunks
 cliente de alrededor (radio 1) estén cargados. El mundo del esquema solo se
-llena con `Configs.Visuals.ENABLE_RENDERING` activo y con chunks cliente cargados,
-salvo que `loadEntireSchematics` esté activo. Para un área de unos 9 × 9 chunks,
-el jugador debe estar cerca.
+llena con chunks cliente cargados, salvo que `loadEntireSchematics` esté activo.
+Para un área de unos 9 × 9 chunks, el jugador debe estar cerca. La lectura del
+código sugería que también hacía falta `Configs.Visuals.ENABLE_RENDERING`, pero
+en el juego el pegado terminó con el renderizado desactivado: las reconstrucciones
+que lanza `addSchematicPlacement` solo comprueban `canHandleChunk`.
 
 ### 5.2 Integración propuesta
 
@@ -178,15 +183,20 @@ el jugador debe estar cerca.
 - Cada revisión crea un esquema y una colocación nuevos. Solo se sustituyen
   cuando no hay pegado activo. El esquema cubre la unión de los límites anterior
   y nuevo, con aire explícito donde la nueva estructura no tiene bloques.
-- Al desconectarse del mundo o detenerse el servidor integrado, el puente llama a
-  `TaskScheduler.getInstanceServer().removeTask(tarea)` mediante los eventos de
-  Fabric. Así recibe `onTaskAborted` en lugar de dejar la tarea colgada.
-- Antes de pegar se comprueban, solo en lectura, `ENABLE_RENDERING`, que la
-  colocación esté habilitada y la carga de chunks cliente del área. Si alguna
-  falla, el estado es "esperando" con diagnóstico, no un error ni un éxito.
+- Al detenerse el servidor integrado (`ServerLifecycleEvents.SERVER_STOPPING`, en
+  el hilo del servidor), el puente cancela la tarea: flag respetado por
+  `shouldRemove()`, además de `removeTask`. La salida del mundo se detecta en el
+  tick del cliente (`level == null`) y ahí el puente informa el aborto él mismo,
+  porque el aviso de Litematica no llega tras `Minecraft.disconnect()` (sección
+  5.1, punto 7). No se usa `ClientPlayConnectionEvents.DISCONNECT`: en el juego se
+  ejecuta en un hilo `Netty Local IO`, no en el del cliente.
+- Mientras la tarea no avanza, guarda la causa probable según las condiciones de
+  `canProcessChunk` (chunk del holograma sin cargar, reconstrucción pendiente,
+  chunks cliente sin cargar o reintentos). El estado es "esperando" con
+  diagnóstico, no un error ni un éxito.
 - Si no hay avance de `pendingChunks` durante el tiempo de la sección 10, se
   informa el chunk bloqueado y su causa probable; no se programa otro pegado.
-- Se fija la versión publicada `26.3-0.29.0`, no la rama. El adaptador toca unas
+- Se fija la versión publicada `0.29.1` con MaLiLib `0.30.2`, no la rama. El adaptador toca unas
   doce clases internas (`LitematicaSchematic`, `AreaSelection`/`Box`,
   `LitematicaBlockStateContainer`, `SchematicPlacement`,
   `SchematicPlacementManager`, `DataManager`, `TaskScheduler`,
@@ -210,6 +220,29 @@ La lectura del código no resuelve estos puntos; la etapa 1 debe medirlos:
    estables tras actualizaciones posteriores de vecinos.
 6. Que la colocación de MapArtisan no altere la selección ni otras colocaciones
    del usuario, o que se restauren.
+
+### 5.4 Resultados de la etapa 1 (2026-10-17)
+
+Prueba en `MapartisanConnector` con Litematica `0.29.1`, mundo plano creativo y
+estructuras sintéticas de 128 × 129 con la disposición de exportación de MapArtisan.
+La suite automática `/mapartisan test suite` pasó 15 de 15 pasos en 71 s,
+verificando cada pegado bloque a bloque contra el área del mundo.
+
+| Punto | Resultado |
+|---|---|
+| 1 | La espera al holograma tras sustituir la colocación fue de 60–150 ms. El pegado no empezó antes. |
+| 2 | Cero reintentos en todos los pegados. |
+| 3 | Aborto antes del primer tick y a mitad del pegado (39/72 chunks pendientes): notificados, y la resincronización posterior dejó el área idéntica. Salida del mundo a mitad de un pegado de max (confirmada a mano tras corregir el primer intento, sección 5.1 punto 7): se informa el aborto con 'mundo cerrado durante el pegado', y al volver a entrar no hay actividad residual. |
+| 4 | Volumen máximo (4,2 M posiciones, 72 chunks): 410–530 ms en total. Verificar el área entera en el servidor tarda unos 100 ms. |
+| 5 | Colocar y retirar bloques encima de arena, alfombras y hojas con actualizaciones de vecinos no alteró nada. Las hojas con `persistent=true` siguen intactas tras 30 s. Quitar el soporte de la arena la hace caer, como corresponde. |
+| 6 | Sin selección previa sigue sin selección. Una colocación ajena seleccionada sigue presente y seleccionada. |
+
+| Watchdog | Con el área a 4096 bloques del jugador, el pegado esperó con 72/72 chunks pendientes, sin escribir ni informar éxito. A los 30 s avisó: "el holograma aún no cargó el chunk [244, -4] (¿jugador lejos?)". El aborto posterior se notificó. |
+| Pausa | Con el juego pausado justo después de programar max, el pegado esperó y terminó al reanudar (espera de 4,6 s, pegado de 446 ms). El tiempo de pausa se contabiliza como espera. |
+
+Con esto la etapa 1 queda cerrada: Litematica `0.29.1` cumple los ocho puntos de
+la sección 5 mediante la tarea propia de la sección 5.2. Se confirma la decisión
+de mantener Litematica como motor de pegado.
 
 ## 6. Modelo de estructura y coordenadas
 
@@ -373,7 +406,8 @@ completo por frame ni cambios instantáneos bajo cualquier carga.
 ## 12. Etapas de implementación propuestas
 
 1. Prueba técnica en el juego de la tarea propia de la sección 5.2 contra
-   `26.3-0.29.0`, cubriendo los puntos de la sección 5.3; fijación de dependencias.
+   Litematica `0.29.1`, cubriendo los puntos de la sección 5.3. El proyecto Fabric
+   es `MapartisanConnector`, junto a MapArtisan y BlockMaps.
 2. Contrato de instantánea del worker y equivalencia con la exportación.
 3. Puente local y pegado completo manual de una revisión.
 4. Reemplazo con aire, confirmaciones, recuperación y aislamiento del destino.
