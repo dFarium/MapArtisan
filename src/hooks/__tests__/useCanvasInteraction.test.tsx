@@ -50,6 +50,25 @@ describe('useCanvasInteraction', () => {
         expect(result.current.scale).toBeGreaterThan(0.9);
     });
 
+    it('cancels native wheel events so the page does not zoom', () => {
+        const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
+        const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as unknown as React.RefObject<HTMLElement>, { width: 100, height: 100 }));
+        const container = document.createElement('div');
+        const detach = result.current.attachWheel(container);
+
+        const zoomIn = new WheelEvent('wheel', { deltaY: -200, ctrlKey: true, cancelable: true });
+        act(() => {
+            container.dispatchEvent(zoomIn);
+        });
+        expect(zoomIn.defaultPrevented).toBe(true);
+        expect(result.current.scale).toBeGreaterThan(0.9);
+
+        detach();
+        const after = new WheelEvent('wheel', { deltaY: -200, cancelable: true });
+        container.dispatchEvent(after);
+        expect(after.defaultPrevented).toBe(false);
+    });
+
     it('should clamp zoom scale', () => {
         const mockRef = { current: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, x: 0, y: 0, bottom: 100, right: 100, toJSON: () => { } }) } };
         const { result } = renderHook(() => useCanvasInteraction(mockFile, false, mockRef as unknown as React.RefObject<HTMLElement>, { width: 100, height: 100 }));
@@ -69,7 +88,6 @@ describe('useCanvasInteraction', () => {
 
         // Try to zoom way in (multiplicative zoom may not reach exact max in one event)
         act(() => {
-            // @ts-expect-error - Mocking event
             result.current.handleWheel({
                 preventDefault: () => { },
                 deltaY: -300000,

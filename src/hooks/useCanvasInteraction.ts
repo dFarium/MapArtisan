@@ -1,5 +1,10 @@
 import { useState, useEffect, useCallback, useRef, type RefObject } from 'react';
 
+/** The parts of a wheel event the zoom uses; both native and React events fit. */
+type WheelInput = Pick<WheelEvent, 'deltaY' | 'clientX' | 'clientY' | 'preventDefault'> & {
+    currentTarget: EventTarget | null;
+};
+
 /**
  * Hook to manage interactive canvas operations including zooming, panning, dragging, and automatic centering.
  * 
@@ -22,7 +27,7 @@ export const useCanvasInteraction = (
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-    const handleWheel = useCallback((e: React.WheelEvent) => {
+    const handleWheel = useCallback((e: WheelInput) => {
         if (!uploadedImage) return;
         e.preventDefault();
 
@@ -36,7 +41,7 @@ export const useCanvasInteraction = (
         if (newScale === scale) return;
 
         // Calculate Mouse Position relative to the container (viewport)
-        const rect = e.currentTarget.getBoundingClientRect();
+        const rect = (e.currentTarget as Element).getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
@@ -84,10 +89,24 @@ export const useCanvasInteraction = (
         }
     }, [uploadedImage]);
 
-    const handleWheelWithInteraction = useCallback((e: React.WheelEvent) => {
+    const handleWheelWithInteraction = useCallback((e: WheelInput) => {
         setHasInteracted(true);
         handleWheel(e);
     }, [handleWheel]);
+
+    // React registers onWheel as a passive listener, so preventDefault() there
+    // is ignored and Ctrl+wheel or a trackpad pinch also zooms the whole page.
+    // attachWheel adds a non-passive listener to the canvas container instead.
+    const wheelHandlerRef = useRef(handleWheelWithInteraction);
+    useEffect(() => {
+        wheelHandlerRef.current = handleWheelWithInteraction;
+    }, [handleWheelWithInteraction]);
+
+    const attachWheel = useCallback((node: HTMLElement) => {
+        const listener = (e: WheelEvent) => wheelHandlerRef.current(e);
+        node.addEventListener('wheel', listener, { passive: false });
+        return () => node.removeEventListener('wheel', listener);
+    }, []);
 
     const handleMouseDownWithInteraction = useCallback((e: React.MouseEvent) => {
         if (!uploadedImage || e.button !== 0) return;
@@ -137,6 +156,7 @@ export const useCanvasInteraction = (
         position,
         isDragging,
         handleWheel: handleWheelWithInteraction,
+        attachWheel,
         handleMouseDown: handleMouseDownWithInteraction,
         handleMouseMove,
         handleMouseUp

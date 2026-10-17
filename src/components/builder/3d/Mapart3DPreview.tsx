@@ -78,7 +78,7 @@ export const Mapart3DPreview = ({
     return (
         <div className="w-full h-full bg-card relative">
             <Canvas
-                shadows
+                shadows="percentage"
                 dpr={[1, 1.5]}
                 gl={{
                     toneMapping: THREE.NoToneMapping,

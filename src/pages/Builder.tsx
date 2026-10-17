@@ -3,6 +3,7 @@ import { PaletteSidebar } from '../components/builder/PaletteSidebar';
 import { MainCanvas } from '../components/builder/MainCanvas';
 import { ControlPanel } from '../components/builder/ControlPanel';
 import { MaterialList } from '../components/builder/MaterialList';
+import { SkipLinks, SETTINGS_ID } from '../components/builder/SkipLinks';
 import { useMapartWorker } from '../hooks/useMapartWorker';
 import { useMapartStore as useMapart, useMapartFields } from '../store/useMapartStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -66,6 +67,8 @@ const Builder: React.FC = () => {
 
     return (
         <div className="h-screen w-full flex text-foreground overflow-hidden relative">
+            <SkipLinks />
+
             {/* Sidebar Palette */}
             <PaletteSidebar />
 
@@ -73,7 +76,7 @@ const Builder: React.FC = () => {
             <MainCanvas workerState={workerState} />
 
             {/* Control Panel (Anchored to the right) */}
-            <div className="w-96 h-full bg-card border-l p-4 overflow-y-auto shadow-2xl z-20">
+            <div id={SETTINGS_ID} tabIndex={-1} className="w-96 h-full bg-card border-l p-4 overflow-y-auto shadow-2xl z-20 outline-none">
                 <ControlPanel onOpenMaterials={openMaterials} />
             </div>
 

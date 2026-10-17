@@ -283,7 +283,7 @@ Conteo del 2026-10-16. "Colores" cuenta clases `bg-`/`text-`/`border-`/`ring-`/`
 Notas de la etapa 2:
 - `SegmentedControl` marca el activo con `aria-checked` además de `data-[state=on]`: cuando una opción tiene `tooltip`, el `TooltipTrigger` pisa `data-state` con el estado del tooltip y el activo dejaba de verse.
 - `custom-scrollbar` no está definida en ningún CSS (clase muerta). Se quitó de `ControlPanel`; sigue en `MaterialList`, `PaletteSidebar`, `About` y `pages/Builder`. Reemplazar por `ScrollArea` o quitarla al migrar cada uno.
-- `primary` en modo oscuro (`oklch(0.424 0.199 265.6)`) tiene poco contraste como color de texto sobre el fondo (~2.3:1). Sirve como fondo de botones y estados activos; no usar `text-primary` para texto hasta decidir si se aclara.
+- `primary` en modo oscuro (`oklch(0.424 0.199 265.6)`) tenía poco contraste como color de texto sobre el fondo (~2.3:1). Se aclaró a `oklch(0.55 …)`; ver "Pendientes después de la migración".
 
 ### Etapa 3 — Canvas, toolbar y barra de estado (hecha 2026-10-16)
 
@@ -337,11 +337,11 @@ Hallazgos de la prueba manual, ya resueltos:
 
 ### Pendientes después de la migración
 
-- [ ] Rueda del mouse en el canvas: React registra `onWheel` como pasivo, así que el `preventDefault()` de `useCanvasInteraction` se ignora (aviso en consola) y Ctrl + rueda o el pellizco del trackpad también hacen zoom en toda la página. Registrar un listener nativo con `{ passive: false }` sobre el contenedor.
-- [ ] `<Canvas shadows>` en `Mapart3DPreview` pide `PCFSoftShadowMap`, que three 0.184 marca como obsoleto y reemplaza por `PCFShadowMap`. Usar `shadows="percentage"` (mismo resultado, sin aviso).
-- [ ] Aviso `THREE.Clock … deprecated`: viene de `@react-three/fiber` 9.6.1; se va al actualizar R3F.
-- [ ] Orden de foco: los 61 grupos de la paleta van antes que el canvas y el panel. Evaluar un enlace "saltar al panel".
-- [ ] `primary` tiene poco contraste como texto (~2.3:1); decidir si se aclara antes de usar `text-primary`.
+- [x] Rueda del mouse en el canvas: React registra `onWheel` como pasivo, así que el `preventDefault()` de `useCanvasInteraction` se ignoraba (aviso en consola) y Ctrl + rueda o el pellizco del trackpad también hacían zoom en toda la página. Ahora `useCanvasInteraction` expone `attachWheel(node)`, que registra un listener nativo con `{ passive: false }`; `MainCanvas` lo engancha con un callback ref, que lo quita cuando el contenedor se desmonta en modo 3D.
+- [x] `<Canvas shadows>` en `Mapart3DPreview` pedía `PCFSoftShadowMap`, que three 0.184 marca como obsoleto y reemplaza por `PCFShadowMap`. Ahora usa `shadows="percentage"` (mismo resultado, sin aviso).
+- [ ] Aviso `THREE.Clock … deprecated`: lo crea `@react-three/fiber`. Hasta la 9.8.2 (última estable, revisada 2026-10-16) sigue usando `THREE.Clock`, así que no se arregla actualizando; esperar a R3F 10 (hoy en alpha).
+- [x] Orden de foco: los 61 grupos de la paleta van antes que el canvas y el panel. `SkipLinks` agrega "Skip to canvas" y "Skip to settings", ocultos hasta recibir foco con el primer Tab; los destinos (`<main>` del canvas y el contenedor del panel) tienen `tabIndex={-1}`.
+- [x] Contraste de `primary`: en modo oscuro pasó de `oklch(0.424 …)` a `oklch(0.55 0.199 265.638)` (decidido 2026-10-16). Los íconos con `text-primary` (spinners, engranaje del panel) pasan de ~2:1 a 3.9:1 sobre `background` y 3.4:1 sobre `card`; el texto de los botones primarios queda en 4.66:1 (AA). Sobre `muted` da 2.9:1: no usar `text-primary` ahí, ni para texto chico en general.
 
 ### Notas para retomar
 

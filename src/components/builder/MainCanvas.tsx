@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useState, useRef, lazy, Suspense } from 'react';
+import { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { useMapartStore as useMapart, useMapartFields } from '../../store/useMapartStore';
 import { useCanvasInteraction } from '../../hooks/useCanvasInteraction';
 import { useCanvasActions } from '../../hooks/useCanvasActions';
@@ -12,6 +12,7 @@ import { PixelGridOverlay } from './canvas/PixelGridOverlay';
 import { InteractionLayer } from './canvas/InteractionLayer';
 import { InteractionHints } from './canvas/InteractionHints';
 import { ImageDataCanvas } from './canvas/ImageDataCanvas';
+import { CANVAS_ID } from './SkipLinks';
 
 // Lazy load heavy 3D preview
 const Mapart3DPreview = lazy(() => import('./3d/Mapart3DPreview').then(m => ({ default: m.Mapart3DPreview })));
@@ -86,7 +87,7 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         setScale,
         position,
         isDragging,
-        handleWheel,
+        attachWheel,
         handleMouseDown: handleCanvasMouseDown,
         handleMouseMove: handleCanvasMouseMove,
         handleMouseUp
@@ -96,6 +97,16 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
         containerRef as React.RefObject<HTMLElement>,
         { width: contentWidth, height: contentHeight }
     );
+
+    // The container unmounts in 3D mode, so the wheel listener follows it.
+    const setContainer = useCallback((node: HTMLDivElement) => {
+        containerRef.current = node;
+        const detachWheel = attachWheel(node);
+        return () => {
+            detachWheel();
+            containerRef.current = null;
+        };
+    }, [attachWheel]);
 
     // Context Menu prevent
     const handleContextMenu = (e: React.MouseEvent) => {
@@ -108,7 +119,9 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
 
     return (
         <main
-            className="flex-1 h-full relative bg-muted overflow-hidden flex flex-col"
+            id={CANVAS_ID}
+            tabIndex={-1}
+            className="flex-1 h-full relative bg-muted overflow-hidden flex flex-col outline-none"
             onMouseMove={handleCanvasMouseMove}
             onMouseUp={handleMouseUp}
             onContextMenu={handleContextMenu}
@@ -167,9 +180,8 @@ export const MainCanvas = ({ workerState }: MainCanvasProps) => {
                     ) : (
                         /* Canvas Area */
                         <div
-                            ref={containerRef}
+                            ref={setContainer}
                             className="flex-1 overflow-hidden cursor-move bg-muted bg-[radial-gradient(var(--border)_1px,transparent_1px)] bg-size-[20px_20px]"
-                            onWheel={handleWheel}
                             onMouseDown={handleCanvasMouseDown}
                         >
                             {/* ... Original Content in Canvas Area ... */}
