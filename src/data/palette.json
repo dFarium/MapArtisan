@@ -1,5 +1,5 @@
 {
-  "version": "26.2",
+  "version": "26.3",
   "colors": [
     {
       "colorID": 1,
@@ -343,6 +343,11 @@
           "introducedIn": "1.0.0"
         },
         {
+          "id": "minecraft:pale_oak_leaves",
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
+        },
+        {
           "id": "minecraft:heavy_weighted_pressure_plate",
           "needsSupport": true,
           "introducedIn": "1.5.0"
@@ -351,11 +356,6 @@
           "id": "minecraft:lodestone",
           "needsSupport": false,
           "introducedIn": "1.16.0"
-        },
-        {
-          "id": "minecraft:pale_oak_leaves",
-          "needsSupport": false,
-          "introducedIn": "1.21.4"
         }
       ]
     },
@@ -519,6 +519,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:white_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:white_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -537,6 +542,11 @@
           "id": "minecraft:white_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:white_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:powder_snow",
@@ -788,6 +798,11 @@
           "introducedIn": "1.0.0"
         },
         {
+          "id": "minecraft:pale_oak_wood",
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
+        },
+        {
           "id": "minecraft:stone",
           "needsSupport": false,
           "introducedIn": "1.0.0"
@@ -901,11 +916,6 @@
           "id": "minecraft:observer",
           "needsSupport": false,
           "introducedIn": "1.11.0"
-        },
-        {
-          "id": "minecraft:pale_oak_wood",
-          "needsSupport": false,
-          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:piston",
@@ -1157,6 +1167,26 @@
           "introducedIn": "1.14.0"
         },
         {
+          "id": "minecraft:pale_oak_log",
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
+        },
+        {
+          "id": "minecraft:pale_oak_planks",
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
+        },
+        {
+          "id": "minecraft:pale_oak_pressure_plate",
+          "needsSupport": true,
+          "introducedIn": "1.21.4"
+        },
+        {
+          "id": "minecraft:pale_oak_slab",
+          "needsSupport": false,
+          "introducedIn": "1.21.4"
+        },
+        {
           "id": "minecraft:quartz_block",
           "needsSupport": false,
           "introducedIn": "1.5.0"
@@ -1180,26 +1210,6 @@
           "id": "minecraft:chiseled_quartz_block",
           "needsSupport": false,
           "introducedIn": "1.5.0"
-        },
-        {
-          "id": "minecraft:pale_oak_log",
-          "needsSupport": false,
-          "introducedIn": "1.21.4"
-        },
-        {
-          "id": "minecraft:pale_oak_planks",
-          "needsSupport": false,
-          "introducedIn": "1.21.4"
-        },
-        {
-          "id": "minecraft:pale_oak_pressure_plate",
-          "needsSupport": true,
-          "introducedIn": "1.21.4"
-        },
-        {
-          "id": "minecraft:pale_oak_slab",
-          "needsSupport": false,
-          "introducedIn": "1.21.4"
         },
         {
           "id": "minecraft:polished_diorite",
@@ -1325,9 +1335,19 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:orange_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:orange_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
+        },
+        {
+          "id": "minecraft:orange_poplar_leaves",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:orange_shulker_box",
@@ -1343,6 +1363,11 @@
           "id": "minecraft:orange_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:orange_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:red_sand",
@@ -1528,6 +1553,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:magenta_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:magenta_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -1546,6 +1576,11 @@
           "id": "minecraft:magenta_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:magenta_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:purpur_block",
@@ -1611,6 +1646,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:light_blue_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:light_blue_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -1629,6 +1669,11 @@
           "id": "minecraft:light_blue_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:light_blue_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         }
       ]
     },
@@ -1709,9 +1754,19 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:yellow_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:yellow_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
+        },
+        {
+          "id": "minecraft:yellow_poplar_leaves",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:yellow_shulker_box",
@@ -1727,6 +1782,11 @@
           "id": "minecraft:yellow_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:yellow_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:bee_nest",
@@ -1842,6 +1902,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:lime_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:lime_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -1860,6 +1925,11 @@
           "id": "minecraft:lime_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:lime_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:melon",
@@ -1920,6 +1990,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:pink_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:pink_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -1938,6 +2013,11 @@
           "id": "minecraft:pink_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:pink_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:brain_coral_block",
@@ -2003,6 +2083,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:gray_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:gray_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2021,6 +2106,11 @@
           "id": "minecraft:gray_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:gray_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:dead_brain_coral_block",
@@ -2101,6 +2191,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:light_gray_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:light_gray_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2121,6 +2216,31 @@
           "introducedIn": "1.0.0"
         },
         {
+          "id": "minecraft:light_gray_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
+          "id": "minecraft:poplar_log",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
+          "id": "minecraft:poplar_planks",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
+          "id": "minecraft:poplar_pressure_plate",
+          "needsSupport": true,
+          "introducedIn": "26.3"
+        },
+        {
+          "id": "minecraft:poplar_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:jigsaw",
           "needsSupport": false,
           "introducedIn": "1.14.0"
@@ -2129,6 +2249,16 @@
           "id": "minecraft:pale_moss_block",
           "needsSupport": false,
           "introducedIn": "1.21.4"
+        },
+        {
+          "id": "minecraft:stripped_poplar_log",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
+          "id": "minecraft:stripped_poplar_wood",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:structure_block",
@@ -2189,6 +2319,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:cyan_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:cyan_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2207,6 +2342,11 @@
           "id": "minecraft:cyan_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:cyan_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:prismarine",
@@ -2267,6 +2407,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:purple_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:purple_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2280,6 +2425,11 @@
           "id": "minecraft:purple_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:purple_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:amethyst_block",
@@ -2365,6 +2515,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:blue_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:blue_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2383,6 +2538,11 @@
           "id": "minecraft:blue_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:blue_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:tube_coral_block",
@@ -2438,6 +2598,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:brown_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:brown_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2456,6 +2621,11 @@
           "id": "minecraft:brown_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:brown_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:dark_oak_log",
@@ -2556,6 +2726,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:green_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:green_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2574,6 +2749,11 @@
           "id": "minecraft:green_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:green_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:chain_command_block",
@@ -2669,6 +2849,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:red_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:red_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2677,6 +2862,11 @@
           "id": "minecraft:red_mushroom_block",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:red_poplar_leaves",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:red_shulker_box",
@@ -2692,6 +2882,11 @@
           "id": "minecraft:red_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:red_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:brick_slab",
@@ -2812,6 +3007,11 @@
           "introducedIn": "1.12.0"
         },
         {
+          "id": "minecraft:black_concrete_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
+        },
+        {
           "id": "minecraft:black_glazed_terracotta",
           "needsSupport": false,
           "introducedIn": "1.12.0"
@@ -2830,6 +3030,11 @@
           "id": "minecraft:black_wool",
           "needsSupport": false,
           "introducedIn": "1.0.0"
+        },
+        {
+          "id": "minecraft:black_wool_slab",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:blackstone",
@@ -3155,6 +3360,11 @@
           "id": "minecraft:mangrove_roots",
           "needsSupport": false,
           "introducedIn": "1.19.0"
+        },
+        {
+          "id": "minecraft:poplar_wood",
+          "needsSupport": false,
+          "introducedIn": "26.3"
         },
         {
           "id": "minecraft:spruce_log",
