@@ -278,10 +278,9 @@ completo por frame ni cambios instantáneos bajo cualquier carga.
 5. Sincronización automática, controles y pruebas de ráfagas/undo/redo.
 6. Medición y ajustes; solo después evaluar multimap, Servux o web publicada.
 
-Prerrequisito de producto: habilitar y validar Minecraft 26.3 en las versiones
-soportadas de MapArtisan. El JSON ya contiene bloques 26.3, pero el selector
-revisado todavía llega a 26.2. La corrección del DataVersion y la compatibilidad
-de los formatos exportados se validan por separado del transporte en vivo.
+Prerrequisito de producto: Minecraft 26.3 ya está habilitado en las versiones
+soportadas de MapArtisan (versión por defecto, DataVersion 5023), y los formatos
+exportados se validaron en el juego el 2026-10-17.
 
 ## 13. Referencias consultadas
 

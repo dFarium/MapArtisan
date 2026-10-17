@@ -175,6 +175,14 @@ Este documento reúne las mejoras detectadas durante la revisión de la tubería
     - 2048×1024 (16×8, 128 mapas): 308.7 ms
     - 512×512 en 2D: 112.8 ms
 
+## P1 — Soporte de Minecraft 26.3
+
+- [x] Paleta y texturas de 26.3 (42 bloques: losas de lana y concreto, set de álamo) generadas con BlockMaps.
+- [x] `26.3` en el selector como versión por defecto, con DataVersion 5023.
+- [x] Test `src/data/__tests__/supportedVersions.test.ts`: la versión por defecto cubre toda la paleta y los bloques 26.3 no aparecen en 26.2.
+- [x] Validar en el juego que `.litematic`, `.schem` y `.nbt` exportados para 26.3 cargan y colocan bien losas de lana/concreto y bloques de álamo (validado 2026-10-17).
+  - **Aceptación:** la imagen de prueba `docs/test-images/test-card-1x2.png` exportada con bloques 26.3 se ve igual en el mapa que en la vista previa.
+
 ## P1 — Revamp de UI con shadcn/ui
 
 Objetivo: controles consistentes, una escala tipográfica legible y colores por tokens en lugar de clases `zinc-*`/`blue-*` escritas a mano. Modo oscuro forzado, sin modo claro.

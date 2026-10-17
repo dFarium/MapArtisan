@@ -35,7 +35,7 @@ describe('ProcessingSettingsSection', () => {
 
     it('changes the Minecraft version', () => {
         renderSection();
-        pickSelectOption(/^26\.2$/, /^1\.20\.0/);
+        pickSelectOption(/^26\.3$/, /^1\.20\.0/);
         expect(store().paletteVersion).toBe('1.20.0');
     });
 

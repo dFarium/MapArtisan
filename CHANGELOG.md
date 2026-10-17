@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-This update builds every 3D column as low as its shading allows, replaces the 3D precision slider with a height limit in blocks, makes Smart V2 the default dithering, rebuilds the interface on shadcn/ui, and hardens memory use, caching and exports.
+This update adds Minecraft 26.3 support, builds every 3D column as low as its shading allows, replaces the 3D precision slider with a height limit in blocks, makes Smart V2 the default dithering, rebuilds the interface on shadcn/ui, and hardens memory use, caching and exports.
 
 ### Added
+- **Minecraft 26.3 Support**: 26.3 is the new default target version. The palette adds 42 blocks: wool and concrete slabs in all 16 colors, and the poplar wood set (planks, log, wood, stripped log and wood, slab, pressure plate, and orange, red and yellow leaves), with their textures. Exports use DataVersion 5023.
 - **Height Limit**: Cap the 3D build height in blocks. When a column would grow taller, the quantizer picks the closest color with the opposite shade and dithering absorbs the difference. Three styles control how those resets look on flat areas: `Lines`, `Balanced` and `Noise`. Manually painted pixels always take priority over the limit.
 - **Smooth Resampling**: The image now shrinks to the map resolution with an exact area average in linear light instead of picking the nearest pixel, removing aliasing and moiré from photos and fine detail. Results are identical in every browser, and uniform blocks at integer ratios are unchanged. `Sharp` keeps the previous nearest-pixel behaviour for pixel art.
 - **Smart V2 Dithering**: Diffuses error fully on detailed areas and gently on flat ones, guided by a local activity map that respects independent map boundaries.

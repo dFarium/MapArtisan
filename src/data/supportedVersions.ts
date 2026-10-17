@@ -3,6 +3,7 @@
  * Each version represents the minimum version that introduced new blocks.
  */
 export const SUPPORTED_VERSIONS = [
+    { value: '26.3', label: '26.3' },
     { value: '26.2', label: '26.2' },
     { value: '1.21.5', label: '1.21.5 - 26.1' },
     { value: '1.21.4', label: '1.21.4' },
@@ -16,7 +17,7 @@ export const SUPPORTED_VERSIONS = [
 
 export type SupportedVersion = typeof SUPPORTED_VERSIONS[number]['value'];
 
-export const DEFAULT_VERSION: SupportedVersion = '26.2';
+export const DEFAULT_VERSION: SupportedVersion = '26.3';
 
 /**
  * Minecraft Data Version numbers for Litematica/schematic export.
@@ -24,6 +25,7 @@ export const DEFAULT_VERSION: SupportedVersion = '26.2';
  * Reference: https://minecraft.wiki/w/Data_version
  */
 export const MINECRAFT_DATA_VERSIONS: Record<SupportedVersion, number> = {
+    '26.3': 5023,
     '26.2': 4903,
     '1.21.5': 4325,
     '1.21.4': 4189,
