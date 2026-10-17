@@ -1,8 +1,10 @@
 # Spec: preview en vivo mediante Litematica
 
-Fecha: 2026-10-16  
+Fecha: 2026-10-16 (actualizado 2026-10-17 con la revisión del código de Litematica)  
 Estado: propuesta para revisión; implementación no iniciada.  
-Dependencia arquitectónica: Litematica obligatoria.
+Dependencia arquitectónica: Litematica obligatoria.  
+Decisión provisional: mantener Litematica como motor de pegado mediante una tarea
+propia (sección 5.2); confirmar con la prueba técnica de la etapa 1.
 
 ## 1. Objetivo
 
@@ -88,9 +90,10 @@ al hilo apropiado de cliente o servidor.
 
 ### Adaptador de Litematica
 
-Crea o actualiza un esquema y una colocación exclusivos de MapArtisan, conserva
-su origen y solicita el pegado mediante Litematica. Mantendrá las llamadas a sus
-clases concretas fuera del protocolo y del resto del puente.
+Crea un esquema y una colocación exclusivos de MapArtisan por revisión, conserva
+su origen y ejecuta el pegado con una tarea propia sobre la infraestructura de
+Litematica (sección 5.2). Mantendrá las llamadas a sus clases concretas fuera del
+protocolo y del resto del puente.
 
 Litematica es obligatoria: si falta o su versión no es compatible, la función
 se deshabilita con un diagnóstico. No habrá un motor alternativo de colocación.
@@ -111,14 +114,102 @@ fijada de Minecraft/Litematica/MaLiLib:
 8. Aplicar el comportamiento necesario sin dejar alteradas preferencias globales
    de Litematica, selección, filtros de capas o tareas ajenas.
 
-El código 26.3 consultado contiene `addSchematicPlacement(...)` y
-`pastePlacementToWorld(..., changedBlocksOnly, ...)`. Se consideran puntos de
-integración candidatos, no una API pública estable garantizada.
-
 La versión exacta soportada de Litematica y MaLiLib se fijará al completar esta
 comprobación. No se declarará compatibilidad con todas las versiones. Si no es
 posible observar la finalización o controlar el pegado requerido, se revisará el
 spec antes de desarrollar el resto; no se emitirá un éxito anticipado.
+
+### 5.1 Revisión del código fuente (2026-10-17)
+
+Se leyó el código de Litematica y MaLiLib para valorar cada punto antes de la
+prueba en el juego. Versiones revisadas:
+
+- Rama `26.3` de `sakura-ryoko/litematica`: `0.29.2-sakura.1`, sin publicar,
+  con MaLiLib `0.30.2`. Commit `64e7459` del 2026-10-12.
+- Última publicación: tag `26.3-0.29.0`, comparado con la rama en las clases clave.
+- Licencia LGPLv3: un mod independiente puede enlazar y heredar de sus clases.
+
+No existe una API pública para crear y pegar esquemas. La interfaz
+`ISchematicPlacementEventListener` solo informa cambios de colocación, no pegados.
+Las clases internas cambian incluso entre parches: entre `0.29.0` y la rama,
+`SchematicPlacementManager.canHandleChunk` pasó de `protected` a `public` y
+`SchematicPlacingUtils` incorporó la opción `pasteAlwaysUsePersistent`.
+
+Estado de cada punto según el código:
+
+| # | Requisito | Hallazgo |
+|---|---|---|
+| 1 | Esquema en memoria | `LitematicaSchematic.createEmptySchematic(AreaSelection, author)` y `getSubRegionContainer(nombre).set(x, y, z, state)`. |
+| 2 | Actualizar sin reiniciar | Se sustituye la colocación: `removeSchematicPlacement(anterior)` y `addSchematicPlacement(nueva, false)`, con `setShouldBeSaved(false)`. El holograma se reconstruye de forma asíncrona en hilos daemon. Modificar el contenedor de un esquema ya registrado no es seguro: lo leen esos hilos y el hilo del servidor. |
+| 3 | Pegado real en singleplayer | `pastePlacementToWorld` programa `TaskPasteSchematicPerChunkDirect` en `TaskScheduler.getInstanceServer()`, que corre en el tick del servidor integrado. |
+| 4 | Terminación y fallo | `pastePlacementToWorld` devuelve `void` y no expone la tarea. Si la tarea se crea directamente, `TaskBase.setCompletionListener` notifica `onTaskCompleted` o `onTaskAborted` en el hilo del cliente. Un fallo por chunk **no** se notifica: si `placeToWorldWithinChunk` devuelve `false`, el chunk queda pendiente y se reintenta en cada tick indefinidamente. |
+| 5 | Reemplazo y aire | Solo con `ReplaceBehavior.ALL`. El valor por defecto de `pasteReplaceBehavior` es `NONE`, que omite toda posición ya ocupada. Con `ALL`, el aire del contenedor se escribe; `structure_void` se omite. El pegado recorre el volumen completo del esquema. |
+| 6 | `changedBlocksOnly` | Se ignora en la ruta directa de singleplayer; solo lo usa el pegado por comandos. Escribir el mismo estado que ya existe no produce cambios en el chunk. |
+| 7 | Pegado único y cambio de mundo | El puente puede conservar la referencia a su tarea y consultar `TaskScheduler.getAllTasks()`. Defecto detectado: al cambiar de mundo, `DataManager.clear()` limpia solo el scheduler del cliente, y `runTasks()` no ejecuta nada mientras `player == null`. Una tarea del servidor interrumpida no avisa y podría reanudarse en el mundo siguiente con referencias antiguas. |
+| 8 | Sin alterar configuración global | `pastePlacementToWorld` usa el rango de capas global, y el constructor de la tarea lee `pasteReplaceBehavior` y `pasteLayerBehavior`. Una tarea propia puede pasar `ReplaceBehavior.ALL` y `PasteLayerBehavior.ALL` sin modificar la configuración. Efectos secundarios: `addSchematicPlacement` selecciona la colocación si no había otra seleccionada, y la tarea estándar muestra mensajes en el action bar al terminar. |
+
+Comportamiento útil confirmado: la ruta directa llama a
+`placeToWorldWithinChunk(..., notifyNeighbors = false)`. Esto activa la supresión
+de actualizaciones de Litematica, cuyos mixins cancelan drops de ítems y omiten
+`onPlace`/`onRemove`, y coloca con los flags `0x12`. Los bloques con gravedad no
+caen y los bloques apoyados no se rompen durante el pegado.
+
+Condiciones del entorno de las que depende el pegado, sin producir error:
+`TaskPasteSchematicPerChunkBase.canProcessChunk` espera hasta que el chunk exista
+en el mundo del esquema, no haya reconstrucciones pendientes para él y los chunks
+cliente de alrededor (radio 1) estén cargados. El mundo del esquema solo se
+llena con `Configs.Visuals.ENABLE_RENDERING` activo y con chunks cliente cargados,
+salvo que `loadEntireSchematics` esté activo. Para un área de unos 9 × 9 chunks,
+el jugador debe estar cerca.
+
+### 5.2 Integración propuesta
+
+- No llamar a `pastePlacementToWorld`. El adaptador define una tarea que hereda
+  de `TaskPasteSchematicPerChunkBase`:
+  - registra sus colocaciones por chunk en `onChunkAddedForHandling`;
+  - en `processChunk` llama a `SchematicPlacingUtils.placeToWorldWithinChunk`
+    con `ReplaceBehavior.ALL`, `PasteLayerBehavior.ALL` y `notifyNeighbors = false`;
+  - reproduce en `execute` el presupuesto de 60 ms por tick de
+    `TaskPasteSchematicPerChunkDirect`;
+  - en `onStop` retira su HUD y notifica sin mensajes en pantalla;
+  - expone `pendingChunks.size()` para informar `progress` y alimentar un watchdog.
+- Se programa con `TaskScheduler.getInstanceServer().scheduleTask(tarea, 1)` y se
+  usa `LayerRange` propio con modo `ALL`.
+- Cada revisión crea un esquema y una colocación nuevos. Solo se sustituyen
+  cuando no hay pegado activo. El esquema cubre la unión de los límites anterior
+  y nuevo, con aire explícito donde la nueva estructura no tiene bloques.
+- Al desconectarse del mundo o detenerse el servidor integrado, el puente llama a
+  `TaskScheduler.getInstanceServer().removeTask(tarea)` mediante los eventos de
+  Fabric. Así recibe `onTaskAborted` en lugar de dejar la tarea colgada.
+- Antes de pegar se comprueban, solo en lectura, `ENABLE_RENDERING`, que la
+  colocación esté habilitada y la carga de chunks cliente del área. Si alguna
+  falla, el estado es "esperando" con diagnóstico, no un error ni un éxito.
+- Si no hay avance de `pendingChunks` durante el tiempo de la sección 10, se
+  informa el chunk bloqueado y su causa probable; no se programa otro pegado.
+- Se fija la versión publicada `26.3-0.29.0`, no la rama. El adaptador toca unas
+  doce clases internas (`LitematicaSchematic`, `AreaSelection`/`Box`,
+  `LitematicaBlockStateContainer`, `SchematicPlacement`,
+  `SchematicPlacementManager`, `DataManager`, `TaskScheduler`,
+  `TaskPasteSchematicPerChunkBase`, `SchematicPlacingUtils`, `ReplaceBehavior`,
+  `PasteLayerBehavior` y, de MaLiLib, `LayerRange` e `ICompletionListener`).
+  Al iniciar, el puente valida la versión exacta y se deshabilita si no coincide.
+
+### 5.3 Pendiente de verificar en el juego
+
+La lectura del código no resuelve estos puntos; la etapa 1 debe medirlos:
+
+1. Tiempo de reconstrucción del holograma tras sustituir la colocación, y que el
+   pegado espere correctamente a que termine.
+2. Si `placeToWorldWithinChunk` puede devolver `false` en uso normal, lo que
+   provocaría reintentos indefinidos.
+3. Salida del mundo a mitad de pegado: limpieza con `removeTask`, notificación de
+   aborto y ausencia de escrituras en el mundo siguiente.
+4. Tiempo real de pegado de un volumen máximo (unos 4,2 millones de posiciones
+   con aire) dentro del presupuesto por tick.
+5. Que los bloques colocados con supresión de actualizaciones se mantengan
+   estables tras actualizaciones posteriores de vecinos.
+6. Que la colocación de MapArtisan no altere la selección ni otras colocaciones
+   del usuario, o que se restauren.
 
 ## 6. Modelo de estructura y coordenadas
 
@@ -161,6 +252,14 @@ construcciones introducidas manualmente dentro de esa zona durante la sesión.
 Un cambio de píxel 3D puede desplazar toda una columna. Se regenera la instantánea
 constructiva para reflejar Smart Drop, normalización vertical y soportes. No se
 asume que una pincelada corresponde a una única posición del mundo.
+
+La supresión de actualizaciones de Litematica (sección 5.1) evita caídas y drops
+durante el pegado, pero no los ticks aleatorios posteriores. Las hojas se exportan
+hoy sin propiedades, es decir, con `persistent=false`, y se descomponen; el hielo
+puede derretirse. La opción `pasteAlwaysUsePersistent` solo existe en la rama sin
+publicar y está desactivada por defecto. La instantánea, y también la exportación,
+deben emitir las hojas con `persistent=true`. Las reglas del mundo de pruebas
+para el resto de bloques afectados se definirán en la etapa 1.
 
 ## 8. Protocolo local v1
 
@@ -210,7 +309,9 @@ no se restaura silenciosamente tras reiniciar el mod.
   curso, se solicita una instantánea completa con la base confirmada.
 - Si hubo pegado parcial, se entra en `needsResync`. Se conserva la unión del área
   que pudo tocarse y se exige una resincronización completa controlada.
-- Cambiar o cerrar el mundo invalida el destino y la sesión.
+- Cambiar o cerrar el mundo invalida el destino y la sesión. El puente retira
+  explícitamente su tarea del scheduler del servidor (sección 5.2) y lo informa
+  como `failed` con posible aplicación parcial.
 - No hay rollback instantáneo prometido. La recuperación es una resincronización
   completa; cerrar la sesión deja los bloques existentes en el mundo.
 
@@ -271,7 +372,8 @@ completo por frame ni cambios instantáneos bajo cualquier carga.
 
 ## 12. Etapas de implementación propuestas
 
-1. Comprobación técnica de Litematica, fijación de dependencias y finalización observable.
+1. Prueba técnica en el juego de la tarea propia de la sección 5.2 contra
+   `26.3-0.29.0`, cubriendo los puntos de la sección 5.3; fijación de dependencias.
 2. Contrato de instantánea del worker y equivalencia con la exportación.
 3. Puente local y pegado completo manual de una revisión.
 4. Reemplazo con aire, confirmaciones, recuperación y aislamiento del destino.
@@ -286,6 +388,14 @@ exportados se validaron en el juego el 2026-10-17.
 
 - Código del gestor de colocaciones de Litematica, rama 26.3:
   https://raw.githubusercontent.com/sakura-ryoko/litematica/26.3/src/main/java/fi/dy/masa/litematica/schematic/placement/SchematicPlacementManager.java
+- Clases revisadas el 2026-10-17 en la rama 26.3 (commit `64e7459`) y el tag
+  `26.3-0.29.0`: `scheduler/TaskScheduler`, `scheduler/tasks/TaskBase`,
+  `TaskProcessChunkBase`, `TaskPasteSchematicPerChunkBase`,
+  `TaskPasteSchematicPerChunkDirect`, `util/SchematicPlacingUtils`,
+  `schematic/LitematicaSchematic`, `schematic/placement/SchematicPlacement`,
+  `config/Configs`, `data/DataManager`, `mixin/block/MixinBlock`,
+  `mixin/world/MixinLevelChunk`:
+  https://github.com/sakura-ryoko/litematica/tree/26.3/src/main/java/fi/dy/masa/litematica
 - Publicaciones de Litematica:
   https://github.com/sakura-ryoko/litematica/releases
 - Documentación de pegado, con diferencias entre singleplayer y servidores:
