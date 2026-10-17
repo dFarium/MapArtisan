@@ -6,6 +6,7 @@ import { useWorkerManager } from './useWorkerManager';
 import { useImagePreprocessing } from './useImagePreprocessing';
 import { useProcessingPipeline } from './useProcessingPipeline';
 import { useExportPipeline } from './useExportPipeline';
+import { useConnectorSnapshotSource } from './useConnectorSnapshotSource';
 import { useBlockPicker } from './useBlockPicker';
 import { use3DGeometryBuilder } from './use3DGeometryBuilder';
 import { PixelBuffers } from './pixelBuffers';
@@ -220,6 +221,15 @@ export const useMapartWorker = ({
     }), [processingParams, blockSupport, supportBlockId, exportMode, paletteVersion, exportFormat]);
 
     const { isExporting, calculateMaterials, exportMapart } = useExportPipeline({
+        workerApiRef,
+        isProcessingRef,
+        workerImageVersionRef,
+        sourceImageDataRef,
+        sourceImageVersion,
+        params: exportParams,
+    });
+
+    useConnectorSnapshotSource({
         workerApiRef,
         isProcessingRef,
         workerImageVersionRef,

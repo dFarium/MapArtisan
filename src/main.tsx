@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { debug } from './utils/diagnostic'
+import { installConnectorConsole } from './connector/console'
+
+// Live preview connector, hidden unless enabled from the DevTools console.
+installConnectorConsole()
 
 // React's development build emits User Timing measures for component tracks.
 // Rapid slider commits can create tens of thousands of entries whose Blink-side

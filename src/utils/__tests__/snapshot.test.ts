@@ -52,6 +52,17 @@ describe('fnv1a64', () => {
         expect(fnv1a64(bytes('a'))).toBe('af63dc4c8601ec8c');
         expect(fnv1a64(bytes('foobar'))).toBe('85944171f73967e8');
     });
+
+    it('hashes snapshot content like the connector mod', () => {
+        // Same vector as MapartisanConnector's ContentHashTest.
+        const snapshot = buildConstructionSnapshot(single(buffers(
+            ['minecraft:stone', 'minecraft:oak_leaves'],
+            [[0, 0, 0, 0], [1, 2, 3, 1], [127, 300, 128, 0]],
+        )), SECTION_0, CONFIG);
+
+        expect(snapshot.palette).toEqual(['minecraft:stone', 'minecraft:oak_leaves[persistent=true]']);
+        expect(snapshot.contentHash).toBe('4647d62b64c2a609');
+    });
 });
 
 describe('resolveSnapshotSection', () => {

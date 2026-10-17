@@ -12,7 +12,7 @@ export interface UseExportPipelineProps extends WorkerRefs {
 }
 
 /** Copies the source image into a transferable buffer owned by the worker. */
-function transferableSource(sourceImage: ImageData): ImageBufferV1 {
+export function transferableSource(sourceImage: ImageData): ImageBufferV1 {
     const rgba = sourceImage.data.buffer.slice(0);
     return {
         width: sourceImage.width,
