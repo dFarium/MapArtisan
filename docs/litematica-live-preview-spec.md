@@ -1,7 +1,8 @@
 # Spec: live preview through Litematica
 
 Date: 2026-10-16 (updated 2026-10-17 with the Litematica code review and stages 1–3)  
-Status: stages 1–3 done (sections 5.4, 12.1 and 12.2); stages 4–6 pending.  
+Status: stages 1–4 done (sections 5.4, 12.1, 12.2 and 12.3); stage 5
+implemented (section 12.4); stage 6 pending.  
 Architectural dependency: Litematica is required.  
 Decision: keep Litematica as the paste engine through a task of our own
 (section 5.2), confirmed by stage 1 on 2026-10-17 (section 5.4).
@@ -696,6 +697,104 @@ a real image sent from the console:
 One usability finding: Minecraft pauses when it loses focus, and the paste
 waits in `scheduled` while the browser has focus. F3 + P turns that off for
 testing; stage 5 should surface the paused state in the UI (section 9).
+
+### 12.3 Stage 4 design: target isolation and recovery
+
+Decided 2026-10-17. Replacement with air (union of bounds) and `applied` after
+verification already came with stage 3. Stage 4 adds:
+
+1. **Reserved, empty area** (section 7). `/mapartisan start [x y z] [force]`
+   reserves one section footprint, 128 × 129 with the noobline at `z=0`, from
+   the origin up to the build limit. Before opening the port, the server thread
+   scans it, skipping all-air chunk sections. Non-air blocks refuse the start
+   with their count and the first position; unloaded chunks ask the player to
+   move closer. `force` accepts an occupied area: the bounds of the blocks found
+   are marked dirty, so the first revision replaces them, air included, and the
+   session starts with `needsResync`.
+2. **Nothing outside the area** (criterion 7). A structure larger than the
+   reserved area is rejected with `OUT_OF_AREA` before anything is written.
+3. **`needsResync`.** Reported in `sessionReady`, `status`, `applied` and
+   `failed`, and cleared by the next `applied`. After `VERIFY_MISMATCH` or
+   `VERIFY_FAILED` the whole verified volume is marked dirty, not only the new
+   structure.
+4. **Recovery on reconnect** (section 9). Results go to the tab holding the
+   session when they are ready, not to the connection that sent the revision.
+   `sessionReady` and the new `status` message report `lastRevision`,
+   `lastApplied`, `needsResync`, `paused` and `pending` (the revision in
+   progress with its phase and chunks). The web client adopts a pending
+   revision: `send()` answers `BUSY` until its outcome arrives through
+   `inFlight`.
+5. **Visible pause.** `progress`, `status` and `sessionReady` report the
+   `paused` phase or flag while the game is paused.
+6. **Dimension change ends the session** (section 9), even without a paste
+   running; an interrupted paste fails with `DIMENSION_CHANGED`.
+7. **End-to-end suite.** `e2e/connector.e2e.ts`, run with `pnpm connector:e2e`
+   and `CONNECTOR_TOKEN`, drives the real `ConnectorClient` and raw protocol
+   messages against the game: `Origin`, `Host` and path refusals, invalid token,
+   `BUSY`, hash mismatch, unknown blocks and properties, duplicates,
+   `OUT_OF_AREA`, incomplete transfers, `applied`, `repeated`,
+   `REVISION_CONFLICT`, air replacement, `STALE_REVISION`, reconnecting during a
+   paste and `status`. It is not part of `vitest run`.
+
+Checked by hand, because the protocol cannot cause them: the empty-area check
+and `force`, `needsResync` after `/mapartisan test abort`, the paused phase and
+the dimension change.
+
+New codes: `OUT_OF_AREA` (`rejected`) and `DIMENSION_CHANGED` (`failed`).
+
+**Result (2026-10-17).** Stage 4 done. 15 JUnit and 1039 Vitest tests green, and
+`pnpm connector:e2e` passed 17 of 17 against the game. The first e2e run found
+two bugs in the suite itself, not in the mod: Node's keep-alive agent reused a
+socket the bridge had closed after a 403, and a repeated revision answers
+`applied` without `accepted`. The bridge now also sends `Connection: close` on
+its 403/404 responses. In the game log of the passing run:
+
+| Check | Result |
+|---|---|
+| Occupied area | `start` without `force` was refused; with `force`, the 74 blocks found were covered by the first revision, which verified 891,648 positions, and later revisions went back to the structure volume (1,904 positions). |
+| Reconnect during a paste | Revision 14 (3.3 M positions) was still pasting when the tab reconnected; its `applied` reached the new tab 525 ms after scheduling. |
+| Air replacement | Revision 15 replaced revision 14 and verified all 3,302,400 positions of the union. |
+| Reconnect from the browser | With the player 1000 blocks away the paste waited; the watchdog reported the unloaded hologram chunk; after reloading the page and coming back, revision 17 was applied and verified. |
+| Abort | `/mapartisan test abort` during a waiting paste failed revision 18 with `ABORTED` and `partial: true`, leaving `needsResync`. |
+
+### 12.4 Stage 5 design: automatic sync and controls
+
+Decided 2026-10-17.
+
+1. **Coordinator** (`src/connector/coordinator.ts`). `useConnectorSnapshotSource`
+   reports every change of a construction input: image, palette, processing,
+   heights, supports and their material, manual edits, *File Layout* and
+   `previewSection`. Changes are batched for 200 ms. One revision is generated or
+   sent at a time; changes meanwhile only mark the editor dirty, so the next run
+   sends the latest state and nothing older (criterion 4). A snapshot whose hash
+   the game already holds is not sent, unless the area needs a resync. A failed
+   or lost revision is never retried by itself (section 9): the next change or
+   Resync sends again. After a reconnect, an adopted revision finishes first.
+2. **Controls inside *Construction Model*.** They appear only while the
+   connector has a connection to show: after `connect()`, or after a reload that
+   reconnects. A lost connection keeps them visible as disconnected, with
+   Reconnect and Close, so a drop is not silent; `disconnect()` or `disable()`
+   hides them. They show the sync state, world, dimension and origin, the applied
+   revision, the last paste time, paste progress, a paused game, a pending resync
+   and why the *File Layout* blocks syncing (criterion 11). Controls: automatic
+   sync, pause sending, Resync and Disconnect. `src/connector/connectorView.ts`
+   is the external store between the connector module and React; the controls
+   (`ConnectorPanel-*.js`) and the session (`session-*.js`) are lazy chunks.
+3. **Token.** Still entered with the command `/mapartisan start` copies. It is
+   kept in `sessionStorage`, so a reload reconnects to the same game session; an
+   `UNAUTHORIZED` answer forgets it. The automatic sync setting is kept in
+   `localStorage`.
+4. **Console.** `send()` now goes through the coordinator and always sends, even
+   content already applied; `status()` also reports the sync state.
+
+**Tests.** Coordinator with fake timers, client and source: a burst of 10 edits
+sends one revision, edits during a paste send only the last one after it, no send
+for an applied hash, a send when `needsResync`, holding changes with automatic
+sync off or sending paused, a blocked *File Layout*, no retry after a failure,
+waiting for an adopted revision, one manual send at a time. Two mutations
+(no debounce restart, no hash comparison) fail them. Controls and their slot
+with Testing Library. Undo/redo through the store history with the real worker:
+every step returns to the content hash of that state (criterion 3).
 
 ## 13. References
 
