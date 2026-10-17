@@ -20,7 +20,14 @@ export { canonicalBlockState, formatBlockState, type CanonicalBlockState } from 
 export { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
 
 // File Export
-export { generateMapartExport, splitBlocksIntoSections, triggerDownload, type ExportSection } from './fileExport';
+export {
+    generateMapartExport,
+    generateConstructionSections,
+    splitBlocksIntoSections,
+    triggerDownload,
+    type ConstructionSections,
+    type ExportSection
+} from './fileExport';
 
 // Materials
 export { calculateMaterialCounts } from './materials';

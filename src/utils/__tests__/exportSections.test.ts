@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { calculateMaterialCounts, imageDataToBlockStates, splitBlocksIntoSections, type ExportSection } from '../export';
+import {
+    calculateMaterialCounts,
+    generateConstructionSections,
+    imageDataToBlockStates,
+    splitBlocksIntoSections,
+    type ExportSection
+} from '../export';
 import { NO_HEIGHT_LIMIT, processMapart, unpackTone } from '../processing';
 
 const WIDTH = 128;
@@ -109,6 +115,46 @@ describe('splitBlocksIntoSections', () => {
         for (let x = 0; x < WIDTH; x++) {
             expect(secondTop.get(`${x},0`)!.blockId).toBe(firstTop.get(`${x},128`)!.blockId);
         }
+    });
+});
+
+describe('generateConstructionSections', () => {
+    function construction(image: ImageData, independentMaps: boolean, exportMode: 'full' | 'sections') {
+        const { packedResults } = processMapart(image, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, independentMaps);
+        return generateConstructionSections(
+            image, PALETTE, '3d_valley', NO_HEIGHT_LIMIT, 'none', true, 50, independentMaps,
+            undefined, 'all', SUPPORT, exportMode, packedResults,
+        );
+    }
+
+    it.each([false, true])('splits multi-map layouts like splitBlocksIntoSections (independent: %s)', independentMaps => {
+        const result = construction(testImage(), independentMaps, 'sections');
+
+        expect(result.multiFile).toBe(true);
+        expect(result.sections).toEqual(exportSections(independentMaps, 'all').sections);
+    });
+
+    it('keeps a single-file layout as one section with the whole structure', () => {
+        const image = testImage();
+        const result = construction(image, false, 'full');
+        const { packedResults } = processMapart(image, '3d_valley', PALETTE, NO_HEIGHT_LIMIT, 'none', true, 50, false);
+
+        expect(result.multiFile).toBe(false);
+        expect(result.sections).toHaveLength(1);
+        expect(result.sections[0].sX).toBe(0);
+        expect(result.sections[0].sY).toBe(0);
+        expect(result.sections[0].blocks).toEqual(imageDataToBlockStates(
+            image, PALETTE, '3d_valley', true, NO_HEIGHT_LIMIT, 'none', true, 50, false,
+            undefined, 'all', SUPPORT, 'full', packedResults,
+        ));
+    });
+
+    it('writes a 1x1 map in the multi-file layout as a single file', () => {
+        const small = new ImageData(testImage().data.slice(0, 128 * 128 * 4), 128, 128);
+        const result = construction(small, true, 'sections');
+
+        expect(result.multiFile).toBe(false);
+        expect(result.sections.map(section => [section.sX, section.sY])).toEqual([[0, 0]]);
     });
 });
 

@@ -59,20 +59,19 @@ export async function generateMapartExport(
     precomputedPackedResults?: Uint32Array,
     exportFormat: ExportFormat = 'litematic'
 ): Promise<{ blob: Blob; filename: string }> {
-    const { width, height } = imageData;
-    const isMultiMap = (width > 128 || height > 128) && exportMode === 'sections';
     const isNbt = exportFormat === 'nbt';
     const targetExtension = isNbt ? '.nbt' : '.litematic';
     const baseName = filename.replace(/\.(litematic|nbt)$/i, '');
-    const actualFilename = isMultiMap ? `${baseName}_package.zip` : `${baseName}${targetExtension}`;
 
-    if (!isMultiMap) {
+    const { multiFile, sections } = generateConstructionSections(
+        imageData, selectedPaletteItems, buildMode,
+        heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+        exportMode, precomputedPackedResults
+    );
+
+    if (!multiFile) {
         // Single Map Case
-        const blockStatesOpt = imageDataToBlockStates(
-            imageData, selectedPaletteItems, buildMode, true,
-            heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
-            exportMode, precomputedPackedResults
-        );
+        const blockStatesOpt = sections[0].blocks;
 
         const nbtOpt = isNbt
             ? createVanillaNBT(blockStatesOpt, metadata, targetVersion)
@@ -84,19 +83,12 @@ export async function generateMapartExport(
         const nbtDataOpt = serializeNBT(nbtOpt);
         const blob = new Blob([nbtDataOpt as BlobPart], { type: 'application/octet-stream' });
 
-        return { blob, filename: actualFilename };
+        return { blob, filename: `${baseName}${targetExtension}` };
 
     } else {
-        // Multi Map Case - Global Processing then Split
-        // 1. Generate ALL blocks globally or per section depending on independentMaps
-        const allBlocks = imageDataToBlockStates(
-            imageData, selectedPaletteItems, buildMode, true,
-            heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
-            exportMode, precomputedPackedResults
-        );
-
+        // Multi Map Case - one file per 128x128 section
         const zip = new JSZip();
-        for (const { sX, sY, blocks } of splitBlocksIntoSections(allBlocks, width, height, independentMaps)) {
+        for (const { sX, sY, blocks } of sections) {
             const sectionPreview = metadata.sectionPreviews?.[`${sX}_${sY}`];
             const sectionNbt = isNbt
                 ? createVanillaNBT(blocks, metadata, targetVersion)
@@ -120,6 +112,50 @@ export interface ExportSection {
     sX: number;
     sY: number;
     blocks: BlockStatesBuffers;
+}
+
+/** The blocks of every exported file, in the layout generateMapartExport writes them. */
+export interface ConstructionSections {
+    /** True when each 128x128 section is written to its own file. */
+    multiFile: boolean;
+    /** One entry per file; a single-file export has one entry at (0, 0). */
+    sections: ExportSection[];
+}
+
+/**
+ * Generates the construction blocks for an export, grouped by output file.
+ *
+ * This is the single source of the exported structure: generateMapartExport serializes
+ * these sections, and anything that must match an exported file (such as a live
+ * preview snapshot) reads them from here.
+ */
+export function generateConstructionSections(
+    imageData: ImageData,
+    selectedPaletteItems: Record<number, string | null>,
+    buildMode: BuildMode,
+    heightLimit: HeightLimit = NO_HEIGHT_LIMIT,
+    dithering: DitheringMode = 'none',
+    usePerceptual: boolean = true,
+    hybridStrength: number = 50,
+    independentMaps: boolean = false,
+    manualEdits?: Record<number, { blockId: string; brightness: BrightnessLevel; rgb: { r: number; g: number; b: number } }>,
+    blockSupport: 'all' | 'needed' | 'gravity' = 'all',
+    supportBlockId: string = 'minecraft:cobblestone',
+    exportMode: 'full' | 'sections' = 'sections',
+    precomputedPackedResults?: Uint32Array
+): ConstructionSections {
+    const { width, height } = imageData;
+    const multiFile = (width > 128 || height > 128) && exportMode === 'sections';
+
+    const allBlocks = imageDataToBlockStates(
+        imageData, selectedPaletteItems, buildMode, true,
+        heightLimit, dithering, usePerceptual, hybridStrength, independentMaps, manualEdits, blockSupport, supportBlockId,
+        exportMode, precomputedPackedResults
+    );
+
+    return multiFile
+        ? { multiFile, sections: splitBlocksIntoSections(allBlocks, width, height, independentMaps) }
+        : { multiFile, sections: [{ sX: 0, sY: 0, blocks: allBlocks }] };
 }
 
 /**
