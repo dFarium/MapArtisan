@@ -1,25 +1,22 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { SegmentedControl } from '../SegmentedControl';
 
 const OPTIONS = [
     { value: 'adjust', label: 'Adjust' },
-    { value: 'crop', label: 'Crop', tooltip: 'Crop the image to fill the grid' },
+    { value: 'crop', label: 'Crop' },
 ] as const;
 
 describe('SegmentedControl', () => {
     const renderControl = (value: 'adjust' | 'crop' = 'adjust') => {
         const onValueChange = vi.fn();
         render(
-            <TooltipProvider>
-                <SegmentedControl
-                    aria-label="Image fit"
-                    value={value}
-                    onValueChange={onValueChange}
-                    options={OPTIONS}
-                />
-            </TooltipProvider>
+            <SegmentedControl
+                aria-label="Image fit"
+                value={value}
+                onValueChange={onValueChange}
+                options={OPTIONS}
+            />
         );
         return { onValueChange };
     };

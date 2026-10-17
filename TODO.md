@@ -281,7 +281,7 @@ Conteo del 2026-10-16. "Colores" cuenta clases `bg-`/`text-`/`border-`/`ring-`/`
 - **Aceptación cumplida:** en `control-panel/` no hay `<button>`, `<select>` ni inputs range/checkbox/radio sueltos, ni `text-[Npx]`, ni colores escritos a mano. En `ControlPanel.tsx` solo quedan los colores del logo.
 
 Notas de la etapa 2:
-- `SegmentedControl` marca el activo con `aria-checked` además de `data-[state=on]`: cuando una opción tiene `tooltip`, el `TooltipTrigger` pisa `data-state` con el estado del tooltip y el activo dejaba de verse.
+- `SegmentedControl` llegó a marcar el activo con `aria-checked` porque el `TooltipTrigger` de las opciones con `tooltip` pisaba `data-state`. Desde 2026-10-16 no tiene tooltips (repetían la ayuda que va debajo) y usa estilo de pestañas: riel `bg-background/50` con borde, activo `bg-muted` con sombra y anillo, texto en formato título sin mayúsculas forzadas. El azul queda para acciones.
 - `custom-scrollbar` no está definida en ningún CSS (clase muerta). Se quitó de `ControlPanel`; sigue en `MaterialList`, `PaletteSidebar`, `About` y `pages/Builder`. Reemplazar por `ScrollArea` o quitarla al migrar cada uno.
 - `primary` en modo oscuro (`oklch(0.424 0.199 265.6)`) tenía poco contraste como color de texto sobre el fondo (~2.3:1). Se aclaró a `oklch(0.55 …)`; ver "Pendientes después de la migración".
 

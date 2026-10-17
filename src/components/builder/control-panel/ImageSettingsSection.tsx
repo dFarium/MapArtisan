@@ -4,7 +4,7 @@ import { CollapsibleSection } from '@/components/controls/CollapsibleSection';
 import { FieldLabel } from '@/components/controls/FieldLabel';
 import { PrecisionSlider } from '@/components/controls/PrecisionSlider';
 import { SegmentedControl, type SegmentedOption } from '@/components/controls/SegmentedControl';
-import { Crop, Grid3x3, ImageIcon, Maximize, RefreshCw, Sparkles } from 'lucide-react';
+import { Crop, Grid3x3, ImageIcon, Maximize, RefreshCw, Scaling, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -38,8 +38,8 @@ const FIT_OPTIONS: SegmentedOption<ImageFitMode>[] = [
 ];
 
 const RESAMPLING_OPTIONS: SegmentedOption<ResamplingMode>[] = [
-    { value: 'smooth', label: 'Smooth', icon: <Sparkles />, tooltip: 'Average every source pixel a block covers. Best for photos and art.' },
-    { value: 'sharp', label: 'Sharp', icon: <Grid3x3 />, tooltip: 'Take the nearest source pixel. Keeps hard edges in pixel art.' },
+    { value: 'smooth', label: 'Smooth', icon: <Sparkles /> },
+    { value: 'sharp', label: 'Sharp', icon: <Grid3x3 /> },
 ];
 
 const ResetButton = ({ label, onClick }: { label: string; onClick: () => void }) => (
@@ -129,16 +129,21 @@ export const ImageSettingsSection = ({ isOpen, onToggle }: SectionProps) => {
 
             <Separator />
 
-            {/* Fit & Crop */}
+            {/* Resampling */}
             <div className="space-y-2">
-                <FieldLabel icon={<Crop />}>Image Fit</FieldLabel>
-                <SegmentedControl aria-label="Image fit" value={imageFitMode} onValueChange={setImageFitMode} options={FIT_OPTIONS} />
+                <FieldLabel icon={<Scaling />}>Resampling</FieldLabel>
                 <SegmentedControl aria-label="Resampling" value={resampling} onValueChange={setResampling} options={RESAMPLING_OPTIONS} />
                 <p className="px-1 text-xs text-muted-foreground">
                     {resampling === 'smooth'
                         ? 'Smooth: averages each block\'s area. Best for photos and art.'
                         : 'Sharp: nearest pixel. For pixel art that does not line up with the map grid.'}
                 </p>
+            </div>
+
+            {/* Fit & Crop */}
+            <div className="space-y-2">
+                <FieldLabel icon={<Crop />}>Image Fit</FieldLabel>
+                <SegmentedControl aria-label="Image fit" value={imageFitMode} onValueChange={setImageFitMode} options={FIT_OPTIONS} />
 
                 {imageFitMode === 'crop' && (
                     <div className="space-y-3 rounded-lg border bg-muted/30 p-2">
