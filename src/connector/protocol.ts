@@ -12,14 +12,37 @@ export const PART_HEADER_BYTES = 12;
 export const RECORD_BYTES = 8;
 const PART_MAGIC = [0x4d, 0x41, 0x42, 0x31]; // "MAB1"
 
-export interface SessionInfo {
+export type PastePhase = 'scheduled' | 'waiting' | 'pasting' | 'paused' | 'verifying';
+
+/** A revision the mod accepted and has not finished yet. */
+export interface RevisionInProgress {
+    revision: number;
+    contentHash: string;
+    phase: PastePhase;
+    pendingChunks: number;
+    totalChunks: number;
+    blockedReason?: string;
+}
+
+/** What the mod reports in sessionReady and status (spec section 9). */
+export interface SessionState {
+    lastRevision: number;
+    lastApplied: { revision: number; contentHash: string } | null;
+    /** A paste failed or the area was taken over with force: the next revision rewrites it all. */
+    needsResync: boolean;
+    /** The game is paused, so pastes wait for it. */
+    paused: boolean;
+    pending: RevisionInProgress | null;
+}
+
+export interface SessionInfo extends SessionState {
     sessionId: string;
     world: string;
     dimension: string;
     origin: { x: number; y: number; z: number };
+    /** Size of the reserved area; no structure may be larger. */
+    area: { x: number; y: number; z: number };
     buildHeight: { min: number; max: number };
-    lastRevision: number;
-    lastApplied: { revision: number; contentHash: string } | null;
 }
 
 export interface AppliedTimings {
@@ -34,19 +57,20 @@ export interface AppliedTimings {
 export type ServerMessage =
     | { type: 'welcome'; mod: string; minecraft: string; litematica: string; limits: Record<string, number> }
     | ({ type: 'sessionReady' } & SessionInfo)
+    | ({ type: 'status'; sessionId: string } & SessionState)
     | { type: 'accepted'; sessionId: string; revision: number }
     | {
         type: 'progress'; sessionId: string; revision: number;
-        phase: 'scheduled' | 'waiting' | 'pasting'; pendingChunks: number; totalChunks: number; blockedReason?: string;
+        phase: PastePhase; pendingChunks: number; totalChunks: number; blockedReason?: string;
     }
     | {
         type: 'applied'; sessionId: string; revision: number; contentHash: string; repeated: boolean;
-        verifiedPositions?: number; chunks?: number; timings?: AppliedTimings;
+        needsResync: boolean; verifiedPositions?: number; chunks?: number; timings?: AppliedTimings;
     }
     | { type: 'rejected'; revision?: number; code: string; message: string }
     | {
         type: 'failed'; sessionId: string; revision: number; code: string; message: string;
-        partial: boolean; samples?: string[];
+        partial: boolean; needsResync: boolean; samples?: string[];
     }
     | { type: 'pong'; t?: number };
 

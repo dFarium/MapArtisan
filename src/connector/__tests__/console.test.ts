@@ -7,7 +7,7 @@ function fakeSession() {
         connect: vi.fn(),
         send: vi.fn(),
         disconnect: vi.fn(),
-        status: vi.fn(() => 'connected'),
+        status: vi.fn(async () => 'connected'),
     } as unknown as typeof SessionModule & { disconnect: ReturnType<typeof vi.fn> };
 }
 

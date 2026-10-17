@@ -52,6 +52,8 @@ export function installConnectorConsole(
         api.connect = session.connect;
         api.send = session.send;
         api.disconnect = session.disconnect;
+        // A tab that was connected before reloading reconnects to the same game session.
+        session.restore?.();
     };
 
     const api: ConnectorConsole = {
@@ -77,7 +79,7 @@ export function installConnectorConsole(
             return 'Connector disabled; placed blocks stay in the world.';
         },
         async status() {
-            return { enabled: readEnabled(), connection: session?.status() ?? 'disconnected' };
+            return { enabled: readEnabled(), connection: session ? await session.status() : 'disconnected' };
         },
     };
 

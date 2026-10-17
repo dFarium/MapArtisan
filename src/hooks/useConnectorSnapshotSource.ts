@@ -3,7 +3,7 @@ import type { WorkerRefs, ExportParams } from './types';
 import { PROCESSING_PROTOCOL_VERSION } from '../engine';
 import { toProcessingConfig } from './useProcessingPipeline';
 import { transferableSource } from './useExportPipeline';
-import { setConnectorSnapshotSource } from '../connector/snapshotSource';
+import { notifyConstructionChanged, setConnectorSnapshotSource } from '../connector/snapshotSource';
 import { useMapartStore } from '../store/useMapartStore';
 
 export interface UseConnectorSnapshotSourceProps extends WorkerRefs {
@@ -13,8 +13,9 @@ export interface UseConnectorSnapshotSourceProps extends WorkerRefs {
 }
 
 /**
- * Lets the live preview connector request a snapshot of the current construction.
- * Registering is free: the worker only runs when the connector asks.
+ * Lets the live preview connector request a snapshot of the current construction, and tells
+ * it when any construction input changes. Both are free when the connector is not loaded:
+ * the worker only runs when it asks.
  */
 export function useConnectorSnapshotSource({
     workerApiRef,
@@ -24,11 +25,14 @@ export function useConnectorSnapshotSource({
 }: UseConnectorSnapshotSourceProps): void {
     const paramsRef = useRef(params);
     const versionRef = useRef(sourceImageVersion);
+    const previewSection = useMapartStore((state) => state.previewSection);
 
     useEffect(() => {
         paramsRef.current = params;
         versionRef.current = sourceImageVersion;
-    }, [params, sourceImageVersion]);
+        // Image, palette, processing, heights, supports, edits, File Layout and section (spec section 3).
+        notifyConstructionChanged();
+    }, [params, sourceImageVersion, previewSection]);
 
     useEffect(() => setConnectorSnapshotSource(async () => {
         const api = workerApiRef.current;

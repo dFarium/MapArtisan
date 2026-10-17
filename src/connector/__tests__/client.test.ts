@@ -46,14 +46,18 @@ const SESSION = {
     world: 'Test World',
     dimension: 'minecraft:overworld',
     origin: { x: 10, y: -60, z: 20 },
+    area: { x: 128, y: 380, z: 129 },
     buildHeight: { min: -64, max: 319 },
     lastRevision: 4,
     lastApplied: { revision: 4, contentHash: 'aaaaaaaaaaaaaaaa' },
+    needsResync: false,
+    paused: false,
+    pending: null,
 };
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 
-async function connected() {
+async function connected(session: Record<string, unknown> = SESSION) {
     const socket = new FakeSocket();
     const client = new ConnectorClient('ws://127.0.0.1:25590/mapartisan/v1', 'secret', () => socket);
     const connecting = client.connect();
@@ -61,7 +65,7 @@ async function connected() {
     await flush();
     socket.receive({ type: 'welcome', mod: '1.0', minecraft: '26.3', litematica: '0.29.1', limits: {} });
     await flush();
-    socket.receive({ type: 'sessionReady', ...SESSION });
+    socket.receive({ type: 'sessionReady', ...session });
     await connecting;
     return { socket, client };
 }
@@ -118,7 +122,7 @@ describe('ConnectorClient', () => {
         socket.receive({ type: 'progress', sessionId: 'session-1', revision: 5, phase: 'pasting', pendingChunks: 3, totalChunks: 4 });
         socket.receive({ type: 'applied', sessionId: 'session-1', revision: 4, contentHash: 'x', repeated: false });
         expect(client.busyRevision).toBe(5);
-        socket.receive({ type: 'applied', sessionId: 'session-1', revision: 5, contentHash: snapshot.contentHash, repeated: false });
+        socket.receive({ type: 'applied', sessionId: 'session-1', revision: 5, contentHash: snapshot.contentHash, repeated: false, needsResync: false });
 
         await expect(sending).resolves.toMatchObject({ revision: 5, repeated: false });
         expect(progress).toHaveLength(1);
@@ -142,11 +146,66 @@ describe('ConnectorClient', () => {
         const second = client.send(testSnapshot([[0, 0, 0, 0]]));
         socket.receive({ type: 'accepted', sessionId: 'session-1', revision: 6 });
         socket.receive({
-            type: 'failed', sessionId: 'session-1', revision: 6, code: 'VERIFY_MISMATCH', message: 'diff', partial: true, samples: ['0,0,0'],
+            type: 'failed', sessionId: 'session-1', revision: 6, code: 'VERIFY_MISMATCH', message: 'diff', partial: true,
+            needsResync: true, samples: ['0,0,0'],
         });
         const error = await second.catch((e: unknown) => e);
         expect(error).toBeInstanceOf(ConnectorError);
         expect(error).toMatchObject({ code: 'VERIFY_MISMATCH', partial: true, samples: ['0,0,0'] });
+        expect(client.session?.needsResync).toBe(true);
+        expect(client.session?.lastRevision).toBe(6);
+    });
+
+    it('adopts a revision the game is still applying when it reconnects', async () => {
+        const { socket, client } = await connected({
+            ...SESSION,
+            lastRevision: 7,
+            pending: { revision: 7, contentHash: 'bbbbbbbbbbbbbbbb', phase: 'pasting', pendingChunks: 30, totalChunks: 72 },
+        });
+
+        expect(client.busyRevision).toBe(7);
+        await expect(client.send(testSnapshot([[0, 0, 0, 0]]))).rejects.toMatchObject({ code: 'BUSY' });
+        // A rejection without a revision does not belong to an adopted revision.
+        socket.receive({ type: 'rejected', code: 'BAD_MESSAGE', message: 'other' });
+        expect(client.busyRevision).toBe(7);
+
+        socket.receive({ type: 'progress', sessionId: 'session-1', revision: 7, phase: 'paused', pendingChunks: 30, totalChunks: 72 });
+        expect(client.session).toMatchObject({ paused: true, pending: { revision: 7, phase: 'paused' } });
+        socket.receive({ type: 'applied', sessionId: 'session-1', revision: 7, contentHash: 'bbbbbbbbbbbbbbbb', repeated: false, needsResync: false });
+
+        expect(client.inFlight).toBeNull();
+        expect(client.session).toMatchObject({ lastApplied: { revision: 7 }, pending: null });
+        const sending = client.send(testSnapshot([[0, 0, 0, 0]]));
+        expect(JSON.parse(socket.sent.at(-1) as string)).toMatchObject({ type: 'snapshotEnd', revision: 8 });
+        socket.receive({ type: 'applied', sessionId: 'session-1', revision: 8, contentHash: 'x', repeated: false, needsResync: false });
+        await sending;
+    });
+
+    it('resolves inFlight with the outcome of an adopted revision', async () => {
+        const { socket, client } = await connected({
+            ...SESSION,
+            pending: { revision: 4, contentHash: 'aaaaaaaaaaaaaaaa', phase: 'verifying', pendingChunks: 0, totalChunks: 72 },
+        });
+        const inFlight = client.inFlight;
+        socket.receive({
+            type: 'failed', sessionId: 'session-1', revision: 4, code: 'ABORTED', message: 'aborted', partial: true, needsResync: true,
+        });
+
+        await expect(inFlight).rejects.toMatchObject({ code: 'ABORTED', partial: true });
+        expect(client.session?.needsResync).toBe(true);
+    });
+
+    it('queries the session state', async () => {
+        const { socket, client } = await connected();
+        const querying = client.queryStatus();
+
+        expect(socket.messages().at(-1)).toEqual({ protocolVersion: 1, type: 'status', sessionId: 'session-1' });
+        socket.receive({
+            type: 'status', sessionId: 'session-1', lastRevision: 4, lastApplied: null, needsResync: true, paused: true, pending: null,
+        });
+
+        await expect(querying).resolves.toEqual({ lastRevision: 4, lastApplied: null, needsResync: true, paused: true, pending: null });
+        expect(client.session).toMatchObject({ needsResync: true, paused: true, world: 'Test World' });
     });
 
     it('treats a rejection without a revision as the answer to the transfer in flight', async () => {
