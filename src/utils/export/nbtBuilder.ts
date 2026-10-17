@@ -7,6 +7,24 @@ import { TagTypes, type NBTRoot, type NBTCompound } from '../nbtWriter';
 import * as bitArray from '../litematicaBitArray';
 import { getDataVersion, DEFAULT_VERSION } from '../../data/supportedVersions';
 import { LITEMATICA_VERSION, type BlockWithCoords, type BlockStatesBuffers, type LitematicaMetadata } from './types';
+import { canonicalBlockState } from './blockState';
+
+/** Builds a palette entry (Name plus optional Properties) from a palette key. */
+function paletteEntryFor(key: string): NBTCompound {
+    const state = canonicalBlockState(key);
+    const entry: NBTCompound = {
+        Name: { type: TagTypes.STRING, value: state.name }
+    };
+
+    if (state.properties.length > 0) {
+        const props: NBTCompound = {};
+        for (const [k, v] of state.properties) {
+            props[k] = { type: TagTypes.STRING, value: v };
+        }
+        entry.Properties = { type: TagTypes.COMPOUND, value: props };
+    }
+    return entry;
+}
 
 function convertToBuffers(blockStates: BlockWithCoords[]): BlockStatesBuffers {
     const count = blockStates.length;
@@ -93,38 +111,8 @@ export function createLitematicaNBT(
             continue;
         }
 
-        let blockId = key;
-        let properties: Record<string, string> | undefined = undefined;
-
-        if (key.includes('[')) {
-            const openBracket = key.indexOf('[');
-            const closeBracket = key.indexOf(']');
-            blockId = key.substring(0, openBracket);
-            const propStr = key.substring(openBracket + 1, closeBracket);
-            properties = {};
-            const pairs = propStr.split(',');
-            for (const pair of pairs) {
-                const [k, v] = pair.split('=');
-                if (k && v) {
-                    properties[k] = v;
-                }
-            }
-        }
-
-        const paletteEntry: NBTCompound = {
-            Name: { type: TagTypes.STRING, value: blockId }
-        };
-
-        if (properties && Object.keys(properties).length > 0) {
-            const props: NBTCompound = {};
-            for (const [k, v] of Object.entries(properties)) {
-                props[k] = { type: TagTypes.STRING, value: v };
-            }
-            paletteEntry.Properties = { type: TagTypes.COMPOUND, value: props };
-        }
-
         paletteMap[i] = paletteBlocks.length;
-        paletteBlocks.push(paletteEntry);
+        paletteBlocks.push(paletteEntryFor(key));
     }
 
     // Initialize BitArray (default 0 = Air)
@@ -293,39 +281,8 @@ export function createVanillaNBT(
     const paletteMap = new Uint32Array(buffers.palette.length);
 
     for (let i = 0; i < buffers.palette.length; i++) {
-        const key = buffers.palette[i];
-        let blockId = key;
-        let properties: Record<string, string> | undefined = undefined;
-
-        if (key.includes('[')) {
-            const openBracket = key.indexOf('[');
-            const closeBracket = key.indexOf(']');
-            blockId = key.substring(0, openBracket);
-            const propStr = key.substring(openBracket + 1, closeBracket);
-            properties = {};
-            const pairs = propStr.split(',');
-            for (const pair of pairs) {
-                const [k, v] = pair.split('=');
-                if (k && v) {
-                    properties[k] = v;
-                }
-            }
-        }
-
-        const paletteEntry: NBTCompound = {
-            Name: { type: TagTypes.STRING, value: blockId }
-        };
-
-        if (properties && Object.keys(properties).length > 0) {
-            const props: NBTCompound = {};
-            for (const [k, v] of Object.entries(properties)) {
-                props[k] = { type: TagTypes.STRING, value: v };
-            }
-            paletteEntry.Properties = { type: TagTypes.COMPOUND, value: props };
-        }
-
         paletteMap[i] = paletteBlocks.length;
-        paletteBlocks.push(paletteEntry);
+        paletteBlocks.push(paletteEntryFor(buffers.palette[i]));
     }
 
     // Build blocks list

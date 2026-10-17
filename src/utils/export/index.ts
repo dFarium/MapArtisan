@@ -13,6 +13,9 @@ export {
 // Block Generation
 export { imageDataToBlockStates } from './blockGeneration';
 
+// Canonical block states
+export { canonicalBlockState, formatBlockState, type CanonicalBlockState } from './blockState';
+
 // NBT Builder
 export { createLitematicaNBT, createVanillaNBT } from './nbtBuilder';
 

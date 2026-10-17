@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     imageDataToBlockStates,
     createLitematicaNBT,
+    createVanillaNBT,
     calculateMaterialCounts,
     type BlockWithCoords,
     type BlockStatesBuffers
@@ -341,6 +342,17 @@ describe('litematicaExport', () => {
             expect(palette[1].Properties).toBeDefined();
         });
 
+        it('writes leaves as persistent', () => {
+            const nbt = createLitematicaNBT([{ blockId: 'minecraft:oak_leaves', x: 0, y: 0, z: 0 }]);
+            const palette = (nbt.value.Regions.value as unknown as RegionValue).map.value.BlockStatePalette.value.value;
+
+            expect(palette[1].Name.value).toBe('minecraft:oak_leaves');
+            expect(palette[1].Properties).toEqual({
+                type: expect.any(Number),
+                value: { persistent: { type: expect.any(Number), value: 'true' } }
+            });
+        });
+
         it('prioritizes non-support blocks at same position', () => {
             // Multiple blocks at same position (support + actual block)
             const blocks: BlockWithCoords[] = [
@@ -353,6 +365,19 @@ describe('litematicaExport', () => {
             // Should not crash and should handle the conflict
             expect(nbt).toBeDefined();
             expect(nbt.value.Regions).toBeDefined();
+        });
+    });
+
+    describe('createVanillaNBT', () => {
+        it('writes leaves as persistent', () => {
+            const nbt = createVanillaNBT([{ blockId: 'minecraft:birch_leaves', x: 0, y: 0, z: 0 }]);
+            const palette = (nbt.value.palette.value as unknown as { value: BlockStatePalette[] }).value;
+            const leaves = palette.find(entry => entry.Name.value === 'minecraft:birch_leaves');
+
+            expect(leaves?.Properties).toEqual({
+                type: expect.any(Number),
+                value: { persistent: { type: expect.any(Number), value: 'true' } }
+            });
         });
     });
 

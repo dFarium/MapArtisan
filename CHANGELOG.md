@@ -38,6 +38,7 @@ This update adds Minecraft 26.3 support, builds every 3D column as low as its sh
 - **Legacy Worker API**: Only the versioned contract remains.
 
 ### Fixed
+- **Leaves in Exports**: Leaves are exported with `persistent=true`, so they no longer decay after the schematic is pasted.
 - **Independent Map Exports**: The last row of every 128-row section is no longer dropped.
 - **Single-File Exports**: The north reference block (noobline) is placed correctly.
 - **Block Picker**: Reads the latest processed result.
