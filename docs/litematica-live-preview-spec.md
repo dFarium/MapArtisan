@@ -580,6 +580,24 @@ consola (sección 10.1).
 Punto de partida verificado el 2026-10-17: 987 pruebas y 617 golden fixtures en
 verde.
 
+**Resultado (2026-10-17).** Etapa 2 completada en cuatro cambios:
+
+1. Hojas con `persistent=true` en `.litematic` y `.nbt`. Los goldens no cambiaron:
+   son de procesamiento, no de exportación.
+2. `generateConstructionSections`, la función compartida. La salida exportada no
+   cambió: el SHA-256 de 8 exportaciones de prueba coincide antes y después.
+3. `generateConstructionSnapshotV1` en el worker, con `snapshot.ts`.
+4. `snapshotEquivalence.test.ts`: con la misma petición del worker, cada archivo
+   exportado, decodificado con un lector de NBT independiente
+   (`nbtTestReader.ts`), coincide bloque a bloque y en tamaño con la instantánea
+   de su sección. Cubre 7 casos: 1 × 1 con *Single File* y *Multiple Files*,
+   2 × 2 global e independiente y 2 × 1 independiente; 2D y 3D; los tres modos
+   de soporte; límite de altura; ediciones manuales; `.litematic` y `.nbt`.
+   Se comprobó con dos mutaciones (sin canonicalizar y un bloque desplazado) que
+   la prueba falla ante diferencias.
+
+Total: 1015 pruebas y 617 golden fixtures en verde.
+
 ## 13. Referencias consultadas
 
 - Código del gestor de colocaciones de Litematica, rama 26.3:
