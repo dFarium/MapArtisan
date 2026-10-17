@@ -159,7 +159,7 @@ export function buildConstructionSnapshot(
         paletteIndices,
         count,
         config,
-        contentHash: hashContent(palette, x, y, z, paletteIndices),
+        contentHash: snapshotContentHash(palette, x, y, z, paletteIndices),
     };
 }
 
@@ -171,7 +171,7 @@ function positionKey(x: number, y: number, z: number): number {
 }
 
 /** Hashes the palette (newline separated) and every block as four little-endian int32. */
-function hashContent(palette: string[], x: Int32Array, y: Int32Array, z: Int32Array, indices: Uint32Array): string {
+export function snapshotContentHash(palette: string[], x: Int32Array, y: Int32Array, z: Int32Array, indices: Uint32Array): string {
     const header = new TextEncoder().encode(palette.join('\n') + '\0');
     const bytes = new Uint8Array(header.length + x.length * 16);
     bytes.set(header);

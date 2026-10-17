@@ -34,6 +34,7 @@ export {
     buildConstructionSnapshot,
     resolveSnapshotSection,
     fnv1a64,
+    snapshotContentHash,
     ConstructionSnapshotError,
     type ConstructionSnapshot,
     type ConstructionSnapshotErrorCode,

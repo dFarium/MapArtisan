@@ -12,7 +12,8 @@
     "test": "vitest",
     "bench": "vitest run --config vitest.bench.config.ts",
     "goldens:update": "node scripts/update-goldens.mjs",
-    "goldens:verify": "vitest run src/utils/__tests__/goldenFixtures.test.ts"
+    "goldens:verify": "vitest run src/utils/__tests__/goldenFixtures.test.ts",
+    "connector:e2e": "vitest run --config vitest.connector.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
