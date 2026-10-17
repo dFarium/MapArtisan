@@ -129,4 +129,57 @@ describe('mapart.worker processing contract', () => {
         expect(result.blob).toBeInstanceOf(Blob);
         expect(result.filename).toContain('contract-test');
     });
+
+    it('generates a construction snapshot through the versioned worker contract', async () => {
+        mapartWorkerApi.clearCache();
+        const config = {
+            width: 1,
+            height: 1,
+            buildMode: '2d' as const,
+            selectedPaletteItems: { 1: 'minecraft:stone' },
+            heightLimit: 0,
+            heightLimitStyle: 'balanced' as const,
+            dithering: 'none' as const,
+            usePerceptual: false,
+            hybridStrength: 50,
+            independentMaps: false,
+            blockSupport: 'all' as const,
+            supportBlockId: 'minecraft:cobblestone',
+            exportMode: 'full' as const,
+            exportFormat: 'litematic' as const,
+            paletteVersion: '26.3',
+        };
+        const request = {
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: 30,
+            sourceVersion: 1,
+            config,
+            source: { width: 1, height: 1, rgba: new Uint8Array([50, 50, 50, 255]).buffer },
+            manualEdits: {},
+            section: null,
+        };
+
+        const result = await mapartWorkerApi.generateConstructionSnapshotV1(request);
+        if (result.status !== 'completed') throw new Error(`rejected: ${result.message}`);
+        const { snapshot } = result;
+
+        expect(result.requestId).toBe(30);
+        // Noobline at z = 0 plus the single pixel at z = 1.
+        expect(snapshot.count).toBe(2);
+        expect(snapshot.x.buffer.byteLength).toBe(snapshot.count * 4);
+        expect(snapshot.paletteIndices.buffer.byteLength).toBe(snapshot.count * 4);
+        expect(snapshot.palette).toContain('minecraft:cobblestone');
+        expect(snapshot.section).toEqual({ x: 0, y: 0, mapsX: 1, mapsY: 1 });
+        expect(snapshot.config.minecraftVersion).toBe('26.3');
+        expect(snapshot.contentHash).toMatch(/^[0-9a-f]{16}$/);
+
+        // Rejected before processing, so no source or cached result is needed.
+        const rejected = await mapartWorkerApi.generateConstructionSnapshotV1({
+            ...request,
+            requestId: 31,
+            config: { ...config, width: 200 },
+            source: null,
+        });
+        expect(rejected).toMatchObject({ status: 'rejected', requestId: 31, code: 'UNSUPPORTED_LAYOUT' });
+    });
 });

@@ -9,6 +9,8 @@ export {
     type CalculateMaterialsResponseV1,
     type GenerateExportRequestV1,
     type GenerateExportResponseV1,
+    type GenerateSnapshotRequestV1,
+    type GenerateSnapshotResponseV1,
     type ImageBufferV1,
     type ProcessingBuffersV1,
     type ProcessingConfigV1,

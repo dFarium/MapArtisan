@@ -1,10 +1,19 @@
 import { expose, transfer } from 'comlink';
 import { getValidColors, unpackCandidateIdx, clearColorCache, clearOklabCache, type ColorCandidate } from '../utils/processing';
-import { generateMapartExport, calculateMaterialCounts } from '../utils/export';
+import {
+    generateMapartExport,
+    generateConstructionSections,
+    buildConstructionSnapshot,
+    resolveSnapshotSection,
+    ConstructionSnapshotError,
+    calculateMaterialCounts,
+    type ConstructionSnapshot,
+    type SnapshotSection,
+} from '../utils/export';
 import type { ManualEdit } from '../types/mapart';
 import { build3DGeometry, type Build3DGeometryProps } from '../utils/geometry/build3DGeometry';
 import { setDebugEnabled } from '../utils/diagnostic';
-import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, heightLimitOf, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
+import { PROCESSING_PROTOCOL_VERSION, TypeScriptEngine, heightLimitOf, type ApplyEditsRequestV1, type CalculateMaterialsRequestV1, type CalculateMaterialsResponseV1, type GenerateExportRequestV1, type GenerateExportResponseV1, type GenerateSnapshotRequestV1, type GenerateSnapshotResponseV1, type ProcessingConfigV1, type ProcessingRequestV1, type ProcessingResponseV1 } from '../engine';
 
 /**
  * Snapshot of the latest processed result, kept for block picking.
@@ -137,6 +146,69 @@ const api = {
             filename: result.filename,
             blob: result.blob,
         };
+    },
+
+    /**
+     * Builds the construction snapshot of one section for the live preview connector.
+     * It comes from the same generation as generateMapartExportV1, so it matches the
+     * exported file for that section. The layout is validated before processing.
+     */
+    generateConstructionSnapshotV1: async (request: GenerateSnapshotRequestV1): Promise<GenerateSnapshotResponseV1> => {
+        const { config } = request;
+        const envelope = {
+            protocolVersion: PROCESSING_PROTOCOL_VERSION,
+            requestId: request.requestId,
+            sourceVersion: request.sourceVersion,
+        };
+        const rejected = (error: unknown): GenerateSnapshotResponseV1 => {
+            if (!(error instanceof ConstructionSnapshotError)) throw error;
+            return { ...envelope, status: 'rejected', code: error.code, message: error.message };
+        };
+
+        let section: SnapshotSection;
+        try {
+            section = resolveSnapshotSection(config.width, config.height, config.exportMode, request.section);
+        } catch (error) {
+            return rejected(error);
+        }
+
+        const processed = processingEngine.process(request);
+        const imageData = new ImageData(
+            new Uint8ClampedArray(processed.buffers.rgba),
+            processed.width,
+            processed.height,
+        );
+        const construction = generateConstructionSections(
+            imageData,
+            config.selectedPaletteItems,
+            config.buildMode,
+            heightLimitOf(config),
+            config.dithering,
+            config.usePerceptual,
+            config.hybridStrength,
+            config.independentMaps,
+            {},
+            config.blockSupport,
+            config.supportBlockId,
+            config.exportMode,
+            new Uint32Array(processed.buffers.packedResults),
+        );
+        let snapshot: ConstructionSnapshot;
+        try {
+            snapshot = buildConstructionSnapshot(construction, section, {
+                buildMode: config.buildMode,
+                blockSupport: config.blockSupport,
+                supportBlockId: config.supportBlockId,
+                minecraftVersion: config.paletteVersion,
+            });
+        } catch (error) {
+            return rejected(error);
+        }
+
+        return transfer(
+            { ...envelope, status: 'completed' as const, snapshot },
+            [snapshot.x.buffer, snapshot.y.buffer, snapshot.z.buffer, snapshot.paletteIndices.buffer]
+        );
     },
 
     /**

@@ -29,5 +29,16 @@ export {
     type ExportSection
 } from './fileExport';
 
+// Construction snapshot (live preview)
+export {
+    buildConstructionSnapshot,
+    resolveSnapshotSection,
+    fnv1a64,
+    ConstructionSnapshotError,
+    type ConstructionSnapshot,
+    type ConstructionSnapshotErrorCode,
+    type SnapshotSection
+} from './snapshot';
+
 // Materials
 export { calculateMaterialCounts } from './materials';

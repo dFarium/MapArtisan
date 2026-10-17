@@ -1,5 +1,6 @@
 import type { ManualEdit, MapartStats, BuildMode, ExportFormat } from '../types/mapart';
 import type { MaterialCounts } from '../utils/export/materials';
+import type { ConstructionSnapshot, ConstructionSnapshotErrorCode } from '../utils/export/snapshot';
 import type { DitheringMode, HeightLimit, HeightLimitStyle } from '../utils/processing';
 
 export const PROCESSING_PROTOCOL_VERSION = 1 as const;
@@ -84,6 +85,30 @@ export interface GenerateExportResponseV1 {
     filename: string;
     blob: Blob;
 }
+
+export interface GenerateSnapshotRequestV1 {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+    config: ProcessingConfigV1;
+    source: ImageBufferV1 | null;
+    manualEdits: Record<number, ManualEdit>;
+    /** Section to render with Multiple Files; null (or 0,0) with Single File. */
+    section: { x: number; y: number } | null;
+}
+
+/**
+ * A rejection is a response, not a thrown error: Comlink only carries an error's
+ * message, name and stack, so its code would be lost across the worker boundary.
+ */
+export type GenerateSnapshotResponseV1 = {
+    protocolVersion: typeof PROCESSING_PROTOCOL_VERSION;
+    requestId: number;
+    sourceVersion: number;
+} & (
+    | { status: 'completed'; snapshot: ConstructionSnapshot }
+    | { status: 'rejected'; code: ConstructionSnapshotErrorCode; message: string }
+);
 
 export interface ProcessingBuffersV1 {
     rgba: ArrayBuffer;

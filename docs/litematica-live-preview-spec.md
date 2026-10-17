@@ -526,6 +526,21 @@ Las combinaciones admitidas son las de la sección 10.2.
 La revisión y la sesión no forman parte de la instantánea: las asigna el
 coordinador de la etapa 5.
 
+Detalles de la implementación (paso 3, `src/utils/export/snapshot.ts` y
+`generateConstructionSnapshotV1` del worker):
+
+- La paleta se reduce a los estados canónicos que usa la sección, en orden de
+  primer uso. Así, editar otra sección o cambiar la configuración sin cambiar
+  bloques no altera el hash de esta.
+- El hash cubre solo el contenido (paleta y bloques), no la sección ni la
+  configuración: dos instantáneas con el mismo contenido producen el mismo mundo.
+- Si una posición se escribe dos veces, se conserva el último bloque, igual que
+  los escritores de NBT.
+- La combinación de *File Layout* y sección se valida antes de procesar la imagen.
+  Un rechazo vuelve como respuesta tipada (`status: 'rejected'` con `code`), no
+  como excepción: Comlink solo transporta el mensaje, el nombre y la pila de un
+  error, y el código se perdería.
+
 **Estados canónicos y hojas.** Una sola función produce el estado canónico de
 cada bloque y la usa la generación compartida. Así la instantánea, la exportación
 `.litematic` y la `.nbt` reciben lo mismo:
