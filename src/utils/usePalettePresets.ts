@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import paletteData from '../data/palette.json';
-import { BASIC_COLORS, EASY_KEYWORDS } from '../data/presetConstants';
+import { BASIC_WOOL_BLOCKS, EASY_KEYWORDS } from '../data/presetConstants';
 import type { PaletteColor } from '../types/palette';
 import { debug } from './diagnostic';
 import {
@@ -92,15 +92,7 @@ export const usePalettePresets = (
             if (type === 'all') {
                 newSelection[color.colorID] = blockIds[0] || null;
             } else if (type === 'basic') {
-                if (BASIC_COLORS.includes(color.colorName.toLowerCase())) {
-                    // Prefer wool, then concrete
-                    const preferred = blockIds.find(id => id.includes('_wool')) ||
-                        blockIds.find(id => id.includes('_concrete')) ||
-                        blockIds[0];
-                    newSelection[color.colorID] = preferred || null;
-                } else {
-                    newSelection[color.colorID] = null;
-                }
+                newSelection[color.colorID] = blockIds.find(id => BASIC_WOOL_BLOCKS.includes(id)) ?? null;
             } else if (type === 'easy') {
                 const preferred = blockIds.find(id => EASY_KEYWORDS.some(kw => id.includes(kw))) || blockIds[0];
                 newSelection[color.colorID] = preferred || null;

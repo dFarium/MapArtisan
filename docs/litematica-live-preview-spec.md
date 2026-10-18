@@ -25,7 +25,9 @@ itself. It defines the scope and the checks required before implementing.
 
 - Minecraft Java 26.3, Fabric, creative singleplayer world on the same machine.
 - Litematica and its compatible MaLiLib installed as required dependencies.
-- MapArtisan served locally; WebSocket connection over loopback.
+- MapArtisan served locally or from its published site
+  (`https://mapartisan.dfarium.com`, added 2026-10-17); WebSocket connection
+  over loopback either way.
 - One session, one tab with write control and one active construction.
 - One 128 × 128 section at a time, in 2D and 3D valley modes, according to the
   *File Layout* (section 10.2): a 1 × 1 map with *Single File*, or the chosen
@@ -40,7 +42,7 @@ itself. It defines the scope and the checks required before implementing.
 Out of v1: multiplayer/LAN, Servux, other loaders or Minecraft versions,
 syncing edits made in the game, entities, inventories/block entity NBT, several
 sections at once, maps larger than 128 in full export mode, arbitrary
-rotations, the public HTTPS web app and support without Litematica.
+rotations, Vercel preview deployments and support without Litematica.
 
 Manual Litematica/NBT export and the web preview must keep working without a
 connection to the mod. Those features do not need the bridge.
@@ -431,7 +433,7 @@ the first prototype.
 
 The token is generated in the mod and entered in MapArtisan; it is not stored
 in the repository or printed in full in the logs. The bridge checks the Origin
-header against the configured local origins and limits writing to one tab. The
+header against the configured origins and limits writing to one tab. The
 protocol accepts structures, never arbitrary commands or file paths.
 
 Initial limits, subject to measurement:
@@ -490,8 +492,8 @@ under any load are not promised.
 3. Local bridge and full manual paste of one revision.
 4. Replacement with air, confirmations, recovery and target isolation.
 5. Automatic sync, controls and burst/undo/redo tests.
-6. Measurement and tuning; only then evaluate several sections at once, Servux
-   or the published web app.
+6. Measurement and tuning; only then evaluate several sections at once or
+   Servux.
 
 Product prerequisite: Minecraft 26.3 is already enabled among MapArtisan's
 supported versions (default version, DataVersion 5023), and the exported
@@ -622,8 +624,17 @@ start, `needsResync` policy and `status` query on reconnect (stage 4).
   4.2.16) and JSON with its Gson 2.14, no new dependencies. It listens only on
   `127.0.0.1`, path `/mapartisan/v1`, port `25590` by default.
 - `config/mapartisan_connector.json` (`port`, `allowedOrigins`) is created with
-  the defaults and read on every `/mapartisan start`. Default origins:
-  `localhost` and `127.0.0.1` on ports 5173 (dev) and 4173 (preview).
+  the defaults and read on every `/mapartisan start`. Default origins: the
+  published site `https://mapartisan.dfarium.com` (added 2026-10-17), and
+  `localhost` and `127.0.0.1` on ports 5173 (dev) and 4173 (preview). The match
+  is exact, so Vercel preview deployments need their own entry. A config file
+  written by an earlier version keeps its old list until edited or deleted.
+- From the HTTPS site the page connects to `ws://127.0.0.1`. Chrome and Firefox
+  treat loopback as potentially trustworthy, so this is not blocked as mixed
+  content; recent Chrome versions may ask once for permission to access the
+  local network. Safari is unverified. Allowing the published origin keeps the
+  token as the protection: it is generated per `/mapartisan start` and only
+  shown in the game.
 - The session starts in the game. `/mapartisan start [x y z]` sets the origin
   (by default, the player's position) and the dimension, opens the port and
   generates a new 128-bit token. The chat shows only its last 4 characters and a

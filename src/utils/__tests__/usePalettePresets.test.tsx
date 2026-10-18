@@ -8,7 +8,8 @@ vi.mock('../../data/palette.json', () => ({
         colors: [
             {
                 colorID: 1,
-                colorName: 'white',
+                // Real palette names follow Mojang's map colors, not dye names.
+                colorName: 'snow',
                 blocks: [{ id: 'minecraft:white_wool', needsSupport: false }, { id: 'minecraft:white_concrete', needsSupport: false }]
             },
             {
@@ -18,17 +19,11 @@ vi.mock('../../data/palette.json', () => ({
             },
             {
                 colorID: 3,
-                colorName: 'blue',
+                colorName: 'color_blue',
                 blocks: [{ id: 'minecraft:blue_wool', needsSupport: false }]
             }
         ]
     }
-}));
-
-// Mock constants
-vi.mock('../../data/constants', () => ({
-    BASIC_COLORS: ['white', 'blue'],
-    EASY_KEYWORDS: ['dirt']
 }));
 
 describe('usePalettePresets', () => {
@@ -104,11 +99,11 @@ describe('usePalettePresets', () => {
             result.current.applyPreset('basic');
         });
 
-        // Should select only basic colors (white, blue) and unselect dirt
+        // Selects the wool of each dye color and unselects dirt
         expect(setSelectedPaletteItems).toHaveBeenCalledWith({
-            1: expect.stringMatching(/white/),
+            1: 'minecraft:white_wool',
             2: null,
-            3: expect.stringMatching(/blue/)
+            3: 'minecraft:blue_wool'
         });
     });
 
